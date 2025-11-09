@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import api from '@/services/api.js'; // <-- UPDATED
 import { X, Loader2 } from 'lucide-react';
 import Modal from './Modal.jsx';
+import { useNavigate } from 'react-router-dom'; // <-- ADD THIS IMPORT
+
 /**
  * This form handles the logic for converting a student Enquiry
  * into a full Student and creating their User account.

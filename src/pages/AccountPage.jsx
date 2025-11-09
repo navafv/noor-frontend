@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { User, Settings, LogOut, ChevronRight, Inbox, Users } from 'lucide-react';
+import { User, Settings, LogOut, ChevronRight, Inbox, Users, BarChart2 } from 'lucide-react'; // Import BarChart2
 
 /**
  * Main Account screen.
- * Shows user info and navigation options based on their role.
  */
 function AccountPage() {
   const { user, logoutUser } = useAuth();
@@ -13,20 +12,24 @@ function AccountPage() {
 
   const handleLogout = () => {
     logoutUser();
-    // Navigate is handled by context, but we could force it here if needed
-    // navigate('/login'); 
   };
 
   const getInitials = (firstName, lastName) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || user?.username[0].toUpperCase() || '?';
   };
 
+  if (!user) {
+    return (
+       <div className="flex h-screen items-center justify-center">Loading user data...</div>
+    )
+  }
+
   return (
     <div className="p-4 pb-20 max-w-2xl mx-auto">
       {/* User Profile Header */}
       <div className="flex items-center space-x-4 mb-8">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-noor-primary/10">
-          <span className="text-2xl font-medium text-noor-primary">
+        <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-noor-pink/10">
+          <span className="text-2xl font-medium text-noor-pink">
             {getInitials(user?.first_name, user?.last_name)}
           </span>
         </span>
@@ -35,7 +38,7 @@ function AccountPage() {
             {user?.first_name || user?.username}
           </h1>
           <p className="text-sm text-gray-500">{user?.email}</p>
-          <span className="inline-flex items-center rounded-full bg-noor-primary/10 px-2.5 py-0.5 text-xs font-medium text-noor-primary mt-2">
+          <span className="inline-flex items-center rounded-full bg-noor-pink/10 px-2.5 py-0.5 text-xs font-medium text-noor-pink mt-2">
             {user?.role?.name || 'Student'}
           </span>
         </div>
@@ -49,19 +52,14 @@ function AccountPage() {
           </h2>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <ul className="divide-y divide-gray-200">
+              {/* --- UPDATE THIS LINK --- */}
               <AdminLink
-                to="/admin/enquiries"
-                icon={Inbox}
-                title="Manage Enquiries"
-                subtitle="Review and convert new enquiries"
+                to="/admin/dashboard"
+                icon={BarChart2}
+                title="Admin Dashboard"
+                subtitle="View stats, manage enquiries, students"
               />
-              <AdminLink
-                to="/admin/students"
-                icon={Users}
-                title="Manage Students"
-                subtitle="View all registered students"
-              />
-              {/* Add more admin links here */}
+              {/* --- END OF UPDATE --- */}
             </ul>
           </div>
         </div>
@@ -75,7 +73,7 @@ function AccountPage() {
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <ul className="divide-y divide-gray-200">
             <AdminLink
-              to="/account/settings" // Example link
+              to="/account/settings"
               icon={Settings}
               title="Account Settings"
               subtitle="Update your profile information"
@@ -96,9 +94,6 @@ function AccountPage() {
   );
 }
 
-/**
- * Reusable link component for the lists
- */
 const AdminLink = ({ to, icon: Icon, title, subtitle }) => (
   <li>
     <Link to={to} className="block hover:bg-gray-50">

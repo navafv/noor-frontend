@@ -10,44 +10,54 @@ import LoginPage from './pages/LoginPage.jsx';
 // App (Shared) Pages
 import AccountPage from './pages/AccountPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
+import AccountSettings from './pages/AccountSettings.jsx';
 
 // Admin-Only Pages
-import AdminDashboard from './pages/AdminDashboard.jsx'; // This is the Enquiry List
+import AdminDashboard from './pages/AdminDashboard.jsx'; // <-- This is the NEW main dashboard
+import AdminEnquiryListPage from './pages/AdminEnquiryListPage.jsx'; // <-- This is the RENAMED old dashboard
 import EnquiryDetailPage from './pages/EnquiryDetailPage.jsx';
 import StudentListPage from './pages/StudentListPage.jsx';
+import StudentDetailPage from './pages/StudentDetailPage.jsx'; 
+import AttendancePage from './pages/AttendancePage.jsx'; // <-- IMPORT NEW PAGE
 
 import './index.css';
 
 function App() {
   return (
     <Routes>
-      {/* Public-facing login page (no layout) */}
       <Route path="/login" element={<LoginPage />} />
 
       {/* === Main App Layout (Public) === */}
-      {/* This group contains public pages that show the bottom nav */}
-      {/* The <Layout> component is now the parent route */}
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
       </Route>
 
       {/* === Main App Layout (Protected) === */}
-      {/* This group contains protected pages that show the bottom nav */}
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/settings" element={<AccountSettings />} />
         <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
       
       {/* === Admin-only routes (No Bottom Nav) === */}
-      {/* These routes do not use the <Layout> and have no bottom nav */}
+      {/* --- UPDATE ADMIN ROUTES --- */}
       <Route
-        path="/admin/enquiries"
+        path="/admin/dashboard"
         element={
           <ProtectedRoute staffOnly={true}>
             <AdminDashboard />
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/enquiries"
+        element={
+          <ProtectedRoute staffOnly={true}>
+            <AdminEnquiryListPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* --- END OF UPDATE --- */}
       <Route
         path="/admin/enquiry/:id"
         element={
@@ -64,8 +74,27 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/student/:id"
+        element={
+          <ProtectedRoute staffOnly={true}>
+            <StudentDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      {/* --- ADD ATTENDANCE ROUTE --- */}
+      <Route
+        path="/admin/attendance"
+        element={
+          <ProtectedRoute staffOnly={true}>
+            <AttendancePage />
+          </ProtectedRoute>
+        }
+      />
       
-      {/* Add a catch-all or 404 page later */}
+      {/* Redirect /admin to the new dashboard */}
+      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

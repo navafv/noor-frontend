@@ -1,1 +1,86 @@
 @import "tailwindcss";
+
+/*
+  We must tell the Tailwind plugin what config file to use
+  when processing this CSS file.
+*/
+@config "../tailwind.config.js";
+
+/*
+  In v4, you define layers for base, components, and utilities.
+  The plugin automatically includes Tailwind's built-in styles.
+*/
+@layer base {
+  :root {
+    /* --- Define your custom colors as CSS variables --- */
+    --color-noor-pink: #ec4899;
+    --color-noor-pink-dark: #be185d;
+    --color-noor-heading: #333333;
+    
+    /* --- Define your custom fonts as CSS variables --- */
+    --font-sans: 'Poppins', sans-serif;
+    --font-logo: 'Great Vibes', cursive;
+  }
+
+  body {
+    /* Now @apply will work with your custom theme values */
+    @apply bg-gray-50 font-sans text-noor-heading;
+  }
+
+  .logo {
+    @apply font-logo;
+  }
+}
+
+@layer components {
+  /* Here we can safely define reusable component classes
+    using @apply, and they will work with your custom colors.
+  */
+
+  /* Reusable form components */
+  .form-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  .form-input {
+    @apply mt-1 block w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink;
+  }
+
+  /* Reusable badge for status */
+  .status-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .status-new {
+    @apply bg-blue-100 text-blue-800;
+  }
+  .status-follow_up {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  .status-converted {
+    @apply bg-green-100 text-green-800;
+  }
+  .status-closed {
+    @apply bg-gray-100 text-gray-800;
+  }
+
+  /* Reusable buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md border border-transparent bg-noor-pink px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-noor-pink-dark focus:outline-none focus:ring-2 focus:ring-noor-pink focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-pink-300;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-noor-pink focus:ring-offset-2;
+  }
+
+  /* Grid for action buttons on student page */
+  .btn-action-grid {
+    @apply flex flex-col items-center justify-center gap-1 rounded-lg bg-white p-4 text-center text-noor-pink shadow-sm transition-all hover:bg-noor-pink/10 hover:shadow-md;
+  }
+  
+  /* Form Error */
+  .form-error {
+    @apply rounded-md bg-red-50 p-3 text-center text-sm font-medium text-red-600;
+  }
+}
+
+@layer utilities {
+  /* You can add custom utility classes here if needed */
+}

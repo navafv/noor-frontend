@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/services/api.js'; // <-- UPDATED
 import { Link } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Inbox, Users, Loader2 } from 'lucide-react'; // <-- IMPORTED USERS, INBOX, LOADER2
 
 /**
  * A list component for displaying enquiries on the admin dashboard.
+ * Receives 'users' as a prop from its parent (AdminDashboard)
  */
-function EnquiryList() {
+function EnquiryList({ users }) { // <-- RECEIVE 'users' PROP
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,7 +35,7 @@ function EnquiryList() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[200px]">
-        <p className="text-gray-500">Loading new enquiries...</p>
+        <Loader2 className="animate-spin text-noor-pink" size={32} />
       </div>
     );
   }
@@ -52,6 +53,9 @@ function EnquiryList() {
       </div>
     );
   }
+
+  // The 'users' prop is now available and resolves the error
+  // You can now use it for a filter dropdown, for example.
 
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
