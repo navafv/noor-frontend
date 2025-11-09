@@ -1,0 +1,22 @@
+noor-frontend/
+├── public/
+│   ├── stitching_inauguration.jpg  (Copy your posters here)
+│   └── stitching_promo.jpg
+├── src/
+│   ├── assets/
+│   │   └── logo.png                (If you have one)
+│   ├── components/
+│   │   ├── Header.jsx
+│   │   ├── Footer.jsx
+│   │   └── EnquiryForm.jsx         (The most important part)
+│   ├── pages/
+│   │   ├── HomePage.jsx
+│   │   └── AdminDashboard.jsx      (We will build this later)
+│   ├── services/
+│   │   └── api.js                  (Configures axios)
+│   ├── App.css                     (Global styles)
+│   ├── App.jsx                     (Main router)
+│   └── main.jsx
+├── .env
+├── index.html
+└── package.json
