@@ -1,19 +1,19 @@
 /*
  * UPDATED FILE: src/pages/StudentDetailPage.jsx
  *
- * FIX: This page now fetches and displays issued certificates.
- * ADD: It now includes a modal and form to issue *new* certificates.
+ * FIX: Removed duplicate function declarations for 'InfoItem', 'ActionCard', etc.
+ * at the end of the file to fix the 'Cannot redeclare' error.
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  ChevronLeft, Phone, Mail, Home, Shield,
-  Award, Download, Loader2, BookOpen, DollarSign, Ruler
+  CircleUserRound, Phone, Mail, Home, Shield,
+  Award, Download, Loader2, BookOpen, DollarSign, Ruler, AlertCircle
 } from 'lucide-react';
 import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
 import MeasurementForm from '@/components/MeasurementForm.jsx';
-import PageHeader from '@/components/PageHeader.jsx'; // Import PageHeader
+import PageHeader from '@/components/PageHeader.jsx';
 
 /**
  * Shows all details for a single student.
@@ -25,7 +25,8 @@ function StudentDetailPage() {
   const [enrollments, setEnrollments] = useState([]);
   const [payments, setPayments] = useState([]);
   const [measurements, setMeasurements] = useState([]);
-  const [certificates, setCertificates] = useState([]); // <-- NEW STATE
+  const [certificates, setCertificates] = useState([]);
+  const [outstandingData, setOutstandingData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,31 +34,33 @@ function StudentDetailPage() {
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isMeasurementModalOpen, setIsMeasurementModalOpen] = useState(false);
-  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false); // <-- NEW STATE
+  const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
 
   const fetchStudentData = async () => {
     try {
-      // Don't set loading to true here, causes flicker on refresh
       setError(null);
       const [
         studentRes, 
         enrollmentsRes, 
         paymentsRes, 
         measurementsRes, 
-        certificatesRes // <-- FETCH CERTIFICATES
+        certificatesRes,
+        outstandingRes
       ] = await Promise.all([
         api.get(`/students/${id}/`),
         api.get(`/enrollments/?student=${id}`),
-        api.get(`/fees/receipts/?student=${id}`),
-        api.get(`/students/${id}/measurements/`), // Uses fixed nested route
-        api.get(`/certificates/?student=${id}`), // <-- FETCH CERTIFICATES
+        api.get(`/finance/receipts/?student=${id}`),
+        api.get(`/students/${id}/measurements/`),
+        api.get(`/certificates/?student=${id}`),
+        api.get(`/finance/outstanding/student/${id}/`)
       ]);
       
       setStudent(studentRes.data);
       setEnrollments(enrollmentsRes.data.results || []);
       setPayments(paymentsRes.data.results || []);
       setMeasurements(measurementsRes.data.results || []);
-      setCertificates(certificatesRes.data.results || []); // <-- SET CERTIFICATES
+      setCertificates(certificatesRes.data.results || []);
+      setOutstandingData(outstandingRes.data);
 
     } catch (err) {
       setError('Could not fetch student details.');
@@ -81,13 +84,13 @@ function StudentDetailPage() {
     fetchStudentData(); 
   };
   
-  // Sort measurements by date descending, get the first one
   const latestMeasurement = measurements.length > 0 
     ? measurements.sort((a, b) => new Date(b.date_taken) - new Date(a.date_taken))[0] 
     : null;
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-[50vh]">
+      <PageHeader title="Student Profile" />
       <Loader2 className="animate-spin text-primary" size={48} />
     </div>
   );
@@ -101,7 +104,6 @@ function StudentDetailPage() {
   
   if (!student) return <div className="p-4">Student not found.</div>;
 
-  // Use a placeholder if photo is null
   const photoUrl = student.photo 
     ? `${import.meta.env.VITE_API_BASE_URL}${student.photo}`
     : `https://placehold.co/400x400/EBF5FF/1E40AF?text=${getInitials(student.user.first_name, student.user.last_name)}`;
@@ -132,8 +134,25 @@ function StudentDetailPage() {
             <ActionCard icon={BookOpen} label="Enroll" onClick={() => setIsEnrollModalOpen(true)} />
             <ActionCard icon={DollarSign} label="Log Payment" onClick={() => setIsPaymentModalOpen(true)} />
             <ActionCard icon={Ruler} label="Measurements" onClick={() => setIsMeasurementModalOpen(true)} />
-            <ActionCard icon={Award} label="Issue Certificate" onClick={() => setIsCertificateModalOpen(true)} /> {/* <-- NEW BUTTON */}
+            <ActionCard icon={Award} label="Issue Certificate" onClick={() => setIsCertificateModalOpen(true)} />
           </div>
+          
+          {/* Outstanding Fee Card */}
+          {outstandingData && (
+            <div className={`card p-4 mb-4 ${outstandingData.total_due > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+              <div className="flex items-center">
+                <AlertCircle className={`mr-3 shrink-0 ${outstandingData.total_due > 0 ? 'text-red-600' : 'text-green-600'}`} size={24} />
+                <div>
+                  <p className={`text-sm font-medium ${outstandingData.total_due > 0 ? 'text-red-700' : 'text-green-700'}`}>
+                    Total Outstanding
+                  </p>
+                  <p className={`text-2xl font-bold ${outstandingData.total_due > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    ₹{outstandingData.total_due.toLocaleString('en-IN')}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Details Section */}
           <div className="card p-6">
@@ -142,10 +161,11 @@ function StudentDetailPage() {
               <InfoItem icon={Phone} label="Phone" value={student.user.phone} />
               {student.user.email && <InfoItem icon={Mail} label="Email" value={student.user.email} />}
               <InfoItem icon={Home} label="Address" value={student.address} />
-              <div className="border-t border-border pt-4 mt-4">
-                <InfoItem icon={Shield} label="Guardian" value={student.guardian_name} />
-                <InfoItem icon={Phone} label="Guardian Phone" value={student.guardian_phone} isSubItem={true} />
-              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-4 border-t border-border pt-4 mt-4">Guardian Information</h3>
+            <div className="space-y-4">
+              <InfoItem icon={CircleUserRound} label="Name" value={student.guardian_name} />
+              <InfoItem icon={Phone} label="Phone" value={student.guardian_phone} />
             </div>
           </div>
           
@@ -167,7 +187,7 @@ function StudentDetailPage() {
             ) : <p className="text-sm text-muted-foreground">No measurements recorded.</p>}
           </div>
 
-          {/* Issued Certificates Section <-- NEW SECTION --> */}
+          {/* Issued Certificates Section */}
           <div className="card p-6 mt-4">
             <h3 className="text-lg font-semibold text-foreground mb-2">Issued Certificates</h3>
             {certificates.length === 0 ? (
@@ -180,7 +200,7 @@ function StudentDetailPage() {
                     <p className="text-sm text-muted-foreground">Issued on: {new Date(cert.issue_date).toLocaleDateString()}</p>
                     {cert.pdf_file && (
                       <a 
-                        href={cert.pdf_file} // The backend should return the full URL
+                        href={cert.pdf_file}
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="text-sm text-primary font-medium flex items-center gap-1 mt-1"
@@ -207,7 +227,6 @@ function StudentDetailPage() {
       <Modal isOpen={isMeasurementModalOpen} onClose={() => setIsMeasurementModalOpen(false)} title="Add/Update Measurements">
         <MeasurementForm studentId={student.id} latestMeasurement={latestMeasurement} onClose={() => setIsMeasurementModalOpen(false)} onSaved={handleDataRefresh} />
       </Modal>
-      {/* --- NEW MODAL --- */}
       <Modal isOpen={isCertificateModalOpen} onClose={() => setIsCertificateModalOpen(false)} title="Issue New Certificate">
         <CertificateForm 
           studentId={student.id}
@@ -221,8 +240,9 @@ function StudentDetailPage() {
   );
 }
 
-// --- Sub-components (ActionCard, InfoItem, EnrolledCoursesList, PaymentHistoryList, EnrollStudentForm, LogPaymentForm) ---
-// (These are the same as before, no changes needed)
+// --- Sub-components ---
+// (These are now defined only ONCE)
+
 const ActionCard = ({ icon: Icon, label, onClick }) => ( 
   <button 
     onClick={onClick} 
@@ -232,13 +252,245 @@ const ActionCard = ({ icon: Icon, label, onClick }) => (
     <span className="text-xs font-semibold">{label}</span> 
   </button> 
 );
-const InfoItem = ({ icon: Icon, label, value, isSubItem = false }) => ( <div className={`flex ${isSubItem ? 'pl-9' : ''}`}> <Icon size={16} className="mr-3 shrink-0 text-muted-foreground mt-1" /> <div> <p className="text-xs text-muted-foreground">{label}</p> <p className="text-sm font-medium text-foreground">{value || '-'}</p> </div> </div> );
-function EnrolledCoursesList({ enrollments }) { return ( <div className="card p-6 mt-4"> <h3 className="text-lg font-semibold text-foreground mb-2">Enrolled Courses</h3> {enrollments.length === 0 ? ( <p className="text-sm text-muted-foreground">No courses enrolled yet.</p> ) : ( <ul className="divide-y divide-border"> {enrollments.map(e => ( <li key={e.id} className="py-3"> <p className="text-sm font-semibold text-foreground">{e.batch_code} ({e.batch?.course_title})</p> <p className="text-sm text-muted-foreground">Status: <span className="font-medium">{e.status}</span></p> <p className="text-xs text-muted-foreground">Enrolled on: {new Date(e.enrolled_on).toLocaleDateString()}</p> </li> ))} </ul> )} </div> ); }
-function PaymentHistoryList({ payments }) { const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); return ( <div className="card p-6 mt-4"> <div className="flex justify-between items-center mb-2"> <h3 className="text-lg font-semibold text-foreground">Payment History</h3> <span className="text-lg font-bold text-green-600">Total Paid: ₹{totalPaid.toLocaleString('en-IN')}</span> </div> {payments.length === 0 ? ( <p className="text-sm text-muted-foreground">No payments recorded yet.</p> ) : ( <ul className="divide-y divide-border"> {payments.map(p => ( <li key={p.id} className="py-3"> <div className="flex justify-between items-center"> <span className="text-sm font-semibold text-foreground">₹{parseFloat(p.amount).toLocaleString('en-IN')}</span> <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{p.mode}</span> </div> <p className="text-sm text-muted-foreground">Receipt: {p.receipt_no}</p> <p className="text-xs text-muted-foreground">Paid on: {new Date(p.date).toLocaleDateString()}</p> </li> ))} </ul> )} </div> ); }
-function EnrollStudentForm({ studentId, onClose, onEnrolled }) { const [batches, setBatches] = useState([]); const [selectedBatch, setSelectedBatch] = useState(''); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); useEffect(() => { const fetchBatches = async () => { try { const res = await api.get('/batches/'); setBatches(res.data.results || []); } catch (err) { setError('Failed to load batches'); } finally { setLoading(false); } }; fetchBatches(); }, []); const handleSubmit = async (e) => { e.preventDefault(); setLoading(true); setError(null); try { await api.post('/enrollments/', { student: studentId, batch: selectedBatch, status: 'active' }); onEnrolled(); onClose(); } catch (err) { setError(err.response?.data?.detail || 'Failed to enroll student. They may already be in this batch.'); } finally { setLoading(false); } }; return ( <form onSubmit={handleSubmit} className="space-y-4"> {error && <p className="form-error text-center">{error}</p>} <div> <label htmlFor="batch" className="form-label">Select Batch</label> <select id="batch" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} className="form-input" required> <option value="" disabled>-- Select a batch --</option> {loading ? ( <option disabled>Loading batches...</option> ) : ( batches.map(b => ( <option key={b.id} value={b.id}> {b.code} ({b.course_title}) </option> )) )} </select> </div> <button type="submit" className="btn-primary w-full justify-center" disabled={loading || !selectedBatch}>{loading ? <Loader2 className="animate-spin" /> : 'Enroll Student'}</button> </form> ); }
-function LogPaymentForm({ student, enrollments, onClose, onPaid }) { const [formData, setFormData] = useState({ amount: '', mode: 'cash', txn_id: '', enrollment: enrollments[0]?.id.toString() || '' }); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const selectedEnrollment = enrollments.find(e => e.id.toString() === formData.enrollment); const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); }; const handleSubmit = async (e) => { e.preventDefault(); if (!selectedEnrollment) { setError('Please select a valid enrollment.'); return; } setLoading(true); setError(null); const paymentData = { student: student.id, course: selectedEnrollment.batch.course, batch: selectedEnrollment.batch.id, amount: formData.amount, mode: formData.mode, txn_id: formData.txn_id, receipt_no: `RCPT-${Date.now()}` }; try { await api.post('/fees/receipts/', paymentData); onPaid(); onClose(); } catch (err) { setError(err.response?.data?.detail || 'Failed to log payment.'); } finally { setLoading(false); } }; if (enrollments.length === 0) { return ( <p className="text-center text-red-600">This student is not enrolled in any course. Please enroll them first.</p> ); } return ( <form onSubmit={handleSubmit} className="space-y-4"> {error && <p className="form-error text-center">{error}</p>} <div> <label htmlFor="enrollment" className="form-label">For Which Course/Batch?</label> <select id="enrollment" name="enrollment" value={formData.enrollment} onChange={handleChange} className="form-input" required> {enrollments.map(e => ( <option key={e.id} value={e.id}> {e.batch_code} ({e.batch?.course_title}) </option> ))} </select> </div> <div> <label htmlFor="amount" className="form-label">Amount</label> <input type="number" name="amount" id="amount" value={formData.amount} onChange={handleChange} className="form-input" placeholder="0.00" step="0.01" required /> </div> <div> <label htmlFor="mode" className="form-label">Payment Mode</label> <select id="mode" name="mode" value={formData.mode} onChange={handleChange} className="form-input" required> <option value="cash">Cash</option> <option value="upi">UPI</option> <option value="bank">Bank Transfer</option> <option value="card">Card</option> </select> </div> {formData.mode !== 'cash' && ( <div> <label htmlFor="txn_id" className="form-label">Transaction ID (Optional)</label> <input type="text" name="txn_id" id="txn_id" value={formData.txn_id} onChange={handleChange} className="form-input" placeholder="UPI or Bank Ref ID" /> </div> )} <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Log Payment'}</button> </form> ); }
 
-// --- NEW/FIXED CERTIFICATE FORM COMPONENT ---
+const InfoItem = ({ icon: Icon, label, value }) => ( 
+  <div className="flex"> 
+    <Icon size={16} className="mr-3 shrink-0 text-muted-foreground mt-1" /> 
+    <div> 
+      <p className="text-xs text-muted-foreground">{label}</p> 
+      <p className="text-sm font-medium text-foreground">{value || '-'}</p> 
+    </div> 
+  </div> 
+);
+
+function EnrolledCoursesList({ enrollments }) { 
+  return ( 
+    <div className="card p-6 mt-4"> 
+      <h3 className="text-lg font-semibold text-foreground mb-2">Enrolled Courses</h3> 
+      {enrollments.length === 0 ? ( 
+        <p className="text-sm text-muted-foreground">No courses enrolled yet.</p> 
+      ) : ( 
+        <ul className="divide-y divide-border"> 
+          {enrollments.map(e => ( 
+            <li key={e.id} className="py-3"> 
+              <p className="text-sm font-semibold text-foreground">{e.batch_code} ({e.course_title})</p> 
+              <p className="text-sm text-muted-foreground">Status: <span className="font-medium">{e.status}</span></p> 
+              <p className="text-xs text-muted-foreground">Enrolled on: {new Date(e.enrolled_on).toLocaleDateString()}</p> 
+            </li> 
+          ))} 
+        </ul> 
+      )} 
+    </div> 
+  ); 
+}
+
+function PaymentHistoryList({ payments }) { 
+  const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); 
+  return ( 
+    <div className="card p-6 mt-4"> 
+      <div className="flex justify-between items-center mb-2"> 
+        <h3 className="text-lg font-semibold text-foreground">Payment History</h3> 
+        <span className="text-lg font-bold text-green-600">Total Paid: ₹{totalPaid.toLocaleString('en-IN')}</span> 
+      </div> 
+      {payments.length === 0 ? ( 
+        <p className="text-sm text-muted-foreground">No payments recorded yet.</p> 
+      ) : ( 
+        <ul className="divide-y divide-border"> 
+          {payments.map(p => ( 
+            <li key={p.id} className="py-3"> 
+              <div className="flex justify-between items-center"> 
+                <span className="text-sm font-semibold text-foreground">₹{parseFloat(p.amount).toLocaleString('en-IN')}</span> 
+                <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{p.mode}</span> 
+              </div> 
+              <p className="text-sm text-muted-foreground">Receipt: {p.receipt_no}</p> 
+              <p className="text-xs text-muted-foreground">Paid on: {new Date(p.date).toLocaleDateString()}</p> 
+            </li> 
+          ))} 
+        </ul> 
+      )} 
+    </div> 
+  ); 
+}
+
+function EnrollStudentForm({ studentId, onClose, onEnrolled }) { 
+  const [batches, setBatches] = useState([]); 
+  const [selectedBatch, setSelectedBatch] = useState(''); 
+  const [loading, setLoading] = useState(true); 
+  const [error, setError] = useState(null); 
+  useEffect(() => { 
+    const fetchBatches = async () => { 
+      try { 
+        const res = await api.get('/batches/'); 
+        setBatches(res.data.results || []); 
+      } catch (err) { 
+        setError('Failed to load batches'); 
+      } finally { 
+        setLoading(false); 
+      } 
+    }; 
+    fetchBatches(); 
+  }, []); 
+  const handleSubmit = async (e) => { 
+    e.preventDefault(); 
+    setLoading(true); 
+    setError(null); 
+    try { 
+      await api.post('/enrollments/', { student: studentId, batch: selectedBatch, status: 'active' }); 
+      onEnrolled(); 
+      onClose(); 
+    } catch (err) { 
+      setError(err.response?.data?.detail || 'Failed to enroll student. They may already be in this batch.'); 
+    } finally { 
+      setLoading(false); 
+    } 
+  }; 
+  return ( 
+    <form onSubmit={handleSubmit} className="space-y-4"> 
+      {error && <p className="form-error text-center">{error}</p>} 
+      <div> 
+        <label htmlFor="batch" className="form-label">Select Batch</label> 
+        <select id="batch" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} className="form-input" required> 
+          <option value="" disabled>-- Select a batch --</option> 
+          {loading ? ( 
+            <option disabled>Loading batches...</option> 
+          ) : ( 
+            batches.map(b => ( 
+              <option key={b.id} value={b.id}> 
+                {b.code} ({b.course_title}) 
+              </option> 
+            )) 
+          )} 
+        </select> 
+      </div> 
+      <button type="submit" className="btn-primary w-full justify-center" disabled={loading || !selectedBatch}>{loading ? <Loader2 className="animate-spin" /> : 'Enroll Student'}</button> 
+    </form> 
+  ); 
+}
+
+function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
+  const [formData, setFormData] = useState({
+    amount: '',
+    mode: 'cash',
+    txn_id: '',
+    enrollment: enrollments[0]?.id.toString() || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Find the selected enrollment object from the state
+  const selectedEnrollment = enrollments.find(e => e.id.toString() === formData.enrollment);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedEnrollment) {
+      setError('Please select a valid enrollment.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+
+    const paymentData = {
+      student: student.id,
+      course: selectedEnrollment.course_id, // <-- **FIX: Use course_id from serializer**
+      batch: selectedEnrollment.batch, // <-- **FIX: Use batch (which is the ID)**
+      amount: formData.amount,
+      mode: formData.mode,
+      txn_id: formData.txn_id,
+      receipt_no: `RCPT-${Date.now()}` // This is a temporary placeholder
+    };
+
+    try {
+      await api.post('/finance/receipts/', paymentData);
+      onPaid();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to log payment.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (enrollments.length === 0) {
+    return (
+      <p className="text-center text-red-600">This student is not enrolled in any course. Please enroll them first.</p>
+    );
+  }
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <p className="form-error text-center">{error}</p>}
+      <div>
+        <label htmlFor="enrollment" className="form-label">For Which Course/Batch?</label>
+        <select
+          id="enrollment"
+          name="enrollment"
+          value={formData.enrollment}
+          onChange={handleChange}
+          className="form-input"
+          required
+        >
+          {enrollments.map(e => (
+            // Use course_title (from serializer) for display
+            <option key={e.id} value={e.id}>
+              {e.batch_code} ({e.course_title})
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="amount" className="form-label">Amount</label>
+        <input
+          type="number"
+          name="amount"
+          id="amount"
+          value={formData.amount}
+          onChange={handleChange}
+          className="form-input"
+          placeholder="0.00"
+          step="0.01"
+          required
+        />
+      </div>
+      <div>
+        <label htmlFor="mode" className="form-label">Payment Mode</label>
+        <select
+          id="mode"
+          name="mode"
+          value={formData.mode}
+          onChange={handleChange}
+          className="form-input"
+          required
+        >
+          <option value="cash">Cash</option>
+          <option value="upi">UPI</option>
+          <option value="bank">Bank Transfer</option>
+          <option value="card">Card</option>
+        </select>
+      </div>
+      {formData.mode !== 'cash' && (
+        <div>
+          <label htmlFor="txn_id" className="form-label">Transaction ID (Optional)</label>
+          <input
+            type="text"
+            name="txn_id"
+            id="txn_id"
+            value={formData.txn_id}
+            onChange={handleChange}
+            className="form-input"
+            placeholder="UPI or Bank Ref ID"
+          />
+        </div>
+      )}
+      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
+        {loading ? <Loader2 className="animate-spin" /> : 'Log Payment'}
+      </button>
+    </form>
+  );
+}
+
 function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -267,10 +519,9 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
 
     try {
       // POST to /api/v1/certificates/
-      // The backend serializer only needs 'student' and 'course'
       await api.post('/certificates/', {
         student: studentId,
-        course: enrollment.batch.course, // This is the course ID
+        course: enrollment.course_id, // <-- **FIX: Use course_id from serializer**
         remarks: "Issued via admin portal"
       });
       onSaved(); // Refresh parent data
@@ -303,8 +554,9 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
           required
         >
           {eligibleEnrollments.map(e => (
+            // Use course_title (from serializer) for display
             <option key={e.id} value={e.id}>
-              {e.batch_code} ({e.batch?.course_title})
+              {e.batch_code} ({e.course_title})
             </option>
           ))}
         </select>

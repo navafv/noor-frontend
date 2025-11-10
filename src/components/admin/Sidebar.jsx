@@ -2,10 +2,11 @@
  *
  * CRITICAL FIX: This now correctly checks `user.is_superuser`
  * to determine if Admin or Teacher links should be shown.
+ * FIX: Resolved module path error by using relative path for AuthContext.
  */
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext.jsx'; // <-- FIX: Use alias path
+import { useAuth } from '../../context/AuthContext.jsx';
 import {
   LayoutDashboard,
   Inbox,
@@ -17,6 +18,11 @@ import {
   LogOut,
   X,
   Settings,
+  Briefcase,
+  ReceiptText,
+  BarChart2,
+  Bell,
+  PieChart, // <-- Added icon
 } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => (
@@ -79,11 +85,16 @@ function Sidebar({ onClose }) {
           {/* Admin-Only Links */}
           {isAdmin && (
             <>
+              <NavItem to="/admin/analytics" icon={BarChart2} label="Financial Analytics" />
+              <NavItem to="/admin/attendance-analytics" icon={PieChart} label="Attendance Analytics" />
+              <NavItem to="/admin/notifications" icon={Bell} label="Notifications" />
               <NavItem to="/admin/enquiries" icon={Inbox} label="Enquiries" />
               <NavItem to="/admin/students" icon={Users} label="Students" />
               <NavItem to="/admin/courses" icon={Book} label="Courses" />
               <NavItem to="/admin/expenses" icon={DollarSign} label="Expenses" />
+              <NavItem to="/admin/receipts" icon={ReceiptText} label="Receipts" />
               <NavItem to="/admin/stock" icon={Package} label="Stock" />
+              <NavItem to="/admin/payroll" icon={Briefcase} label="Payroll" />
             </>
           )}
           

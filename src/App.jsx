@@ -1,48 +1,47 @@
-/*
- * UPDATED FILE: src/App.jsx
- *
- * FIX: Updated all import paths to use the '@/' alias
- * to resolve the build error.
- */
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- Import Layouts & Auth ---
-import AppLayout from '@/components/AppLayout.jsx'; // For Student Portal
-import AdminLayout from '@/pages/AdminLayout.jsx'; // For Admin/Teacher Portal
-import ProtectedRoute from '@/components/ProtectedRoute.jsx';
-import PublicLayout from '@/components/PublicLayout.jsx'; // For public pages
+import AppLayout from './components/AppLayout.jsx'; // For Student Portal
+import AdminLayout from './pages/AdminLayout.jsx'; // For Admin/Teacher Portal
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import PublicLayout from './components/PublicLayout.jsx'; // For public pages
 
 // --- Import Pages ---
-import HomeRedirect from '@/pages/HomeRedirect.jsx';
-import LoginPage from '@/pages/LoginPage.jsx';
-import HomePage from '@/pages/HomePage.jsx';
-import AboutPage from '@/pages/AboutPage.jsx';
-import ContactPage from '@/pages/ContactPage.jsx';
-import CoursesPage from '@/pages/CoursesPage.jsx';
+import HomeRedirect from './pages/HomeRedirect.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import HomePage from './pages/HomePage.jsx';
+import AboutPage from './pages/AboutPage.jsx';
+import ContactPage from './pages/ContactPage.jsx';
+import CoursesPage from './pages/CoursesPage.jsx';
+import VerifyCertificatePage from './pages/VerifyCertificatePage.jsx'; // <-- IMPORT
 
 // --- "App" Pages (for logged-in users) ---
-import AccountPage from '@/pages/AccountPage.jsx';
-import NotificationsPage from '@/pages/NotificationsPage.jsx';
-import StudentDashboard from '@/pages/StudentDashboard.jsx';
-import AccountSettings from '@/pages/AccountSettings.jsx';
+import AccountPage from './pages/AccountPage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
+import StudentDashboard from './pages/StudentDashboard.jsx';
+import AccountSettings from './pages/AccountSettings.jsx';
 
 // --- "Admin" Pages (for staff) ---
-import AdminDashboard from '@/pages/AdminDashboard.jsx';
-import AdminEnquiryListPage from '@/pages/AdminEnquiryListPage.jsx';
-import EnquiryDetailPage from '@/pages/EnquiryDetailPage.jsx';
-import StudentListPage from '@/pages/StudentListPage.jsx';
-import StudentDetailPage from '@/pages/StudentDetailPage.jsx';
-import AttendancePage from '@/pages/AttendancePage.jsx';
-import ExpenseManagementPage from '@/pages/ExpenseManagementPage.jsx';
-import StockManagementPage from '@/pages/StockManagementPage.jsx';
-import CourseManagementPage from '@/pages/CourseManagementPage.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminEnquiryListPage from './pages/AdminEnquiryListPage.jsx';
+import EnquiryDetailPage from './pages/EnquiryDetailPage.jsx';
+import StudentListPage from './pages/StudentListPage.jsx';
+import StudentDetailPage from './pages/StudentDetailPage.jsx';
+import AttendancePage from './pages/AttendancePage.jsx';
+import ExpenseManagementPage from './pages/ExpenseManagementPage.jsx';
+import StockManagementPage from './pages/StockManagementPage.jsx';
+import CourseManagementPage from './pages/CourseManagementPage.jsx';
+import PayrollManagementPage from './pages/PayrollManagementPage.jsx'; // <-- IMPORT
+import ReceiptManagementPage from './pages/ReceiptManagementPage.jsx'; // <-- IMPORT
+import AnalyticsPage from './pages/AnalyticsPage.jsx'; // <-- IMPORT
+import AttendanceAnalyticsPage from './pages/AttendanceAnalyticsPage.jsx'; // <-- IMPORT
 
 // --- TEACHER PAGES ---
-import TeacherDashboard from '@/pages/TeacherDashboard.jsx';
-import TeacherBatches from '@/pages/TeacherBatches.jsx'; // <-- NEW
+import TeacherDashboard from './pages/TeacherDashboard.jsx';
+import TeacherBatches from './pages/TeacherBatches.jsx';
 
-import '@/index.css';
+import './index.css';
 
 function App() {
   return (
@@ -56,6 +55,7 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/courses" element={<CoursesPage />} />
+        <Route path="/verify" element={<VerifyCertificatePage />} /> {/* <-- ADDED ROUTE */}
       </Route>
 
       {/* 3. Login Page (No Layout) */}
@@ -64,7 +64,7 @@ function App() {
       {/* 4. Student Portal (Mobile-first layout) */}
       <Route
         element={
-          <ProtectedRoute studentOnly={true}> {/* <-- CORRECT */}
+          <ProtectedRoute studentOnly={true}>
             <AppLayout />
           </ProtectedRoute>
         }
@@ -79,13 +79,13 @@ function App() {
       {/* 5. Teacher Portal (Desktop-first layout) */}
       <Route
         element={
-          <ProtectedRoute teacherOnly={true}> {/* <-- CORRECT */}
+          <ProtectedRoute teacherOnly={true}>
             <AdminLayout />
           </ProtectedRoute>
         }
       >
         <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-        <Route path="/teacher/my-batches" element={<TeacherBatches />} /> {/* <-- NEW */}
+        <Route path="/teacher/my-batches" element={<TeacherBatches />} />
         {/* Teachers can also access their account/notifications in this layout */}
         <Route path="/teacher/account" element={<AccountPage />} />
         <Route path="/teacher/account/settings" element={<AccountSettings />} />
@@ -95,7 +95,7 @@ function App() {
       {/* 6. Admin Portal (Desktop-first layout) */}
       <Route
         element={
-          <ProtectedRoute adminOnly={true}> {/* <-- CORRECT */}
+          <ProtectedRoute adminOnly={true}>
             <AdminLayout />
           </ProtectedRoute>
         }
@@ -108,6 +108,10 @@ function App() {
         <Route path="/admin/expenses" element={<ExpenseManagementPage />} />
         <Route path="/admin/stock" element={<StockManagementPage />} />
         <Route path="/admin/courses" element={<CourseManagementPage />} />
+        <Route path="/admin/payroll" element={<PayrollManagementPage />} /> {/* <-- ADDED ROUTE */}
+        <Route path="/admin/receipts" element={<ReceiptManagementPage />} /> {/* <-- ADDED ROUTE */}
+        <Route path="/admin/analytics" element={<AnalyticsPage />} /> {/* <-- ADDED ROUTE */}
+        <Route path="/admin/attendance-analytics" element={<AttendanceAnalyticsPage />} /> {/* <-- ADDED ROUTE */}
         
         {/* Admins can also access their account/notifications */}
         <Route path="/admin/account" element={<AccountPage />} />
@@ -118,7 +122,7 @@ function App() {
       {/* 7. Shared Staff Routes (Admin & Teacher) */}
       <Route
         element={
-          <ProtectedRoute staffOnly={true}> {/* <-- NEW: staffOnly */}
+          <ProtectedRoute staffOnly={true}>
             <AdminLayout />
           </ProtectedRoute>
         }

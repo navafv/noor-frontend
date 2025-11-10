@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { LogIn, User } from 'lucide-react';
+import { LogIn, User, CheckCircle } from 'lucide-react';
 
 function PublicNavbar() {
   const { user } = useAuth();
@@ -37,6 +37,7 @@ function PublicNavbar() {
           <NavItem to="/courses">Courses</NavItem>
           <NavItem to="/about">About Us</NavItem>
           <NavItem to="/contact">Contact</NavItem>
+          <NavItem to="/verify">Verify</NavItem> {/* <-- ADDED VERIFY LINK */}
         </div>
         
         {/* Auth Button */}

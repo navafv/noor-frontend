@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import api from '@/services/api.js';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, User, Phone, Mail } from 'lucide-react';
 import Modal from './Modal.jsx';
 import { useNavigate } from 'react-router-dom';
 
@@ -42,7 +42,7 @@ function StudentConversionForm({ enquiry, onClose }) {
     // Split name into first_name and last_name
     const nameParts = enquiry.name.trim().split(' ');
     const firstName = nameParts.shift() || '';
-    const lastName = nameParts.join(' ') || firstName; // Use first name if no last name
+    const lastName = nameParts.join(' ') || ''; // <-- **FIX: Default to empty string, not firstname**
 
     // This structure MUST match your StudentSerializer's `create` method
     const studentData = {
@@ -100,7 +100,7 @@ function StudentConversionForm({ enquiry, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Error Message */}
       {error && (
         <div className="form-error">
@@ -109,104 +109,101 @@ function StudentConversionForm({ enquiry, onClose }) {
       )}
 
       {/* Pre-filled Enquiry Info */}
-      <div className="p-4 bg-muted rounded-lg">
-        <h4 className="font-semibold text-muted-foreground">Enquiry Information</h4>
-        <p className="text-sm text-foreground">
-          <strong>Name:</strong> {enquiry.name}
-        </p>
-        <p className="text-sm text-foreground">
-          <strong>Phone:</strong> {enquiry.phone}
-        </p>
-        {enquiry.email && (
-          <p className="text-sm text-foreground">
-            <strong>Email:</strong> {enquiry.email}
-          </p>
-        )}
-      </div>
-
-      <h4 className="font-semibold text-foreground border-t border-border pt-4">New Student Details</h4>
-      
-      {/* New Student Fields */}
-      <div>
-        <label htmlFor="guardian_name" className="form-label">
-          Guardian's Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          name="guardian_name"
-          id="guardian_name"
-          value={formData.guardian_name}
-          onChange={handleChange}
-          className="form-input"
-          required
-        />
+      <div className="p-4 bg-muted rounded-lg border border-border">
+        <h4 className="font-semibold text-foreground mb-3">Enquiry Information</h4>
+        <div className="space-y-2">
+          <InfoRow icon={User} label="Name" value={enquiry.name} />
+          <InfoRow icon={Phone} label="Phone" value={enquiry.phone} />
+          {enquiry.email && (
+            <InfoRow icon={Mail} label="Email" value={enquiry.email} />
+          )}
+        </div>
       </div>
 
       <div>
-        <label htmlFor="guardian_phone" className="form-label">
-          Guardian's Phone <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="tel"
-          name="guardian_phone"
-          id="guardian_phone"
-          value={formData.guardian_phone}
-          onChange={handleChange}
-          className="form-input"
-          required
-        />
+        <h4 className="font-semibold text-foreground">New Student Details</h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label htmlFor="guardian_name" className="form-label">
+              Guardian's Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="guardian_name"
+              id="guardian_name"
+              value={formData.guardian_name}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="guardian_phone" className="form-label">
+              Guardian's Phone <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel"
+              name="guardian_phone"
+              id="guardian_phone"
+              value={formData.guardian_phone}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="address" className="form-label">Full Address</label>
+          <textarea
+            name="address"
+            id="address"
+            value={formData.address}
+            onChange={handleChange}
+            className="form-input"
+            rows="3"
+          />
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="address" className="form-label">Full Address</label>
-        <textarea
-          name="address"
-          id="address"
-          value={formData.address}
-          onChange={handleChange}
-          className="form-input"
-          rows="3"
-        />
-      </div>
-
-      <h4 className="font-semibold text-foreground border-t border-border pt-4">
-        Student Account
-      </h4>
-
-      {/* New User Fields */}
-      <div>
-        <label htmlFor="username" className="form-label">
-          Username <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          name="username"
-          id="username"
-          value={formData.username}
-          onChange={handleChange}
-          className="form-input"
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="password" className="form-label">
-          Temporary Password <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-          value={formData.password}
-          onChange={handleChange}
-          className="form-input"
-          placeholder="Create a password for the student"
-          required
-        />
+      <div className="border-t border-border pt-6">
+        <h4 className="font-semibold text-foreground">
+          Student Account
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div>
+            <label htmlFor="username" className="form-label">
+              Username <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="username"
+              id="username"
+              value={formData.username}
+              onChange={handleChange}
+              className="form-input"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="form-label">
+              Temporary Password <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              value={formData.password}
+              onChange={handleChange}
+              className="form-input"
+              placeholder="Create a password for the student"
+              required
+            />
+          </div>
+        </div>
       </div>
       
       {/* Submit Button */}
-      <div className="pt-4">
+      <div className="pt-2">
         <button
           type="submit"
           className="btn-primary w-full justify-center"
@@ -218,5 +215,15 @@ function StudentConversionForm({ enquiry, onClose }) {
     </form>
   );
 }
+
+const InfoRow = ({ icon: Icon, label, value }) => (
+  <div className="flex items-center">
+    <Icon className="w-4 h-4 text-muted-foreground mr-3" />
+    <div className="flex-1">
+      <span className="text-sm font-medium text-muted-foreground">{label}: </span>
+      <span className="text-sm text-foreground font-semibold">{value}</span>
+    </div>
+  </div>
+);
 
 export default StudentConversionForm;

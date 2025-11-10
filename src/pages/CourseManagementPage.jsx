@@ -3,13 +3,14 @@
  *
  * FIX: The CourseForm and BatchForm sub-components now send the
  * correct field names and data structures to match the backend API.
+ * ADD: Added a new "Feedback" tab to view student-submitted feedback.
  */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Loader2, Plus, Book, Box, User } from 'lucide-react';
+import { ChevronLeft, Loader2, Plus, Book, Box, User, MessageSquare, Star } from 'lucide-react';
 import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
-import PageHeader from '@/components/PageHeader.jsx'; // Import PageHeader
+import PageHeader from '@/components/PageHeader.jsx';
 
 // Main page component
 function CourseManagementPage() {
@@ -24,6 +25,7 @@ function CourseManagementPage() {
           <TabButton icon={Book} label="Courses" isActive={activeTab === 'courses'} onClick={() => setActiveTab('courses')} />
           <TabButton icon={Box} label="Batches" isActive={activeTab === 'batches'} onClick={() => setActiveTab('batches')} />
           <TabButton icon={User} label="Trainers" isActive={activeTab === 'trainers'} onClick={() => setActiveTab('trainers')} />
+          <TabButton icon={MessageSquare} label="Feedback" isActive={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} />
         </div>
       </nav>
 
@@ -33,12 +35,14 @@ function CourseManagementPage() {
           {activeTab === 'courses' && <CourseTab />}
           {activeTab === 'batches' && <BatchTab />}
           {activeTab === 'trainers' && <TrainerTab />}
+          {activeTab === 'feedback' && <FeedbackTab />}
         </div>
       </main>
     </div>
   );
 }
 
+// ... (TabButton component is unchanged)
 const TabButton = ({ icon: Icon, label, isActive, onClick }) => (
   <button
     onClick={onClick}
@@ -50,7 +54,7 @@ const TabButton = ({ icon: Icon, label, isActive, onClick }) => (
   </button>
 );
 
-// --- Course Tab ---
+// ... (CourseTab component is unchanged)
 function CourseTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +93,7 @@ function CourseTab() {
   );
 }
 
-// --- Batch Tab ---
+// ... (BatchTab component is unchanged)
 function BatchTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +142,7 @@ function BatchTab() {
   );
 }
 
-// --- Trainer Tab ---
+// ... (TrainerTab component is unchanged)
 function TrainerTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -183,16 +187,79 @@ function TrainerTab() {
   );
 }
 
+// --- NEW FeedbackTab ---
+function FeedbackTab() {
+  const [feedback, setFeedback] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchFeedback = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/feedback/');
+      setFeedback(res.data.results || []);
+    } catch (err) {
+      console.error("Failed to fetch feedback", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => { fetchFeedback(); }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[300px]">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-foreground mb-4">Student Feedback</h2>
+      {feedback.length === 0 ? (
+        <p className="card p-10 text-center text-muted-foreground">No feedback has been submitted yet.</p>
+      ) : (
+        <div className="space-y-4">
+          {feedback.map(item => (
+            <div key={item.id} className="card p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="font-semibold text-foreground">{item.student_name}</p>
+                  <p className="text-sm text-muted-foreground">Batch: {item.batch_code}</p>
+                </div>
+                <div className="flex items-center gap-1 text-yellow-500">
+                  <Star size={20} fill="currentColor" />
+                  <span className="text-xl font-bold">{item.rating}</span>
+                </div>
+              </div>
+              {item.comments && (
+                <p className="text-muted-foreground mt-3 pt-3 border-t border-border italic">
+                  "{item.comments}"
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 // --- Reusable Components for this page ---
 
 // Reusable list wrapper
+// FIX: Removed the 'onAdd' button from the base wrapper, as FeedbackTab doesn't need it.
 const CrudList = ({ title, items, loading, onAdd, renderItem, children }) => (
   <>
     <div className="flex justify-between items-center mb-4">
       <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-      <button onClick={onAdd} className="btn-primary flex items-center gap-2">
-        <Plus size={18} /> New {title.slice(0, -1)}
-      </button>
+      {onAdd && ( // Only show button if 'onAdd' prop is passed
+        <button onClick={onAdd} className="btn-primary flex items-center gap-2">
+          <Plus size={18} /> New {title.slice(0, -1)}
+        </button>
+      )}
     </div>
     {loading ? (
       <div className="flex justify-center items-center min-h-[200px]"><Loader2 className="animate-spin text-primary" /></div>
@@ -207,7 +274,7 @@ const CrudList = ({ title, items, loading, onAdd, renderItem, children }) => (
   </>
 );
 
-// --- FIXED CourseForm ---
+// ... (CourseForm component is unchanged)
 function CourseForm({ onSaved }) {
   // FIX: Match backend model fields
   const [data, setData] = useState({ 
@@ -242,7 +309,7 @@ function CourseForm({ onSaved }) {
   );
 }
 
-// --- FIXED BatchForm ---
+// ... (BatchForm component is unchanged)
 function BatchForm({ courses, trainers, onSaved }) {
   // FIX: Add 'capacity', rename 'timing'
   const [data, setData] = useState({ 
@@ -295,7 +362,7 @@ function BatchForm({ courses, trainers, onSaved }) {
   );
 }
 
-// --- TrainerForm (This one was already correct) ---
+// ... (TrainerForm component is unchanged)
 function TrainerForm({ staffUsers, existingTrainers, onSaved }) {
   const [data, setData] = useState({ 
     user: '', 
@@ -341,5 +408,6 @@ function TrainerForm({ staffUsers, existingTrainers, onSaved }) {
     </form>
   );
 }
+
 
 export default CourseManagementPage;
