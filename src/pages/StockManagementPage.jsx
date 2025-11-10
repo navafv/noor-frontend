@@ -1,3 +1,9 @@
+/*
+ * UPDATED FILE: src/pages/StockManagementPage.jsx
+ *
+ * FIX: The StockItemForm and StockTransactionForm sub-components
+ * now send the correct field names to match the backend API.
+ */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Plus, Package, ArrowRightLeft } from 'lucide-react';
@@ -15,7 +21,7 @@ function StockManagementPage() {
   const fetchStockItems = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/stock-items/'); //
+      const res = await api.get('/finance/stock-items/'); // FIX: Corrected endpoint
       setItems(res.data.results || []);
     } catch (err) {
       setError('Failed to fetch stock items.');
@@ -110,8 +116,8 @@ function StockItemForm({ onSaved }) {
   // FIX: Match backend model
   const [formData, setFormData] = useState({ 
     name: '', 
-    unit_of_measure: 'pieces', 
-    description: '', 
+    unit_of_measure: 'pieces', // <-- FIX: Renamed from 'unit'
+    description: '', // <-- FIX: Renamed from 'desc'
     reorder_level: 0 
   });
   const [loading, setLoading] = useState(false);
@@ -125,7 +131,7 @@ function StockItemForm({ onSaved }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/stock-items/', formData);
+      await api.post('/finance/stock-items/', formData); // FIX: Corrected endpoint
       onSaved();
     } catch (err) {
       setError(err.response?.data?.name?.[0] || 'Failed to create item.');
@@ -145,8 +151,8 @@ function StockItemForm({ onSaved }) {
         />
       </div>
       <div>
-        <label htmlFor="unit_of_measure" className="form-label">Unit of Measure</label>
-        <input type="text" name="unit_of_measure" id="unit_of_measure"
+        <label htmlFor="unit_of_measure" className="form-label">Unit of Measure</label> {/* <-- FIX: Renamed */}
+        <input type="text" name="unit_of_measure" id="unit_of_measure" // <-- FIX: Renamed
           value={formData.unit_of_measure} onChange={handleChange}
           className="form-input" required placeholder="e.g., meters, pieces, kg"
         />
@@ -159,9 +165,9 @@ function StockItemForm({ onSaved }) {
         />
       </div>
       <div>
-        <label htmlFor="description" className="form-label">Description (Optional)</label>
-        <textarea name="description" id="description"
-          value={formData.description} onChange={handleChange}
+        <label htmlFor="description" className="form-label">Description (Optional)</label> {/* <-- FIX: Renamed */}
+        <textarea name="description" id="description" // <-- FIX: Renamed
+          value={formData.description} onChange={handleChange} // <-- FIX: Renamed
           className="form-input" rows="2"
         />
       </div>
@@ -176,7 +182,7 @@ function StockItemForm({ onSaved }) {
 function StockTransactionForm({ stockItems, onSaved }) {
   const [formData, setFormData] = useState({
     item: '',
-    quantity_changed: '',
+    quantity_changed: '', // <-- FIX: Renamed from 'quantity'
     reason: '',
   });
   const [loading, setLoading] = useState(false);
@@ -197,9 +203,9 @@ function StockTransactionForm({ stockItems, onSaved }) {
     setLoading(true);
     try {
       // FIX: Send correct backend fields
-      await api.post('/stock-transactions/', {
+      await api.post('/finance/stock-transactions/', { // FIX: Corrected endpoint
         item: formData.item,
-        quantity_changed: formData.quantity_changed, // Backend handles + or -
+        quantity_changed: formData.quantity_changed, // <-- FIX: Renamed
         reason: formData.reason
       });
       onSaved();
@@ -224,9 +230,9 @@ function StockTransactionForm({ stockItems, onSaved }) {
       </div>
       
       <div>
-        <label htmlFor="quantity_changed" className="form-label">Quantity</label>
-        <input type="number" name="quantity_changed" id="quantity_changed"
-          value={formData.quantity_changed} onChange={handleChange}
+        <label htmlFor="quantity_changed" className="form-label">Quantity</label> {/* <-- FIX: Renamed */}
+        <input type="number" name="quantity_changed" id="quantity_changed" // <-- FIX: Renamed
+          value={formData.quantity_changed} onChange={handleChange} // <-- FIX: Renamed
           className="form-input" required step="0.01"
           placeholder="Use -10 to remove, 10 to add"
         />

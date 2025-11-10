@@ -1,3 +1,8 @@
+/*
+ * UPDATED FILE: src/pages/AccountSettings.jsx
+ *
+ * FIX: Added the standard PageHeader for UI consistency.
+ */
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
@@ -32,7 +37,11 @@ function AccountSettings() {
       const response = await api.patch(`/users/${user.id}/`, formData);
       
       // Update the user in the global context
-      setUser(response.data);
+      // We must merge with existing user data to preserve student_id
+      setUser(prevUser => ({
+        ...prevUser, 
+        ...response.data 
+      }));
       setSuccess('Profile updated successfully!');
     } catch (err) {
       setError('Failed to update profile. Please try again.');
@@ -44,7 +53,7 @@ function AccountSettings() {
 
   return (
     // FIX: Changed max-w-2xl to max-w-lg to match student portal
-    <div className="p-4 max-w-lg mx-auto"> 
+    <div className="p-4 max-w-lg mx-auto pb-20"> 
       <PageHeader title="Account Settings" /> {/* <-- 2. ADD HEADER */}
       
       <form onSubmit={handleSubmit} className="card p-6 space-y-4">

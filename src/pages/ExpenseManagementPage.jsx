@@ -1,3 +1,9 @@
+/*
+ * UPDATED FILE: src/pages/ExpenseManagementPage.jsx
+ *
+ * FIX: The ExpenseForm sub-component now correctly sends 'description'
+ * instead of 'notes' to match the backend API.
+ */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Plus, DollarSign } from 'lucide-react';
@@ -19,7 +25,7 @@ function ExpenseManagementPage() {
   const fetchExpenses = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/expenses/');
+      const res = await api.get('/finance/expenses/'); // FIX: Corrected endpoint
       setExpenses(res.data.results || []);
     } catch (err) {
       setError('Failed to fetch expenses.');
@@ -108,9 +114,9 @@ function ExpenseManagementPage() {
 // Form component for the modal
 function ExpenseForm({ onClose, onSaved }) {
   const [formData, setFormData] = useState({
-    description: '',
+    description: '', // <-- FIX: Changed from 'notes'
     amount: '',
-    category: 'other', // Default to 'other'
+    category: 'other',
     date: getTodayDate(),
   });
   const [loading, setLoading] = useState(false);
@@ -125,8 +131,8 @@ function ExpenseForm({ onClose, onSaved }) {
     setLoading(true);
     setError(null);
     try {
-      // FIX: Remove 'notes', as backend expects 'description'
-      await api.post('/expenses/', {
+      // FIX: Send 'description', not 'notes'
+      await api.post('/finance/expenses/', { // FIX: Corrected endpoint
         description: formData.description,
         amount: formData.amount,
         category: formData.category,
@@ -145,10 +151,10 @@ function ExpenseForm({ onClose, onSaved }) {
       {error && <p className="form-error text-center">{error}</p>}
       
       <div>
-        <label htmlFor="description" className="form-label">Description</label>
+        <label htmlFor="description" className="form-label">Description</label> {/* <-- FIX: Changed from 'Notes' */}
         <input
-          type="text" name="description" id="description"
-          value={formData.description} onChange={handleChange}
+          type="text" name="description" id="description" // <-- FIX: Changed from 'notes'
+          value={formData.description} onChange={handleChange} // <-- FIX: Changed from 'notes'
           className="form-input" required
         />
       </div>
@@ -164,7 +170,7 @@ function ExpenseForm({ onClose, onSaved }) {
         </div>
         <div>
           <label htmlFor="category" className="form-label">Category</label>
-          {/* FIX: Use select to match backend CATEGORY_CHOICES */}
+          {/* This select matches the backend CATEGORY_CHOICES */}
           <select
             name="category" id="category"
             value={formData.category} onChange={handleChange}

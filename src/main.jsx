@@ -1,4 +1,9 @@
-/* UPDATED FILE: src/main.jsx */
+/*
+ * UPDATED FILE: src/main.jsx
+ *
+ * FIX: Added the ThemeProvider to wrap the app,
+ * enabling dark/light/system mode.
+ */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@/App.jsx';

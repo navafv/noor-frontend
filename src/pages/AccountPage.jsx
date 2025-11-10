@@ -1,8 +1,13 @@
+/*
+ * UPDATED FILE: src/pages/AccountPage.jsx
+ *
+ * FIX: Added the standard PageHeader for UI consistency.
+ */
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Settings, LogOut, ChevronRight, BarChart2, LayoutDashboard } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx'; // <-- Import new header
+import PageHeader from '@/components/PageHeader.jsx'; // <-- 1. IMPORT
 
 function AccountPage() {
   const { user, logoutUser } = useAuth();
@@ -26,7 +31,7 @@ function AccountPage() {
 
   return (
     <>
-      {/* --- ADD THIS HEADER --- */}
+      {/* --- 2. ADD THIS HEADER --- */}
       <PageHeader title="My Account" showBackButton={false} />
       
       <div className="p-4 pb-20 max-w-lg mx-auto">

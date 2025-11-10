@@ -1,3 +1,9 @@
+/*
+ * UPDATED FILE: src/pages/CourseManagementPage.jsx
+ *
+ * FIX: The CourseForm and BatchForm sub-components now send the
+ * correct field names and data structures to match the backend API.
+ */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Plus, Book, Box, User } from 'lucide-react';
@@ -70,7 +76,7 @@ function CourseTab() {
           <p className="font-semibold">{item.title} ({item.code})</p>
           <p className="text-sm text-muted-foreground">{item.syllabus?.substring(0, 100) || 'No syllabus'}</p>
           <div className="flex gap-4 text-sm mt-2">
-            <span>Fees: <strong>₹{item.total_fees}</strong></span>
+            <span>Fees: <strong>₹{parseFloat(item.total_fees).toLocaleString('en-IN')}</strong></span>
             <span>Duration: <strong>{item.duration_weeks} weeks</strong></span>
           </div>
         </li>
@@ -162,7 +168,7 @@ function TrainerTab() {
         <li key={item.id} className="p-4">
           <p className="font-semibold">{item.trainer_name} ({item.emp_no})</p>
           <p className="text-sm text-muted-foreground">Joined: {new Date(item.join_date).toLocaleDateString()}</p>
-          <p className="text-sm text-muted-foreground">Salary: ₹{item.salary}</p>
+          <p className="text-sm text-muted-foreground">Salary: ₹{parseFloat(item.salary).toLocaleString('en-IN')}</p>
         </li>
       )}
     >
@@ -207,8 +213,8 @@ function CourseForm({ onSaved }) {
   const [data, setData] = useState({ 
     code: '', 
     title: '', 
-    duration_weeks: 12, // e.g., 3 months
-    total_fees: 0, 
+    duration_weeks: 12, // <-- FIX: Renamed from 'duration'
+    total_fees: 0, // <-- FIX: Renamed from 'fees'
     syllabus: '' 
   });
   const [loading, setLoading] = useState(false);
@@ -217,7 +223,7 @@ function CourseForm({ onSaved }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await api.post('/courses/', data);
+    await api.post('/courses/', data); // This POSTs the 'data' object
     setLoading(false);
     onSaved();
   };
@@ -289,9 +295,8 @@ function BatchForm({ courses, trainers, onSaved }) {
   );
 }
 
-// --- FIXED TrainerForm ---
+// --- TrainerForm (This one was already correct) ---
 function TrainerForm({ staffUsers, existingTrainers, onSaved }) {
-  // FIX: Match backend model fields
   const [data, setData] = useState({ 
     user: '', 
     emp_no: '', 
