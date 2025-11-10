@@ -1,6 +1,7 @@
+/* UPDATED FILE: src/context/AuthContext.jsx */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '@/services/api.js'; // <-- UPDATED
+import api from '@/services/api.js';
 
 const AuthContext = createContext();
 
@@ -23,6 +24,8 @@ export const AuthProvider = ({ children }) => {
       if (tokens) {
         api.defaults.headers.common['Authorization'] = 'Bearer ' + tokens.access;
         try {
+          // Note: Your backend might need to expose user.student_id here
+          // I've seen it in StudentDashboard, so I assume /users/me/ has it
           const response = await api.get('/users/me/');
           setUser(response.data);
         } catch (error) {
@@ -45,14 +48,16 @@ export const AuthProvider = ({ children }) => {
       setTokens(newTokens);
       localStorage.setItem('authTokens', JSON.stringify(newTokens));
       api.defaults.headers.common['Authorization'] = 'Bearer ' + newTokens.access;
+      
       const userResponse = await api.get('/users/me/');
       setUser(userResponse.data);
 
-      // --- THIS IS THE CHANGE ---
-      // Redirect ALL logged-in users to their account page
-      navigate('/account');
-      // --- END OF CHANGE ---
-
+      // Role-based redirect
+      if (userResponse.data.is_staff) {
+        navigate('/admin/dashboard'); // Go to Admin Dashboard
+      } else {
+        navigate('/student/dashboard'); // Go to Student Dashboard
+      }
     } catch (error) {
       console.error('Login failed', error);
       throw new Error('Invalid username or password');
@@ -75,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     loginUser,
     logoutUser,
+    setUser,
   };
 
   return (

@@ -1,17 +1,16 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { User, Settings, LogOut, ChevronRight, Inbox, Users, BarChart2 } from 'lucide-react'; // Import BarChart2
+import { Settings, LogOut, ChevronRight, BarChart2, LayoutDashboard } from 'lucide-react';
+import PageHeader from '@/components/PageHeader'; // <-- Import new header
 
-/**
- * Main Account screen.
- */
 function AccountPage() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logoutUser();
+    navigate('/login'); // On logout, send to login
   };
 
   const getInitials = (firstName, lastName) => {
@@ -19,82 +18,88 @@ function AccountPage() {
   };
 
   if (!user) {
-    return (
-       <div className="flex h-screen items-center justify-center">Loading user data...</div>
-    )
+    return <PageHeader title="Account" />; // Show header even if loading
   }
 
   return (
-    <div className="p-4 pb-20 max-w-2xl mx-auto">
-      {/* User Profile Header */}
-      <div className="flex items-center space-x-4 mb-8">
-        <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-noor-pink/10">
-          <span className="text-2xl font-medium text-noor-pink">
-            {getInitials(user?.first_name, user?.last_name)}
+    <>
+      {/* --- ADD THIS HEADER --- */}
+      <PageHeader title="My Account" />
+      
+      <div className="p-4 pb-20 max-w-2xl mx-auto">
+        {/* User Profile Header */}
+        <div className="flex items-center space-x-4 mb-8">
+          <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-noor-pink/10">
+            <span className="text-2xl font-medium text-noor-pink">
+              {getInitials(user?.first_name, user?.last_name)}
+            </span>
           </span>
-        </span>
-        <div>
-          <h1 className="text-xl font-bold text-noor-heading">
-            {user?.first_name || user?.username}
-          </h1>
-          <p className="text-sm text-gray-500">{user?.email}</p>
-          <span className="inline-flex items-center rounded-full bg-noor-pink/10 px-2.5 py-0.5 text-xs font-medium text-noor-pink mt-2">
-            {user?.role?.name || 'Student'}
-          </span>
+          <div>
+            <h1 className="text-xl font-bold text-noor-heading">
+              {user?.first_name || user?.username}
+            </h1>
+            <p className="text-sm text-gray-500">{user?.email}</p>
+            <span className="inline-flex items-center rounded-full bg-noor-pink/10 px-2.5 py-0.5 text-xs font-medium text-noor-pink mt-2">
+              {user?.role?.name || (user?.is_staff ? 'Staff' : 'Student')}
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* Admin Tools Section (Staff Only) */}
-      {user?.is_staff && (
+        {/* Dashboard Link (Role-based) */}
         <div className="mb-8">
           <h2 className="text-xs font-semibold uppercase text-gray-500 mb-3">
-            Admin Tools
+            Dashboard
           </h2>
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <ul className="divide-y divide-gray-200">
-              {/* --- UPDATE THIS LINK --- */}
-              <AdminLink
+            {user?.is_staff ? (
+              <AppLink
                 to="/admin/dashboard"
                 icon={BarChart2}
                 title="Admin Dashboard"
-                subtitle="View stats, manage enquiries, students"
+                subtitle="Manage students, finance, and courses"
               />
-              {/* --- END OF UPDATE --- */}
+            ) : (
+              <AppLink
+                to="/student/dashboard"
+                icon={LayoutDashboard}
+                title="My Dashboard"
+                subtitle="View your courses and payments"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* General Settings Section */}
+        <div className="mb-8">
+          <h2 className="text-xs font-semibold uppercase text-gray-500 mb-3">
+            General
+          </h2>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <ul className="divide-y divide-gray-200">
+              <AppLink
+                to="/account/settings"
+                icon={Settings}
+                title="Account Settings"
+                subtitle="Update your profile information"
+              />
             </ul>
           </div>
         </div>
-      )}
 
-      {/* General Settings Section */}
-      <div className="mb-8">
-        <h2 className="text-xs font-semibold uppercase text-gray-500 mb-3">
-          General
-        </h2>
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <ul className="divide-y divide-gray-200">
-            <AdminLink
-              to="/account/settings"
-              icon={Settings}
-              title="Account Settings"
-              subtitle="Update your profile information"
-            />
-          </ul>
-        </div>
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center space-x-2 text-left p-4 bg-white rounded-xl shadow-sm text-red-600 font-medium hover:bg-red-50 transition-colors"
+        >
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
       </div>
-
-      {/* Logout Button */}
-      <button
-        onClick={handleLogout}
-        className="w-full flex items-center justify-center space-x-2 text-left p-4 bg-white rounded-xl shadow-sm text-red-600 font-medium hover:bg-red-50 transition-colors"
-      >
-        <LogOut size={20} />
-        <span>Logout</span>
-      </button>
-    </div>
+    </>
   );
 }
 
-const AdminLink = ({ to, icon: Icon, title, subtitle }) => (
+const AppLink = ({ to, icon: Icon, title, subtitle }) => (
   <li>
     <Link to={to} className="block hover:bg-gray-50">
       <div className="flex items-center p-4">

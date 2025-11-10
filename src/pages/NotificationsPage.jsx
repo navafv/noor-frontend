@@ -1,68 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext.jsx'; // <-- UPDATED
-import api from '@/services/api.js'; // <-- UPDATED
-import { Bell, CheckCheck } from 'lucide-react';
+import BackButton from '@/components/BackButton.jsx';
+import api from '@/services/api.js';
+import { Loader2, BellOff, Check } from 'lucide-react';
+
 function NotificationsPage() {
-  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (!user) {
-      // Don't fetch if user isn't logged in
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const res = await api.get('/notifications/'); //
+      setNotifications(res.data.results || []);
+    } catch (err) {
+      setError('Failed to load notifications.');
+    } finally {
       setLoading(false);
-      setNotifications([]);
-      return;
     }
+  };
 
-    const fetchNotifications = async () => {
-      try {
-        const response = await api.get('/notifications/');
-        setNotifications(response.data.results || []);
-      } catch (err) {
-        setError('Could not load notifications.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
+  useEffect(() => {
     fetchNotifications();
-  }, [user]); // Re-fetch when user logs in
+  }, []);
+
+  const markAsRead = async (id) => {
+    try {
+      // Optimistic update
+      setNotifications(prev => 
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+      await api.patch(`/notifications/${id}/mark_as_read/`);
+    } catch (err) {
+      // Revert if error
+      setNotifications(prev => 
+        prev.map(n => n.id === id ? { ...n, is_read: false } : n)
+      );
+      console.error('Failed to mark as read');
+    }
+  };
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold text-noor-heading mb-4">
-        Updates & Notifications
-      </h1>
-      
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-500">{error}</p>}
+    <div className="p-4 max-w-2xl mx-auto">
+      <BackButton />
+      <h1 className="text-2xl font-bold text-noor-heading mb-6">Notifications</h1>
 
-      {!user && (
-        <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-          <p>Please <Link to="/login" className="text-noor-pink font-medium">log in</Link> to see your notifications.</p>
+      {loading && (
+        <div className="flex justify-center items-center min-h-[200px]">
+          <Loader2 className="animate-spin text-noor-pink" size={32} />
         </div>
       )}
+      {error && <p className="form-error">{error}</p>}
 
-      {user && notifications.length === 0 && !loading && (
-        <div className="text-center p-8 bg-white rounded-lg shadow-sm">
-          <p>You have no new notifications.</p>
-        </div>
-      )}
-
-      {user && notifications.length > 0 && (
-        <div className="space-y-3">
-          {notifications.map((notif) => (
-            <div key={notif.id} className="bg-white p-4 rounded-lg shadow-sm border-l-4 border-noor-pink">
-              <h3 className="font-bold text-noor-heading">{notif.title}</h3>
-              <p className="text-sm text-gray-600">{notif.message}</p>
-              <p className="text-xs text-gray-400 mt-2">
-                {new Date(notif.created_at).toLocaleString()}
-              </p>
+      {!loading && (
+        <div className="bg-white rounded-xl shadow-sm">
+          {notifications.length === 0 ? (
+            <div className="text-center p-10 text-gray-500">
+              <BellOff size={40} className="mx-auto" />
+              <p className="mt-4 font-semibold">No notifications</p>
             </div>
-          ))}
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {notifications.map(n => (
+                <li key={n.id} className={`p-4 ${n.is_read ? 'opacity-60' : 'font-semibold'}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-noor-heading">{n.message}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(n.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    {!n.is_read && (
+                      <button 
+                        onClick={() => markAsRead(n.id)}
+                        className="ml-4 p-2 text-sm text-noor-pink hover:bg-noor-pink/10 rounded-full"
+                        title="Mark as read"
+                      >
+                        <Check size={18} />
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>

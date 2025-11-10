@@ -44,7 +44,7 @@ function AccountSettings() {
 
   return (
     <div className="p-4 max-w-2xl mx-auto">
-      <BackButton />
+      <PageHeader title="My Account" />
       <h1 className="text-2xl font-bold text-noor-heading mb-6">
         Account Settings
       </h1>

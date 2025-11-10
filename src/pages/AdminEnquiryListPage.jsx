@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import EnquiryList from '../components/EnquiryList';
 import api from '@/services/api.js'; // Import api
+import PageHeader from '@/components/PageHeader';
 
 // This is now the "Manage Enquiries" screen
 function AdminDashboard() {
@@ -33,17 +34,7 @@ function AdminDashboard() {
   return (
     <div className="flex h-screen flex-col">
       {/* Simple Header for Admin Pages */}
-      <header className="sticky top-0 z-10 w-full bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-lg items-center px-4">
-          <Link
-            to="/account"
-            className="flex items-center gap-1 text-noor-pink"
-          >
-            <ChevronLeft size={20} />
-            <span className="font-medium">Back to Account</span>
-          </Link>
-        </div>
-      </header>
+      <PageHeader title="Enquiry List" />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto bg-gray-50 p-4">

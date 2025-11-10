@@ -1,100 +1,96 @@
+/* UPDATED FILE: src/App.jsx */
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './components/Layout.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
 
-// Public Pages
-import HomePage from './pages/HomePage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
+// --- Import Layouts & Auth ---
+import AppLayout from './components/AppLayout'; // For Student Portal
+import AdminLayout from './layouts/AdminLayout'; // For Admin Portal
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicLayout from './components/PublicLayout'; // For public pages
 
-// App (Shared) Pages
-import AccountPage from './pages/AccountPage.jsx';
-import NotificationsPage from './pages/NotificationsPage.jsx';
-import AccountSettings from './pages/AccountSettings.jsx';
+// --- Import Pages ---
+import HomeRedirect from './pages/HomeRedirect';
+import LoginPage from './pages/LoginPage';
+import HomePage from './pages/HomePage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
+import CoursesPage from './pages/CoursesPage';
 
-// Admin-Only Pages
-import AdminDashboard from './pages/AdminDashboard.jsx'; // <-- This is the NEW main dashboard
-import AdminEnquiryListPage from './pages/AdminEnquiryListPage.jsx'; // <-- This is the RENAMED old dashboard
-import EnquiryDetailPage from './pages/EnquiryDetailPage.jsx';
-import StudentListPage from './pages/StudentListPage.jsx';
-import StudentDetailPage from './pages/StudentDetailPage.jsx'; 
-import AttendancePage from './pages/AttendancePage.jsx'; // <-- IMPORT NEW PAGE
+// --- "App" Pages (for logged-in users) ---
+import AccountPage from './pages/AccountPage';
+import NotificationsPage from './pages/NotificationsPage';
+import StudentDashboard from './pages/StudentDashboard';
+import AccountSettings from './pages/AccountSettings';
+
+// --- "Admin" Pages (for staff) ---
+import AdminDashboard from './pages/AdminDashboard';
+import AdminEnquiryListPage from './pages/AdminEnquiryListPage';
+import EnquiryDetailPage from './pages/EnquiryDetailPage';
+import StudentListPage from './pages/StudentListPage';
+import StudentDetailPage from './pages/StudentDetailPage';
+import AttendancePage from './pages/AttendancePage';
+import ExpenseManagementPage from './pages/ExpenseManagementPage';
+import StockManagementPage from './pages/StockManagementPage';
+import CourseManagementPage from './pages/CourseManagementPage';
 
 import './index.css';
 
 function App() {
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
-
-      {/* === Main App Layout (Public) === */}
-      <Route element={<Layout />}>
-        <Route path="/" element={<HomePage />} />
+      {/* 1. Root redirect logic */}
+      <Route path="/" element={<HomeRedirect />} />
+      
+      {/* 2. Public Pages */}
+      <Route element={<PublicLayout />}>
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/courses" element={<CoursesPage />} />
       </Route>
 
-      {/* === Main App Layout (Protected) === */}
-      <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      {/* 3. Login Page (No Layout) */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* 4. Student Portal (Mobile-first layout) */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/settings" element={<AccountSettings />} />
         <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
-      
-      {/* === Admin-only routes (No Bottom Nav) === */}
-      {/* --- UPDATE ADMIN ROUTES --- */}
+
+      {/* 5. Admin/Teacher Portal (Desktop-first layout) */}
       <Route
-        path="/admin/dashboard"
         element={
           <ProtectedRoute staffOnly={true}>
-            <AdminDashboard />
+            <AdminLayout />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/admin/enquiries"
-        element={
-          <ProtectedRoute staffOnly={true}>
-            <AdminEnquiryListPage />
-          </ProtectedRoute>
-        }
-      />
-      {/* --- END OF UPDATE --- */}
-      <Route
-        path="/admin/enquiry/:id"
-        element={
-          <ProtectedRoute staffOnly={true}>
-            <EnquiryDetailPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/students"
-        element={
-          <ProtectedRoute staffOnly={true}>
-            <StudentListPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/student/:id"
-        element={
-          <ProtectedRoute staffOnly={true}>
-            <StudentDetailPage />
-          </ProtectedRoute>
-        }
-      />
-      {/* --- ADD ATTENDANCE ROUTE --- */}
-      <Route
-        path="/admin/attendance"
-        element={
-          <ProtectedRoute staffOnly={true}>
-            <AttendancePage />
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Redirect /admin to the new dashboard */}
-      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-      
+      >
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/enquiries" element={<AdminEnquiryListPage />} />
+        <Route path="/admin/enquiry/:id" element={<EnquiryDetailPage />} />
+        <Route path="/admin/students" element={<StudentListPage />} />
+        <Route path="/admin/student/:id" element={<StudentDetailPage />} />
+        <Route path="/admin/attendance" element={<AttendancePage />} />
+        <Route path="/admin/expenses" element={<ExpenseManagementPage />} />
+        <Route path="/admin/stock" element={<StockManagementPage />} />
+        <Route path="/admin/courses" element={<CourseManagementPage />} />
+        
+        {/* Admin users can also access the common app pages, but in their layout */}
+        <Route path="/admin/account" element={<AccountPage />} />
+        <Route path="/admin/account/settings" element={<AccountSettings />} />
+        <Route path="/admin/notifications" element={<NotificationsPage />} />
+      </Route>
+
+      {/* 6. Redirects for any other path */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
