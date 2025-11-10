@@ -180,9 +180,9 @@
 
   .form-input:focus {
     outline: none;
-    ring: 2px solid hsl(var(--ring));
-    ring-offset: 2px;
-    ring-offset-color: hsl(var(--background));
+    kerning: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-left-color: hsl(var(--background));
   }
 
   .form-input::placeholder {
@@ -214,9 +214,9 @@
   }
 
   .btn:focus {
-    ring: 2px solid hsl(var(--ring));
-    ring-offset: 2px;
-    ring-offset-color: hsl(var(--background));
+    kerning: 2px solid hsl(var(--ring));
+    motion-offset: 2px;
+    border-left-color: hsl(var(--background));
   }
 
   .btn:disabled {
@@ -344,8 +344,8 @@
 
   .badge:focus {
     outline: none;
-    ring: 2px solid hsl(var(--ring));
-    ring-offset: 2px;
+    kerning: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   .badge-primary {
