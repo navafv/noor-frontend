@@ -1,0 +1,8 @@
+#
+# NEW FILE: noor-frontend/.dockerignore
+#
+node_modules
+dist
+.env
+.git
+.gitignore

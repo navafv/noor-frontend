@@ -30,8 +30,15 @@ function AttendancePage() {
     const fetchBatches = async () => {
       try {
         setLoadingBatches(true);
-        const res = await api.get('/batches/');
-        setBatches(res.data.results || []);
+        let res;
+        if (user.is_superuser) {
+          // Admins get all batches
+          res = await api.get('/batches/');
+        } else if (user.is_staff) {
+          // Teachers get only their batches
+          res = await api.get('/teacher/my-batches/');
+        }
+        setBatches(res.data.results || res.data || []);
       } catch (err) {
         setError('Failed to load batches.');
       } finally {
@@ -39,7 +46,7 @@ function AttendancePage() {
       }
     };
     fetchBatches();
-  }, []);
+  }, [user]); // Re-run if user changes
 
   // 2. Fetch students when a batch is selected
   useEffect(() => {
@@ -100,12 +107,12 @@ function AttendancePage() {
     const attendanceData = {
       batch: selectedBatch,
       date: attendanceDate,
-      taken_by: user.id, // This should be handled by backend, but sending is fine
+      taken_by: user.id, // This is fine, backend serializer uses request.user
       entries: entries,
     };
 
     try {
-      await api.post('/attendance/records/', attendanceData); // FIX: Use /attendance/records/
+      await api.post('/attendance/records/', attendanceData);
       setSuccess('Attendance submitted successfully!');
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to submit attendance. It may already be taken for this date.');

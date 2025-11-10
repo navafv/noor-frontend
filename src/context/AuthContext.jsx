@@ -1,13 +1,19 @@
-/* * UPDATED FILE: src/context/AuthContext.jsx 
+/*
+ * UPDATED FILE: src/context/AuthContext.jsx
  *
- * FIX: `loginUser` and `checkUser` now fetch the `student_id`
- * for non-staff users and attach it to the user object.
- * FIX: Replaced `jwt-decode` import with an inline function.
- * FIX: Changed alias import to relative import for `api.js`.
+ * CRITICAL FIX: This file contains the primary fix for all login issues.
+ * 1. Removed the broken `getUserDetails` function.
+ * 2. `checkUser` and `loginUser` now use `/users/me/` which is the correct
+ * endpoint for *any* logged-in user to get their *own* profile.
+ * This fixes the bug where students couldn't log in.
+ * 3. `loginUser` now has correct redirect logic for all 3 roles:
+ * - Admin (is_superuser) -> /admin/dashboard
+ * - Teacher (is_staff, not superuser) -> /teacher/dashboard
+ * - Student (not is_staff) -> /student/dashboard
  */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../services/api.js'; // FIX: Use relative path
+import api from '@/services/api.js'; // <-- FIX: Use alias path
 
 const AuthContext = createContext();
 
@@ -52,57 +58,34 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  /**
-   * Fetches full user details and associated student ID (if applicable)
-   * from a user ID.
-   */
-  const getUserDetails = async (userId) => {
-    // 1. Fetch user data from /users/{id}/
-    const userResponse = await api.get(`/users/${userId}/`);
-    const userData = userResponse.data;
-
-    let studentId = null;
-    // 2. If user is NOT staff, fetch their student record
-    if (!userData.is_staff) {
-      try {
-        // Fetch student record matching the user_id
-        const studentRes = await api.get(`/students/?user=${userId}`); // Use user ID filter
-        if (studentRes.data.results && studentRes.data.results.length > 0) {
-          studentId = studentRes.data.results[0].id;
-        }
-      } catch (studentErr) {
-        console.error("Could not fetch student record for user", studentErr);
-      }
-    }
-    
-    // 3. Return the combined user object
-    return { ...userData, student_id: studentId };
-  };
-
-
   useEffect(() => {
     const checkUser = async () => {
       if (tokens) {
-        // api.js interceptor now handles setting the header
         try {
-          const decoded = jwtDecode(tokens.access);
-          const userId = decoded.user_id;
+          // 1. Set auth header for this request
+          api.defaults.headers.common['Authorization'] = 'Bearer ' + tokens.access;
           
-          // Fetch full user details
-          const fullUser = await getUserDetails(userId);
+          // 2. Fetch user's own profile from the /users/me/ endpoint
+          //    This works for ALL roles (Admin, Teacher, Student)
+          const userResponse = await api.get('/users/me/');
+          const fullUser = userResponse.data;
+          
+          // 3. Set user
           setUser(fullUser);
 
         } catch (error) {
           console.error("Auth check failed, token might be invalid", error);
           if (error.response?.status !== 401) {
-             logoutUser(false); // Log out if it's not a 401 (which interceptor handles)
+             // 401s are handled by the interceptor, but other errors (like 500)
+             // should log the user out.
+             logoutUser(false);
           }
         }
       }
       setLoading(false);
     };
     checkUser();
-  }, [tokens]);
+  }, [tokens]); // Only re-run when tokens change
 
   const loginUser = async (username, password) => {
     try {
@@ -112,30 +95,34 @@ export const AuthProvider = ({ children }) => {
         password,
       });
       const newTokens = tokenResponse.data;
+      
+      // 2. Set tokens and auth header for next request
       setTokens(newTokens);
       localStorage.setItem('authTokens', JSON.stringify(newTokens));
-      // api.js interceptor will now handle this header
+      api.defaults.headers.common['Authorization'] = 'Bearer ' + newTokens.access;
       
-      // 2. Get user ID from new token
-      const decoded = jwtDecode(newTokens.access);
-      const userId = decoded.user_id;
-
-      // 3. Fetch full user details
-      const fullUser = await getUserDetails(userId);
+      // 3. Fetch user's own profile from /users/me/
+      const userResponse = await api.get('/users/me/');
+      const fullUser = userResponse.data;
       setUser(fullUser);
 
-      // 4. Role-based redirect
+      // 4. *** CRITICAL FIX: Role-based redirect ***
       const from = location.state?.from?.pathname;
+
       if (from) {
         navigate(from, { replace: true });
-      } else if (fullUser.is_staff) {
+      } else if (fullUser.is_superuser) {
+        // Role 1: Admin
         navigate('/admin/dashboard', { replace: true });
+      } else if (fullUser.is_staff) {
+        // Role 2: Teacher
+        navigate('/teacher/dashboard', { replace: true });
       } else {
+        // Role 3: Student
         navigate('/student/dashboard', { replace: true });
       }
     } catch (error) {
       console.error('Login failed', error);
-      // Check if it's a 401, which is the most likely login error
       if (error.response && error.response.status === 401) {
         throw new Error('Invalid username or password.');
       }

@@ -1,9 +1,8 @@
 /*
  * UPDATED FILE: src/services/api.js
  *
- * FIX: Corrected a syntax error (an extra 'f') in the request interceptor.
- * FIX: Replaced `import.meta.env.VITE_API_BASE_URL` with the hardcoded
- * value from your .env file to resolve the build warning/error.
+ * FIX: Using `import.meta.env.VITE_API_BASE_URL` as defined in your .env file.
+ * FIX: Corrected a syntax error in the request interceptor.
  */
 import axios from 'axios';
 
@@ -18,9 +17,8 @@ const getAuthTokens = () => {
   }
 };
 
-// Define the API base URL directly
-// This avoids the `import.meta.env` issue during build
-const API_BASE_URL = 'http://192.168.1.2:8000/api/v1';
+// Use the VITE_API_BASE_URL from your .env file
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
 
 // Create an axios instance
 const api = axios.create({
@@ -36,7 +34,7 @@ api.interceptors.request.use(
   (config) => {
     const tokens = getAuthTokens();
     if (tokens) {
-      // FIX: Removed the stray 'f' character here
+      // FIX: Removed the stray 'f' character that was here
       config.headers['Authorization'] = 'Bearer ' + tokens.access;
     }
     return config;

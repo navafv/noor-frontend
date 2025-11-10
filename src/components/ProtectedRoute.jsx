@@ -1,10 +1,15 @@
+/*
+ * UPDATED FILE: src/components/ProtectedRoute.jsx
+ *
+ * CRITICAL FIX: Simplified the logic to be clearer and fix
+ * role-hopping bugs.
+ */
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
+import { useAuth } from '@/context/AuthContext.jsx'; // <-- FIX: Use alias path
 import { Loader2 } from 'lucide-react';
 
-// Add a new prop 'staffOnly'
-const ProtectedRoute = ({ children, staffOnly = false }) => {
+const ProtectedRoute = ({ children, studentOnly = false, teacherOnly = false, adminOnly = false, staffOnly = false }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -18,23 +23,37 @@ const ProtectedRoute = ({ children, staffOnly = false }) => {
 
   // 1. Check if user is logged in
   if (!user) {
-    // Redirect to login, but remember where they came from
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Check if the route is for staff only AND the user is not staff
-  if (staffOnly && !user.is_staff) {
-    // Logged in, but not staff. Send to their account page.
-    return <Navigate to="/account" replace />;
+  // 2. Define user roles
+  const isStudent = !user.is_staff;
+  const isTeacher = user.is_staff && !user.is_superuser;
+  const isAdmin = user.is_superuser;
+
+  // 3. Student-only route
+  if (studentOnly && !isStudent) {
+    // A non-student (Admin or Teacher) is trying to access a student-only route
+    return <Navigate to={isAdmin ? "/admin/dashboard" : "/teacher/dashboard"} replace />;
   }
   
-  // 3. Check if route is for students only (non-staff)
-  // This is a new rule: if user is staff, don't let them go to /student/dashboard
-  // Send them to their own admin dashboard.
-  if (!staffOnly && user.is_staff) {
-    return <Navigate to="/admin/dashboard" replace />
+  // 4. Teacher-only route
+  if (teacherOnly && !isTeacher) {
+    // A non-teacher (Admin or Student) is trying to access a teacher-only route
+    return <Navigate to={isAdmin ? "/admin/dashboard" : "/student/dashboard"} replace />;
   }
 
+  // 5. Admin-only route
+  if (adminOnly && !isAdmin) {
+    // A non-admin (Teacher or Student) is trying to access an admin-only route
+    return <Navigate to={isTeacher ? "/teacher/dashboard" : "/student/dashboard"} replace />;
+  }
+  
+  // 6. General staff route (for shared pages like Attendance)
+  if (staffOnly && !user.is_staff) {
+     // A student is trying to access a staff-only route
+     return <Navigate to="/student/dashboard" replace />;
+  }
 
   // If all checks pass, show the page
   return children;
