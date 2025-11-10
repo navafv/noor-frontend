@@ -1,9 +1,10 @@
+/* 1. Import Tailwind CSS */
 @import "tailwindcss";
 
+/* 2. Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Great+Vibes&display=swap');
 
-/* Define all your theme colors as CSS variables.
-  We use HSL values for easy color manipulation.
-*/
+/* 3. Base Styles - Define ALL CSS variables first */
 @layer base {
   :root {
     /* Color Palette (Blue Theme) */
@@ -19,23 +20,26 @@
     --primary-900: 210 80% 20%;
     --primary-950: 210 80% 10%;
 
-    /* Your original Pink as Secondary/Accent */
+    /* Pink Accent */
     --secondary-50: 330 100% 98%;
     --secondary-100: 330 100% 96%;
     --secondary-200: 330 100% 92%;
     --secondary-300: 330 100% 86%;
     --secondary-400: 330 90% 75%;
-    --secondary-500: 331 82% 60%; /* Original ec4899 */
-    --secondary-600: 332 70% 50%; /* Darker be185d */
+    --secondary-500: 331 82% 60%;
+    --secondary-600: 332 70% 50%;
     --secondary-700: 332 70% 40%;
     --secondary-800: 332 70% 30%;
     --secondary-900: 333 70% 20%;
     --secondary-950: 333 70% 10%;
-    
-    /* Light Mode Semantic Colors */
-    --background: 0 0% 98%; /* gray-50 */
-    --foreground: 224 71% 4%; /* gray-950 */
-    --card: 0 0% 100%; /* white */
+
+    /* Radius */
+    --radius: 0.75rem;
+
+    /* Theme Colors - Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 224 71% 4%;
+    --card: 0 0% 100%;
     --card-foreground: 224 71% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71% 4%;
@@ -43,25 +47,24 @@
     --primary-foreground: 0 0% 100%;
     --secondary: var(--secondary-600);
     --secondary-foreground: 0 0% 100%;
-    --muted: 220 14% 90%;
+    --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
-    --accent: 220 14% 90%;
+    --accent: 220 14% 96%;
     --accent-foreground: 220 9% 46%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 13% 88%;
-    --input: 220 13% 88%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: var(--primary-600);
-    --radius: 0.75rem;
   }
 
   .dark {
-    /* Dark Mode Semantic Colors */
-    --background: 224 71% 4%; /* gray-950 */
-    --foreground: 210 20% 98%; /* gray-50 */
-    --card: 220 13% 9%; /* gray-900 */
+    /* Theme Colors - Dark Mode */
+    --background: 224 71% 4%;
+    --foreground: 210 20% 98%;
+    --card: 224 71% 6%;
     --card-foreground: 210 20% 98%;
-    --popover: 220 13% 9%;
+    --popover: 224 71% 6%;
     --popover-foreground: 210 20% 98%;
     --primary: var(--primary-500);
     --primary-foreground: 0 0% 100%;
@@ -77,83 +80,386 @@
     --input: 215 14% 24%;
     --ring: var(--primary-500);
   }
-}
 
-/* Base styles */
-@layer base {
+  * {
+    border-color: hsl(var(--border));
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-family: 'Poppins', sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
   }
-  
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    line-height: 1.3;
+    color: hsl(var(--foreground));
+  }
+
+  p {
+    color: hsl(var(--muted-foreground));
+  }
+
   .logo {
-    @apply font-logo;
+    font-family: 'Great Vibes', cursive;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
   }
 }
 
-/* Component styles */
+/* 4. Components Layer */
 @layer components {
-  /* Form components */
+  /* Big Background Utility */
+  .big-background {
+    background: linear-gradient(135deg, 
+      hsl(var(--primary-50)) 0%, 
+      hsl(var(--primary-100)) 25%, 
+      hsl(var(--secondary-50)) 50%, 
+      hsl(var(--secondary-100)) 75%, 
+      hsl(var(--primary-50)) 100%);
+    background-size: 200% 200%;
+    background-attachment: fixed;
+  }
+
+  .dark .big-background {
+    background: linear-gradient(135deg, 
+      hsl(var(--primary-950)) 0%, 
+      hsl(var(--primary-900)) 25%, 
+      hsl(var(--secondary-950)) 50%, 
+      hsl(var(--secondary-900)) 75%, 
+      hsl(var(--primary-950)) 100%);
+    background-size: 200% 200%;
+    background-attachment: fixed;
+  }
+
+  /* Form Components */
   .form-label {
-    @apply block text-sm font-medium text-muted-foreground;
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 0.5rem;
   }
+
   .form-input {
-    @apply mt-1 block w-full rounded-md border border-input bg-background p-3 text-foreground shadow-sm 
-           focus:border-ring focus:ring-ring focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background;
+    width: 100%;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid hsl(var(--input));
+    background-color: hsl(var(--background));
+    padding: 0.5rem 0.75rem;
+    color: hsl(var(--foreground));
+    transition: all 0.2s;
   }
 
-  /* Reusable badge for status */
-  .status-badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
-  }
-  .status-new {
-    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
-  }
-  .status-follow_up {
-    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
-  }
-  .status-converted {
-    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
-  }
-  .status-closed {
-    @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200;
+  .form-input:focus {
+    outline: none;
+    ring: 2px solid hsl(var(--ring));
+    ring-offset: 2px;
+    ring-offset-color: hsl(var(--background));
   }
 
-  /* Reusable buttons */
+  .form-input::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .form-textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .form-select {
+    padding-right: 2rem;
+  }
+
+  /* Button Components */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    outline: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn:focus {
+    ring: 2px solid hsl(var(--ring));
+    ring-offset: 2px;
+    ring-offset-color: hsl(var(--background));
+  }
+
+  .btn:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm 
-           hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-md border border-input bg-card px-4 py-2 text-sm font-medium text-card-foreground shadow-sm 
-           hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .btn-destructive {
-     @apply inline-flex items-center justify-center rounded-md border border-transparent bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow-sm 
-           hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 
-           disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  .btn-ghost {
-     @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-primary 
-           hover:bg-accent hover:text-accent-foreground
-           disabled:cursor-not-allowed disabled:opacity-50;
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
   }
 
-  /* Grid for action buttons on student page */
-  .btn-action-grid {
-    @apply flex flex-col items-center justify-center gap-1 rounded-lg bg-card p-4 text-center text-primary shadow-sm transition-all 
-           hover:bg-accent hover:shadow-md dark:border dark:border-border;
+  .btn-primary:hover {
+    background-color: hsl(var(--primary) / 0.9);
+  }
+
+  .btn-secondary {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .btn-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.9);
+  }
+
+  .btn-outline {
+    border: 1px solid hsl(var(--input));
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+
+  .btn-outline:hover {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  .btn-ghost {
+    background-color: transparent;
+    color: hsl(var(--foreground));
+  }
+
+  .btn-ghost:hover {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  .btn-destructive {
+    background-color: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+  }
+
+  .btn-destructive:hover {
+    background-color: hsl(var(--destructive) / 0.9);
+  }
+
+  /* Card Components */
+  .card {
+    border-radius: var(--radius);
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  }
+
+  .card-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 1.5rem;
+  }
+
+  .card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+
+  .card-description {
+    font-size: 0.875rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .card-content {
+    padding: 1.5rem;
+    padding-top: 0;
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    padding-top: 0;
+  }
+
+  /* Alert Components */
+  .alert {
+    position: relative;
+    width: 100%;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid hsl(var(--border));
+    padding: 1rem;
+  }
+
+  .alert-destructive {
+    border-color: hsl(var(--destructive) / 0.5);
+    color: hsl(var(--destructive));
+  }
+
+  .dark .alert-destructive {
+    border-color: hsl(var(--destructive));
+  }
+
+  /* Badge Components */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+  }
+
+  .badge:focus {
+    outline: none;
+    ring: 2px solid hsl(var(--ring));
+    ring-offset: 2px;
+  }
+
+  .badge-primary {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .badge-primary:hover {
+    background-color: hsl(var(--primary) / 0.8);
+  }
+
+  .badge-secondary {
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+  }
+
+  .badge-secondary:hover {
+    background-color: hsl(var(--secondary) / 0.8);
+  }
+
+  .badge-outline {
+    border-color: hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+
+  /* Navigation */
+  .nav-link {
+    color: hsl(var(--muted-foreground));
+    transition: color 0.2s;
+  }
+
+  .nav-link:hover {
+    color: hsl(var(--foreground));
+  }
+
+  .nav-link-active {
+    color: hsl(var(--foreground));
+    font-weight: 500;
+  }
+}
+
+/* 5. Utilities Layer */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Animation keyframes */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideInFromTop {
+    from {
+      transform: translateY(-10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-in {
+    animation: slideInFromTop 0.3s ease-out;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .glass {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary-600)), hsl(var(--secondary-600)));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* 6. Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
   }
   
-  /* Form Error */
-  .form-error {
-    @apply rounded-md bg-destructive/10 p-3 text-center text-sm font-medium text-destructive;
+  body {
+    background: white !important;
+    color: black !important;
   }
-
-  /* Reusable card */
+  
   .card {
-    @apply rounded-xl bg-card text-card-foreground shadow-sm dark:border dark:border-border;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  
+  .big-background {
+    background: white !important;
   }
 }

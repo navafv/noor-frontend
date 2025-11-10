@@ -12,7 +12,7 @@ function AppLayout() {
       */}
       
       {/* Main content area */}
-      <main className="flex-1 overflow-y-auto bg-background">
+      <main className="flex-1 overflow-y-auto bg-background pb-20">
         <Outlet /> {/* Renders the page content */}
       </main>
       

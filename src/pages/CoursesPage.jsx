@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '@/services/api';
+import api from '@/services/api.js';
 import { Loader2, Clock, DollarSign, CheckCircle } from 'lucide-react';
 
 function CoursesPage() {
@@ -24,16 +24,16 @@ function CoursesPage() {
   }, []);
 
   return (
-    <div className="py-20 bg-gray-50 min-h-screen">
+    <div className="py-20 bg-background min-h-screen">
       <div className="mx-auto max-w-5xl px-4">
-        <h1 className="text-4xl font-bold text-noor-heading text-center">Our Courses</h1>
-        <p className="text-xl text-gray-600 text-center mt-2">
+        <h1 className="text-4xl font-bold text-foreground text-center">Our Courses</h1>
+        <p className="text-xl text-muted-foreground text-center mt-2">
           Find the perfect course to start your career.
         </p>
 
         {loading && (
           <div className="flex justify-center items-center min-h-[300px]">
-            <Loader2 className="animate-spin text-noor-pink" size={40} />
+            <Loader2 className="animate-spin text-primary" size={40} />
           </div>
         )}
         {error && <p className="form-error text-center mt-10">{error}</p>}
@@ -43,7 +43,7 @@ function CoursesPage() {
             {courses.length > 0 ? courses.map(course => (
               <CourseCard key={course.id} course={course} />
             )) : (
-              <p className="text-center text-gray-500 md:col-span-2">No courses are available right now. Please check back later.</p>
+              <p className="text-center text-muted-foreground md:col-span-2">No courses are available right now. Please check back later.</p>
             )}
           </div>
         )}
@@ -53,10 +53,10 @@ function CoursesPage() {
 }
 
 const CourseCard = ({ course }) => (
-  <div className="bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+  <div className="card flex flex-col overflow-hidden">
     <div className="p-8">
-      <h2 className="text-2xl font-bold text-noor-heading">{course.title}</h2>
-      <p className="text-gray-600 mt-2">{course.syllabus || 'Learn the fundamentals and advanced techniques of professional stitching.'}</p>
+      <h2 className="text-2xl font-bold text-foreground">{course.title}</h2>
+      <p className="text-muted-foreground mt-2">{course.syllabus || 'Learn the fundamentals and advanced techniques of professional stitching.'}</p>
       
       <div className="mt-6 space-y-3">
         <InfoRow icon={DollarSign} text={`Fees: ₹${parseFloat(course.total_fees).toLocaleString('en-IN')}`} />
@@ -64,7 +64,7 @@ const CourseCard = ({ course }) => (
         <InfoRow icon={CheckCircle} text={course.active ? "Admissions Open" : "Admissions Closed"} />
       </div>
     </div>
-    <div className="mt-auto bg-gray-50 p-6">
+    <div className="mt-auto bg-background p-6">
       <Link to="/contact" className="btn-primary w-full justify-center">
         Enquire Now
       </Link>
@@ -74,8 +74,8 @@ const CourseCard = ({ course }) => (
 
 const InfoRow = ({ icon: Icon, text }) => (
   <div className="flex items-center">
-    <Icon className="w-5 h-5 text-noor-pink" />
-    <span className="ml-3 text-gray-700">{text}</span>
+    <Icon className="w-5 h-5 text-primary" />
+    <span className="ml-3 text-foreground">{text}</span>
   </div>
 );
 

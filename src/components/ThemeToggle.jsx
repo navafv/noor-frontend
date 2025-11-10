@@ -1,6 +1,6 @@
 /* NEW FILE: src/components/ThemeToggle.jsx */
 import React from 'react';
-import { useTheme } from '@/context/ThemeContext';
+import { useTheme } from '@/context/ThemeContext.jsx';
 import { Sun, Moon, Laptop } from 'lucide-react';
 
 function ThemeToggle() {

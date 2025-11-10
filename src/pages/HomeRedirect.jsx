@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.jsx';
 import { Loader2 } from 'lucide-react';
 
 function HomeRedirect() {
@@ -9,8 +9,8 @@ function HomeRedirect() {
   if (loading) {
     // Show a full-page loader while we check auth
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-noor-pink" size={48} />
+      <div className="flex h-screen items-center justify-center bg-background">
+        <Loader2 className="animate-spin text-primary" size={48} />
       </div>
     );
   }
@@ -24,8 +24,8 @@ function HomeRedirect() {
     );
   }
 
-  // Not logged in: Redirect to the Login page
-  return <Navigate to="/login" replace />;
+  // Not logged in: Redirect to the public Home Page
+  return <Navigate to="/home" replace />;
 }
 
 export default HomeRedirect;

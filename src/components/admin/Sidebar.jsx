@@ -1,7 +1,7 @@
-/* NEW FILE: src/components/admin/Sidebar.jsx */
+/* UPDATED FILE: src/components/admin/Sidebar.jsx */
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext.jsx';
 import {
   LayoutDashboard,
   Inbox,
@@ -69,7 +69,8 @@ function Sidebar({ onClose }) {
       </div>
       <div className="mt-auto border-t border-border p-4">
         <nav className="grid gap-1">
-          <NavItem to="/account" icon={Settings} label="Account Settings" />
+          {/* FIX: Changed link to /admin/account/settings */}
+          <NavItem to="/admin/account/settings" icon={Settings} label="Account Settings" />
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:bg-accent hover:text-accent-foreground"

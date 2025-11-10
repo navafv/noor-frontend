@@ -3,35 +3,35 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- Import Layouts & Auth ---
-import AppLayout from './components/AppLayout'; // For Student Portal
-import AdminLayout from './layouts/AdminLayout'; // For Admin Portal
-import ProtectedRoute from './components/ProtectedRoute';
-import PublicLayout from './components/PublicLayout'; // For public pages
+import AppLayout from './components/AppLayout.jsx'; // For Student Portal
+import AdminLayout from './pages/AdminLayout.jsx'; // For Admin Portal (was src/layouts/AdminLayout.jsx)
+import ProtectedRoute from './components/ProtectedRoute.jsx';
+import PublicLayout from './components/PublicLayout.jsx'; // For public pages
 
 // --- Import Pages ---
-import HomeRedirect from './pages/HomeRedirect';
-import LoginPage from './pages/LoginPage';
-import HomePage from './pages/HomePage';
-import AboutPage from './pages/AboutPage';
-import ContactPage from './pages/ContactPage';
-import CoursesPage from './pages/CoursesPage';
+import HomeRedirect from './pages/HomeRedirect.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import HomePage from './pages/HomePage.jsx';
+import AboutPage from './pages/AboutPage.jsx';
+import ContactPage from './pages/ContactPage.jsx';
+import CoursesPage from './pages/CoursesPage.jsx';
 
 // --- "App" Pages (for logged-in users) ---
-import AccountPage from './pages/AccountPage';
-import NotificationsPage from './pages/NotificationsPage';
-import StudentDashboard from './pages/StudentDashboard';
-import AccountSettings from './pages/AccountSettings';
+import AccountPage from './pages/AccountPage.jsx';
+import NotificationsPage from './pages/NotificationsPage.jsx';
+import StudentDashboard from './pages/StudentDashboard.jsx';
+import AccountSettings from './pages/AccountSettings.jsx';
 
 // --- "Admin" Pages (for staff) ---
-import AdminDashboard from './pages/AdminDashboard';
-import AdminEnquiryListPage from './pages/AdminEnquiryListPage';
-import EnquiryDetailPage from './pages/EnquiryDetailPage';
-import StudentListPage from './pages/StudentListPage';
-import StudentDetailPage from './pages/StudentDetailPage';
-import AttendancePage from './pages/AttendancePage';
-import ExpenseManagementPage from './pages/ExpenseManagementPage';
-import StockManagementPage from './pages/StockManagementPage';
-import CourseManagementPage from './pages/CourseManagementPage';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import AdminEnquiryListPage from './pages/AdminEnquiryListPage.jsx';
+import EnquiryDetailPage from './pages/EnquiryDetailPage.jsx';
+import StudentListPage from './pages/StudentListPage.jsx';
+import StudentDetailPage from './pages/StudentDetailPage.jsx';
+import AttendancePage from './pages/AttendancePage.jsx';
+import ExpenseManagementPage from './pages/ExpenseManagementPage.jsx';
+import StockManagementPage from './pages/StockManagementPage.jsx';
+import CourseManagementPage from './pages/CourseManagementPage.jsx';
 
 import './index.css';
 
@@ -61,6 +61,7 @@ function App() {
         }
       >
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        {/* These routes are shared but render inside student layout */}
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/settings" element={<AccountSettings />} />
         <Route path="/notifications" element={<NotificationsPage />} />
@@ -85,6 +86,7 @@ function App() {
         <Route path="/admin/courses" element={<CourseManagementPage />} />
         
         {/* Admin users can also access the common app pages, but in their layout */}
+        {/* These routes are shared but render inside admin layout */}
         <Route path="/admin/account" element={<AccountPage />} />
         <Route path="/admin/account/settings" element={<AccountSettings />} />
         <Route path="/admin/notifications" element={<NotificationsPage />} />

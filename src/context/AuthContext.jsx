@@ -1,7 +1,8 @@
 /* UPDATED FILE: src/context/AuthContext.jsx */
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '@/services/api.js';
+import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
 
 const AuthContext = createContext();
 
@@ -18,25 +19,50 @@ export const AuthProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const checkUser = async () => {
       if (tokens) {
+        // Set header immediately
         api.defaults.headers.common['Authorization'] = 'Bearer ' + tokens.access;
         try {
-          // Note: Your backend might need to expose user.student_id here
-          // I've seen it in StudentDashboard, so I assume /users/me/ has it
-          const response = await api.get('/users/me/');
-          setUser(response.data);
+          // Decode token to get user ID
+          const decoded = jwtDecode(tokens.access);
+          const userId = decoded.user_id;
+
+          // Fetch user data from /users/{id}/
+          const response = await api.get(`/users/${userId}/`);
+          
+          // --- FIX: Get student_id from student endpoint ---
+          let studentId = null;
+          if (!response.data.is_staff) {
+            try {
+              // Fetch the associated student record
+              const studentRes = await api.get(`/students/?user_id=${userId}`);
+              if (studentRes.data.results && studentRes.data.results.length > 0) {
+                studentId = studentRes.data.results[0].id;
+              }
+            } catch (studentErr) {
+              console.error("Could not fetch student record for user", studentErr);
+            }
+          }
+          
+          setUser({ ...response.data, student_id: studentId });
+          // --- End Fix ---
+
         } catch (error) {
-          console.error("Auth check failed", error);
-          logoutUser(false);
+          console.error("Auth check failed, token might be invalid", error);
+          // Don't logout here, let interceptor handle refresh
+          if (error.response?.status !== 401) {
+             logoutUser(false); // Log out if it's not a 401 (which interceptor handles)
+          }
         }
       }
       setLoading(false);
     };
     checkUser();
-  }, [tokens]);
+  }, [tokens]); // Only re-run when tokens change
 
   const loginUser = async (username, password) => {
     try {
@@ -49,14 +75,38 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('authTokens', JSON.stringify(newTokens));
       api.defaults.headers.common['Authorization'] = 'Bearer ' + newTokens.access;
       
-      const userResponse = await api.get('/users/me/');
-      setUser(userResponse.data);
+      // Decode token to get user ID
+      const decoded = jwtDecode(newTokens.access);
+      const userId = decoded.user_id;
+
+      // Fetch user data from /users/{id}/
+      const userResponse = await api.get(`/users/${userId}/`);
+
+      // --- FIX: Get student_id from student endpoint ---
+      let studentId = null;
+      if (!userResponse.data.is_staff) {
+        try {
+          const studentRes = await api.get(`/students/?user_id=${userId}`);
+          if (studentRes.data.results && studentRes.data.results.length > 0) {
+            studentId = studentRes.data.results[0].id;
+          }
+        } catch (studentErr) {
+          console.error("Could not fetch student record for user", studentErr);
+        }
+      }
+      
+      const fullUser = { ...userResponse.data, student_id: studentId };
+      setUser(fullUser);
+      // --- End Fix ---
 
       // Role-based redirect
-      if (userResponse.data.is_staff) {
-        navigate('/admin/dashboard'); // Go to Admin Dashboard
+      const from = location.state?.from?.pathname;
+      if (from) {
+        navigate(from, { replace: true });
+      } else if (fullUser.is_staff) {
+        navigate('/admin/dashboard', { replace: true }); // Go to Admin Dashboard
       } else {
-        navigate('/student/dashboard'); // Go to Student Dashboard
+        navigate('/student/dashboard', { replace: true }); // Go to Student Dashboard
       }
     } catch (error) {
       console.error('Login failed', error);
@@ -80,12 +130,12 @@ export const AuthProvider = ({ children }) => {
     loading,
     loginUser,
     logoutUser,
-    setUser,
+    setUser, // Expose setUser for profile updates
   };
 
   return (
     <AuthContext.Provider value={contextData}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

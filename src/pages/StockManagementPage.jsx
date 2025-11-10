@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Plus, Package, ArrowRightLeft } from 'lucide-react';
 import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
+import PageHeader from '@/components/PageHeader.jsx';
 
 function StockManagementPage() {
   const [items, setItems] = useState([]);
@@ -28,49 +29,45 @@ function StockManagementPage() {
   }, []);
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 w-full bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="flex items-center gap-1 text-noor-pink">
-            <ChevronLeft size={20} />
-            <span className="font-medium">Dashboard</span>
-          </Link>
-          <h1 className="text-lg font-semibold text-noor-heading">Manage Stock</h1>
-          <div className="flex gap-2">
-            <button onClick={() => setIsTxnModalOpen(true)} className="btn-secondary p-2" title="Log Transaction">
-              <ArrowRightLeft size={18} />
-            </button>
-            <button onClick={() => setIsItemModalOpen(true)} className="btn-primary p-2" title="Add New Item Type">
-              <Plus size={20} />
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="flex h-full flex-col">
+      <PageHeader title="Manage Stock" />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <main className="flex-1 overflow-y-auto bg-background p-4">
         <div className="mx-auto max-w-2xl">
+          
+          <div className="flex justify-end gap-2 mb-4">
+            <button onClick={() => setIsTxnModalOpen(true)} className="btn-secondary flex items-center gap-2" title="Log Transaction">
+              <ArrowRightLeft size={18} /> Log Transaction
+            </button>
+            <button onClick={() => setIsItemModalOpen(true)} className="btn-primary flex items-center gap-2" title="Add New Item Type">
+              <Plus size={20} /> New Item
+            </button>
+          </div>
+
           {loading && (
             <div className="flex justify-center items-center min-h-[200px]">
-              <Loader2 className="animate-spin text-noor-pink" size={32} />
+              <Loader2 className="animate-spin text-primary" size={32} />
             </div>
           )}
           {error && <p className="form-error">{error}</p>}
 
           {!loading && (
-            <div className="bg-white rounded-xl shadow-sm">
-              <ul className="divide-y divide-gray-200">
+            <div className="card">
+              <ul className="divide-y divide-border">
                 {items.length === 0 ? (
-                  <p className="p-10 text-center text-gray-500">No stock items found. Add one to get started.</p>
+                  <p className="p-10 text-center text-muted-foreground">No stock items found. Add one to get started.</p>
                 ) : (
                   items.map(item => (
                     <li key={item.id} className="p-4 flex justify-between items-center">
                       <div>
-                        <p className="font-semibold text-noor-heading">{item.name}</p>
-                        <p className="text-sm text-gray-500">Unit: {item.unit}</p>
+                        <p className="font-semibold text-foreground">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">Unit: {item.unit_of_measure}</p>
+                        {item.needs_reorder && (
+                           <p className="text-xs font-medium text-red-600">Re-order level reached</p>
+                        )}
                       </div>
-                      <p className="text-2xl font-bold text-noor-heading">
+                      <p className="text-2xl font-bold text-foreground">
                         {item.quantity_on_hand}
                       </p>
                     </li>
@@ -109,16 +106,26 @@ function StockManagementPage() {
 }
 
 // Form for creating a new StockItem type
-function StockItemForm({ onClose, onSaved }) {
-  const [formData, setFormData] = useState({ name: '', unit: 'units' });
+function StockItemForm({ onSaved }) {
+  // FIX: Match backend model
+  const [formData, setFormData] = useState({ 
+    name: '', 
+    unit_of_measure: 'pieces', 
+    description: '', 
+    reorder_level: 0 
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/stock-items/', formData); //
+      await api.post('/stock-items/', formData);
       onSaved();
     } catch (err) {
       setError(err.response?.data?.name?.[0] || 'Failed to create item.');
@@ -133,15 +140,29 @@ function StockItemForm({ onClose, onSaved }) {
       <div>
         <label htmlFor="name" className="form-label">Item Name</label>
         <input type="text" name="name" id="name"
-          value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})}
+          value={formData.name} onChange={handleChange}
           className="form-input" required placeholder="e.g., Pink Thread"
         />
       </div>
       <div>
-        <label htmlFor="unit" className="form-label">Unit</label>
-        <input type="text" name="unit" id="unit"
-          value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})}
-          className="form-input" required placeholder="e.g., meters, units, kg"
+        <label htmlFor="unit_of_measure" className="form-label">Unit of Measure</label>
+        <input type="text" name="unit_of_measure" id="unit_of_measure"
+          value={formData.unit_of_measure} onChange={handleChange}
+          className="form-input" required placeholder="e.g., meters, pieces, kg"
+        />
+      </div>
+       <div>
+        <label htmlFor="reorder_level" className="form-label">Re-order Level</label>
+        <input type="number" name="reorder_level" id="reorder_level"
+          value={formData.reorder_level} onChange={handleChange}
+          className="form-input" required
+        />
+      </div>
+      <div>
+        <label htmlFor="description" className="form-label">Description (Optional)</label>
+        <textarea name="description" id="description"
+          value={formData.description} onChange={handleChange}
+          className="form-input" rows="2"
         />
       </div>
       <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
@@ -152,12 +173,11 @@ function StockItemForm({ onClose, onSaved }) {
 }
 
 // Form for logging a new StockTransaction
-function StockTransactionForm({ stockItems, onClose, onSaved }) {
+function StockTransactionForm({ stockItems, onSaved }) {
   const [formData, setFormData] = useState({
     item: '',
-    transaction_type: 'IN',
-    quantity: '',
-    notes: '',
+    quantity_changed: '',
+    reason: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -176,7 +196,12 @@ function StockTransactionForm({ stockItems, onClose, onSaved }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.post('/stock-transactions/', formData); //
+      // FIX: Send correct backend fields
+      await api.post('/stock-transactions/', {
+        item: formData.item,
+        quantity_changed: formData.quantity_changed, // Backend handles + or -
+        reason: formData.reason
+      });
       onSaved();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to log transaction.');
@@ -193,30 +218,24 @@ function StockTransactionForm({ stockItems, onClose, onSaved }) {
         <select name="item" id="item" value={formData.item} onChange={handleChange} className="form-input" required>
           <option value="" disabled>Select an item</option>
           {stockItems.map(item => (
-            <option key={item.id} value={item.id}>{item.name} ({item.quantity_on_hand} {item.unit})</option>
+            <option key={item.id} value={item.id}>{item.name} (In stock: {item.quantity_on_hand})</option>
           ))}
         </select>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="transaction_type" className="form-label">Type</label>
-          <select name="transaction_type" id="transaction_type" value={formData.transaction_type} onChange={handleChange} className="form-input" required>
-            <option value="IN">Stock IN (Purchased)</option>
-            <option value="OUT">Stock OUT (Used)</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor="quantity" className="form-label">Quantity</label>
-          <input type="number" name="quantity" id="quantity"
-            value={formData.quantity} onChange={handleChange}
-            className="form-input" required step="0.01"
-          />
-        </div>
-      </div>
+      
       <div>
-        <label htmlFor="notes" className="form-label">Notes</label>
-        <textarea name="notes" id="notes"
-          value={formData.notes} onChange={handleChange}
+        <label htmlFor="quantity_changed" className="form-label">Quantity</label>
+        <input type="number" name="quantity_changed" id="quantity_changed"
+          value={formData.quantity_changed} onChange={handleChange}
+          className="form-input" required step="0.01"
+          placeholder="Use -10 to remove, 10 to add"
+        />
+      </div>
+      
+      <div>
+        <label htmlFor="reason" className="form-label">Reason</label>
+        <textarea name="reason" id="reason"
+          value={formData.reason} onChange={handleChange}
           className="form-input" rows="2" placeholder="e.g., Purchased from local store"
         />
       </div>

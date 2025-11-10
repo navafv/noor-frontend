@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
-import BackButton from '@/components/BackButton.jsx';
+import PageHeader from '@/components/PageHeader.jsx'; // <-- 1. IMPORT
 import { Loader2 } from 'lucide-react';
 
 function AccountSettings() {
@@ -43,13 +43,11 @@ function AccountSettings() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <PageHeader title="My Account" />
-      <h1 className="text-2xl font-bold text-noor-heading mb-6">
-        Account Settings
-      </h1>
+    // FIX: Changed max-w-2xl to max-w-lg to match student portal
+    <div className="p-4 max-w-lg mx-auto"> 
+      <PageHeader title="Account Settings" /> {/* <-- 2. ADD HEADER */}
       
-      <form onSubmit={handleSubmit} className="p-6 bg-white rounded-xl shadow-sm space-y-4">
+      <form onSubmit={handleSubmit} className="card p-6 space-y-4">
         {success && (
           <div className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700">
             {success}

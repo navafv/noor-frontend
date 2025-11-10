@@ -62,13 +62,13 @@ function EnquiryForm() {
         </div>
       )}
       {error && (
-        <div className="rounded-md bg-red-50 p-3 text-center text-sm font-medium text-red-600">
+        <div className="form-error">
           {error}
         </div>
       )}
 
       <div className="space-y-1">
-        <label htmlFor="name" className="text-sm font-medium text-gray-700">
+        <label htmlFor="name" className="form-label">
           Full Name
         </label>
         <input
@@ -78,12 +78,12 @@ function EnquiryForm() {
           value={formData.name}
           onChange={handleChange}
           required
-          className="w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink"
+          className="form-input"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="phone" className="text-sm font-medium text-gray-700">
+        <label htmlFor="phone" className="form-label">
           Phone Number
         </label>
         <input
@@ -93,12 +93,12 @@ function EnquiryForm() {
           value={formData.phone}
           onChange={handleChange}
           required
-          className="w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink"
+          className="form-input"
         />
       </div>
 
       <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium text-gray-700">
+        <label htmlFor="email" className="form-label">
           Email (Optional)
         </label>
         <input
@@ -107,14 +107,14 @@ function EnquiryForm() {
           name="email"
           value={formData.email}
           onChange={handleChange}
-          className="w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink"
+          className="form-input"
         />
       </div>
 
       <div className="space-y-1">
         <label
           htmlFor="course_interest"
-          className="text-sm font-medium text-gray-700"
+          className="form-label"
         >
           Which course are you interested in?
         </label>
@@ -123,7 +123,7 @@ function EnquiryForm() {
           name="course_interest"
           value={formData.course_interest}
           onChange={handleChange}
-          className="w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink"
+          className="form-input"
         >
           <option value="3 Month Course">3 Month Course</option>
           <option value="6 Month Course">6 Month Course</option>
@@ -134,9 +134,9 @@ function EnquiryForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-noor-pink py-3 px-4 text-lg font-semibold text-white shadow-sm transition-all hover:bg-noor-pink-dark disabled:cursor-not-allowed disabled:bg-pink-300"
+        className="btn-primary w-full justify-center text-lg py-3"
       >
-        {loading ? 'Submitting...' : 'Register for Details'}
+        {loading ? <Loader2 className="animate-spin" /> : 'Register for Details'}
       </button>
     </form>
   );

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Check, X, Minus } from 'lucide-react';
 import api from '@/services/api.js';
 import { useAuth } from '@/context/AuthContext.jsx';
+import PageHeader from '@/components/PageHeader.jsx';
 
 // Get today's date in YYYY-MM-DD format for the date picker
 const getTodayDate = () => {
@@ -15,9 +16,7 @@ function AttendancePage() {
   const [selectedBatch, setSelectedBatch] = useState('');
   const [attendanceDate, setAttendanceDate] = useState(getTodayDate());
   
-  // --- RENAMED STATE ---
-  const [enrollments, setEnrollments] = useState([]); // Was 'students'
-  // ---------------------
+  const [enrollments, setEnrollments] = useState([]); 
 
   const [attendance, setAttendance] = useState({});
   const [loadingBatches, setLoadingBatches] = useState(true);
@@ -58,7 +57,6 @@ function AttendancePage() {
         const res = await api.get(`/enrollments/?batch=${selectedBatch}&status=active`);
         const activeEnrollments = res.data.results || [];
         
-        // --- CORRECTED LOGIC ---
         setEnrollments(activeEnrollments);
         
         // Set default attendance for all students to 'P' (Present)
@@ -68,7 +66,6 @@ function AttendancePage() {
           defaultAttendance[enrollment.student] = 'P';
         }
         setAttendance(defaultAttendance);
-        // -----------------------
 
       } catch (err) {
         setError('Failed to load students for this batch.');
@@ -95,8 +92,6 @@ function AttendancePage() {
     setError(null);
     setSuccess(null);
 
-    // Format data for the backend serializer
-    // This part was already correct, as it uses the student IDs from the 'attendance' state keys
     const entries = Object.keys(attendance).map(studentId => ({
       student: parseInt(studentId),
       status: attendance[studentId],
@@ -105,13 +100,12 @@ function AttendancePage() {
     const attendanceData = {
       batch: selectedBatch,
       date: attendanceDate,
-      taken_by: user.id,
+      taken_by: user.id, // This should be handled by backend, but sending is fine
       entries: entries,
     };
 
     try {
-      // POST to /api/v1/attendance/
-      await api.post('/attendance/', attendanceData);
+      await api.post('/attendance/records/', attendanceData); // FIX: Use /attendance/records/
       setSuccess('Attendance submitted successfully!');
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to submit attendance. It may already be taken for this date.');
@@ -121,28 +115,17 @@ function AttendancePage() {
   };
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 w-full bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-2xl items-center px-4">
-          <Link to="/admin/dashboard" className="flex items-center gap-1 text-noor-pink">
-            <ChevronLeft size={20} />
-            <span className="font-medium">Back to Dashboard</span>
-          </Link>
-        </div>
-      </header>
+    <div className="flex h-full flex-col">
+      <PageHeader title="Take Attendance" />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <main className="flex-1 overflow-y-auto bg-background p-4">
         <div className="mx-auto max-w-2xl">
-          <h1 className="text-3xl font-bold text-noor-heading mb-6">
-            Take Attendance
-          </h1>
 
           {error && <p className="form-error mb-4">{error}</p>}
           {success && <p className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700 mb-4">{success}</p>}
 
-          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-sm space-y-6">
+          <form onSubmit={handleSubmit} className="card p-6 space-y-6">
             {/* Batch and Date Selection */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -180,36 +163,32 @@ function AttendancePage() {
             </div>
 
             {/* Student List */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-semibold text-noor-heading mb-4">Students</h3>
+            <div className="border-t border-border pt-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Students</h3>
               {loadingStudents && (
                 <div className="flex justify-center items-center min-h-[100px]">
-                  <Loader2 className="animate-spin text-noor-pink" size={32} />
+                  <Loader2 className="animate-spin text-primary" size={32} />
                 </div>
               )}
               
               {!loadingStudents && enrollments.length === 0 && (
-                <p className="text-center text-gray-500">
+                <p className="text-center text-muted-foreground">
                   {selectedBatch ? 'No active students found in this batch.' : 'Please select a batch to see students.'}
                 </p>
               )}
 
-              {/* --- CORRECTED MAP --- */}
               {enrollments.length > 0 && (
                 <div className="space-y-4">
                   {enrollments.map(enrollment => (
-                    <div key={enrollment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                    <div key={enrollment.id} className="flex items-center justify-between p-4 bg-background rounded-lg">
                       <div>
-                        <p className="font-medium text-noor-heading">
-                          {/* Use student_name provided by the EnrollmentSerializer */}
+                        <p className="font-medium text-foreground">
                           {enrollment.student_name}
                         </p>
-                        {/* We remove Reg No as it's not in the EnrollmentSerializer */}
                       </div>
                       <div className="flex space-x-2">
                         <StatusButton 
                           label="P" 
-                          /* Use enrollment.student (the ID) to check attendance state */
                           isActive={attendance[enrollment.student] === 'P'} 
                           onClick={() => setStudentStatus(enrollment.student, 'P')}
                           colorClass="bg-green-600 hover:bg-green-700"
@@ -234,12 +213,11 @@ function AttendancePage() {
                   ))}
                 </div>
               )}
-              {/* --- END OF CORRECTION --- */}
             </div>
 
             {/* Submit Button */}
             {enrollments.length > 0 && (
-              <div className="border-t pt-6">
+              <div className="border-t border-border pt-6">
                 <button
                   type="submit"
                   className="btn-primary w-full justify-center"
@@ -263,7 +241,7 @@ const StatusButton = ({ label, isActive, onClick, colorClass, icon: Icon }) => (
     type="button"
     onClick={onClick}
     className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white transition-all 
-      ${isActive ? colorClass : 'bg-gray-300 hover:bg-gray-400'}`}
+      ${isActive ? colorClass : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'}`}
   >
     <Icon size={20} />
   </button>

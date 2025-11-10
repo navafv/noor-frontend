@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import BackButton from '@/components/BackButton.jsx';
+import PageHeader from '@/components/PageHeader.jsx';
 import api from '@/services/api.js';
 import { Loader2, BellOff, Check } from 'lucide-react';
 
@@ -30,7 +30,7 @@ function NotificationsPage() {
       setNotifications(prev => 
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
-      await api.patch(`/notifications/${id}/mark_as_read/`);
+      await api.patch(`/notifications/${id}/`, { is_read: true }); // FIX: Standard patch
     } catch (err) {
       // Revert if error
       setNotifications(prev => 
@@ -41,39 +41,43 @@ function NotificationsPage() {
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <BackButton />
-      <h1 className="text-2xl font-bold text-noor-heading mb-6">Notifications</h1>
+    <div className="p-4 max-w-lg mx-auto">
+      <PageHeader title="Notifications" />
 
       {loading && (
         <div className="flex justify-center items-center min-h-[200px]">
-          <Loader2 className="animate-spin text-noor-pink" size={32} />
+          <Loader2 className="animate-spin text-primary" size={32} />
         </div>
       )}
       {error && <p className="form-error">{error}</p>}
 
       {!loading && (
-        <div className="bg-white rounded-xl shadow-sm">
+        <div className="card">
           {notifications.length === 0 ? (
-            <div className="text-center p-10 text-gray-500">
+            <div className="text-center p-10 text-muted-foreground">
               <BellOff size={40} className="mx-auto" />
               <p className="mt-4 font-semibold">No notifications</p>
             </div>
           ) : (
-            <ul className="divide-y divide-gray-200">
+            <ul className="divide-y divide-border">
               {notifications.map(n => (
-                <li key={n.id} className={`p-4 ${n.is_read ? 'opacity-60' : 'font-semibold'}`}>
+                <li key={n.id} className={`p-4 ${n.is_read ? 'opacity-60' : ''}`}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="text-noor-heading">{n.message}</p>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <span className={`font-semibold ${
+                        n.level === 'warning' ? 'text-yellow-600' 
+                        : n.level === 'error' ? 'text-red-600' 
+                        : 'text-foreground'
+                      }`}>{n.title}</span>
+                      <p className="text-muted-foreground text-sm">{n.message}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         {new Date(n.created_at).toLocaleString()}
                       </p>
                     </div>
                     {!n.is_read && (
                       <button 
                         onClick={() => markAsRead(n.id)}
-                        className="ml-4 p-2 text-sm text-noor-pink hover:bg-noor-pink/10 rounded-full"
+                        className="ml-4 p-2 text-sm text-primary hover:bg-accent rounded-full"
                         title="Mark as read"
                       >
                         <Check size={18} />

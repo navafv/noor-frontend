@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Phone, Mail, Home, Shield,
-  BookOpen, DollarSign, Ruler, CheckSquare, Loader2, Award, // <-- Import Award
+  Award, Download,
 } from 'lucide-react';
 import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
 import MeasurementForm from '@/components/MeasurementForm.jsx';
+import PageHeader from '@/components/PageHeader.jsx'; // Import PageHeader
 
 /**
  * Shows all details for a single student.
@@ -30,7 +31,7 @@ function StudentDetailPage() {
 
   const fetchStudentData = async () => {
     try {
-      setLoading(true);
+      // Don't set loading to true here, causes flicker on refresh
       setError(null);
       const [studentRes, enrollmentsRes, paymentsRes, measurementsRes, certificatesRes] = await Promise.all([
         api.get(`/students/${id}/`),
@@ -50,46 +51,50 @@ function StudentDetailPage() {
       setError('Could not fetch student details.');
       console.error(err);
     } finally {
-      setLoading(false);
+      setLoading(false); // Set loading false only after all fetches
     }
   };
 
-  useEffect(() => { fetchStudentData(); }, [id]);
+  useEffect(() => { 
+    setLoading(true); // Set loading true on initial mount
+    fetchStudentData(); 
+  }, [id]);
 
   const getInitials = (firstName, lastName) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || '?';
   };
 
-  const handleDataRefresh = () => { fetchStudentData(); };
+  const handleDataRefresh = () => { 
+    // Just re-fetch all data
+    fetchStudentData(); 
+  };
   
   const latestMeasurement = measurements.length > 0 ? measurements[0] : null;
 
-  if (loading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin text-noor-pink" size={48} /></div>;
-  if (error) return <div className="p-4 max-w-2xl mx-auto"><Link to="/admin/students" className="flex items-center gap-1 text-noor-pink mb-4"><ChevronLeft size={20} /><span className="font-medium">Back</span></Link><p className="form-error">{error}</p></div>;
+  if (loading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="animate-spin text-primary" size={48} /></div>;
+  if (error) return (
+    <div className="p-4 max-w-2xl mx-auto">
+      <PageHeader title="Error" />
+      <p className="form-error">{error}</p>
+    </div>
+  );
   if (!student) return <div className="p-4">Student not found.</div>;
 
-  const photoUrl = student.photo || `https://placehold.co/400x400/fff8fb/ec4899?text=${getInitials(student.user.first_name, student.user.last_name)}`;
+  const photoUrl = student.photo || `https://placehold.co/400x400/EBF5FF/1E40AF?text=${getInitials(student.user.first_name, student.user.last_name)}`;
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 w-full bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-lg items-center px-4">
-          <Link to="/admin/students" className="flex items-center gap-1 text-noor-pink">
-            <ChevronLeft size={20} /><span className="font-medium">All Students</span>
-          </Link>
-        </div>
-      </header>
+      <PageHeader title="Student Profile" />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <main className="flex-1 overflow-y-auto bg-background p-4">
         <div className="mx-auto max-w-lg pb-20">
           
           {/* Profile Header */}
-          <div className="rounded-xl bg-white p-6 shadow-sm flex flex-col items-center">
-            <img src={photoUrl} alt="Student Photo" className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md -mt-16" />
-            <h1 className="text-2xl font-bold text-noor-heading mt-4">{student.user.first_name} {student.user.last_name}</h1>
-            <p className="text-sm text-gray-500">Reg No: {student.reg_no}</p>
+          <div className="card p-6 flex flex-col items-center">
+            <img src={photoUrl} alt="Student Photo" className="w-28 h-28 rounded-full object-cover border-4 border-background shadow-md -mt-16" />
+            <h1 className="text-2xl font-bold text-foreground mt-4">{student.user.first_name} {student.user.last_name}</h1>
+            <p className="text-sm text-muted-foreground">Reg No: {student.reg_no}</p>
           </div>
 
           {/* Quick Actions */}
@@ -101,13 +106,13 @@ function StudentDetailPage() {
           </div>
 
           {/* Details Section */}
-          <div className="rounded-xl bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-noor-heading mb-4">Student Information</h3>
+          <div className="card p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Student Information</h3>
             <div className="space-y-4">
               <InfoItem icon={Phone} label="Phone" value={student.user.phone} />
               {student.user.email && <InfoItem icon={Mail} label="Email" value={student.user.email} />}
               <InfoItem icon={Home} label="Address" value={student.address} />
-              <div className="border-t pt-4 mt-4">
+              <div className="border-t border-border pt-4 mt-4">
                 <InfoItem icon={Shield} label="Guardian" value={student.guardian_name} />
                 <InfoItem icon={Phone} label="Guardian Phone" value={student.guardian_phone} isSubItem={true} />
               </div>
@@ -118,8 +123,8 @@ function StudentDetailPage() {
           <PaymentHistoryList payments={payments} />
           
           {/* Latest Measurements Section */}
-          <div className="rounded-xl bg-white p-6 shadow-sm mt-4">
-            <h3 className="text-lg font-semibold text-noor-heading mb-2">Latest Measurements</h3>
+          <div className="card p-6 mt-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Latest Measurements</h3>
             {latestMeasurement ? (
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <p><strong>Neck:</strong> {latestMeasurement.neck || '-'}</p>
@@ -129,23 +134,30 @@ function StudentDetailPage() {
                 <p><strong>Sleeve:</strong> {latestMeasurement.sleeve_length || '-'}</p>
                 <p><strong>Inseam:</strong> {latestMeasurement.inseam || '-'}</p>
               </div>
-            ) : <p className="text-sm text-gray-500">No measurements recorded.</p>}
+            ) : <p className="text-sm text-muted-foreground">No measurements recorded.</p>}
           </div>
 
           {/* Issued Certificates Section <-- NEW SECTION --> */}
-          <div className="rounded-xl bg-white p-6 shadow-sm mt-4">
-            <h3 className="text-lg font-semibold text-noor-heading mb-2">Issued Certificates</h3>
+          <div className="card p-6 mt-4">
+            <h3 className="text-lg font-semibold text-foreground mb-2">Issued Certificates</h3>
             {certificates.length === 0 ? (
-              <p className="text-sm text-gray-500">No certificates issued yet.</p>
+              <p className="text-sm text-muted-foreground">No certificates issued yet.</p>
             ) : (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-border">
                 {certificates.map(cert => (
                   <li key={cert.id} className="py-3">
-                    <p className="font-semibold">{cert.course_name}</p>
-                    <p className="text-sm text-gray-500">Issued on: {new Date(cert.issued_on).toLocaleDateString()}</p>
-                    <a href={cert.pdf_file} target="_blank" rel="noopener noreferrer" className="text-sm text-noor-pink font-medium">
-                      View Certificate (PDF)
-                    </a>
+                    <p className="font-semibold">{cert.course_title}</p> {/* <-- FIX: use course_title */}
+                    <p className="text-sm text-muted-foreground">Issued on: {new Date(cert.issue_date).toLocaleDateString()}</p> {/* <-- FIX: use issue_date */}
+                    {cert.pdf_file && (
+                      <a 
+                        href={`${import.meta.env.VITE_API_BASE_URL}${cert.pdf_file}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-sm text-primary font-medium flex items-center gap-1 mt-1"
+                      >
+                        <Download size={14} /> View Certificate (PDF)
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -182,47 +194,58 @@ function StudentDetailPage() {
 // --- Sub-components (ActionCard, InfoItem, EnrolledCoursesList, PaymentHistoryList, EnrollStudentForm, LogPaymentForm) ---
 // (These are the same as before, no changes needed)
 const ActionCard = ({ icon: Icon, label, onClick }) => ( <button onClick={onClick} className="btn-action-grid"> <Icon size={20} className="mb-1" /> <span className="text-xs font-semibold">{label}</span> </button> );
-const InfoItem = ({ icon: Icon, label, value, isSubItem = false }) => ( <div className={`flex ${isSubItem ? 'pl-9' : ''}`}> <Icon size={16} className="mr-3 shrink-0 text-gray-400 mt-1" /> <div> <p className="text-xs text-gray-500">{label}</p> <p className="text-sm font-medium text-noor-heading">{value || '-'}</p> </div> </div> );
-function EnrolledCoursesList({ enrollments }) { return ( <div className="rounded-xl bg-white p-6 shadow-sm mt-4"> <h3 className="text-lg font-semibold text-noor-heading mb-2">Enrolled Courses</h3> {enrollments.length === 0 ? ( <p className="text-sm text-gray-500">No courses enrolled yet.</p> ) : ( <ul className="divide-y divide-gray-200"> {enrollments.map(e => ( <li key={e.id} className="py-3"> <p className="text-sm font-semibold text-noor-heading">{e.batch_code} ({e.batch.course_title})</p> <p className="text-sm text-gray-500">Status: <span className="font-medium">{e.status}</span></p> <p className="text-xs text-gray-400">Enrolled on: {new Date(e.enrolled_on).toLocaleDateString()}</p> </li> ))} </ul> )} </div> ); }
-function PaymentHistoryList({ payments }) { const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); return ( <div className="rounded-xl bg-white p-6 shadow-sm mt-4"> <div className="flex justify-between items-center mb-2"> <h3 className="text-lg font-semibold text-noor-heading">Payment History</h3> <span className="text-lg font-bold text-green-600">Total Paid: ₹{totalPaid.toFixed(2)}</span> </div> {payments.length === 0 ? ( <p className="text-sm text-gray-500">No payments recorded yet.</p> ) : ( <ul className="divide-y divide-gray-200"> {payments.map(p => ( <li key={p.id} className="py-3"> <div className="flex justify-between items-center"> <span className="text-sm font-semibold text-noor-heading">₹{p.amount}</span> <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">{p.mode}</span> </div> <p className="text-sm text-gray-500">Receipt: {p.receipt_no}</p> <p className="text-xs text-gray-400">Paid on: {new Date(p.date).toLocaleDateString()}</p> </li> ))} </ul> )} </div> ); }
+const InfoItem = ({ icon: Icon, label, value, isSubItem = false }) => ( <div className={`flex ${isSubItem ? 'pl-9' : ''}`}> <Icon size={16} className="mr-3 shrink-0 text-muted-foreground mt-1" /> <div> <p className="text-xs text-muted-foreground">{label}</p> <p className="text-sm font-medium text-foreground">{value || '-'}</p> </div> </div> );
+function EnrolledCoursesList({ enrollments }) { return ( <div className="card p-6 mt-4"> <h3 className="text-lg font-semibold text-foreground mb-2">Enrolled Courses</h3> {enrollments.length === 0 ? ( <p className="text-sm text-muted-foreground">No courses enrolled yet.</p> ) : ( <ul className="divide-y divide-border"> {enrollments.map(e => ( <li key={e.id} className="py-3"> <p className="text-sm font-semibold text-foreground">{e.batch_code} ({e.batch.course_title})</p> <p className="text-sm text-muted-foreground">Status: <span className="font-medium">{e.status}</span></p> <p className="text-xs text-muted-foreground">Enrolled on: {new Date(e.enrolled_on).toLocaleDateString()}</p> </li> ))} </ul> )} </div> ); }
+function PaymentHistoryList({ payments }) { const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); return ( <div className="card p-6 mt-4"> <div className="flex justify-between items-center mb-2"> <h3 className="text-lg font-semibold text-foreground">Payment History</h3> <span className="text-lg font-bold text-green-600">Total Paid: ₹{totalPaid.toFixed(2)}</span> </div> {payments.length === 0 ? ( <p className="text-sm text-muted-foreground">No payments recorded yet.</p> ) : ( <ul className="divide-y divide-border"> {payments.map(p => ( <li key={p.id} className="py-3"> <div className="flex justify-between items-center"> <span className="text-sm font-semibold text-foreground">₹{p.amount}</span> <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{p.mode}</span> </div> <p className="text-sm text-muted-foreground">Receipt: {p.receipt_no}</p> <p className="text-xs text-muted-foreground">Paid on: {new Date(p.date).toLocaleDateString()}</p> </li> ))} </ul> )} </div> ); }
 function EnrollStudentForm({ studentId, onClose, onEnrolled }) { const [batches, setBatches] = useState([]); const [selectedBatch, setSelectedBatch] = useState(''); const [loading, setLoading] = useState(true); const [error, setError] = useState(null); useEffect(() => { const fetchBatches = async () => { try { const res = await api.get('/batches/'); setBatches(res.data.results || []); } catch (err) { setError('Failed to load batches'); } finally { setLoading(false); } }; fetchBatches(); }, []); const handleSubmit = async (e) => { e.preventDefault(); setLoading(true); setError(null); try { await api.post('/enrollments/', { student: studentId, batch: selectedBatch, status: 'active' }); onEnrolled(); onClose(); } catch (err) { setError(err.response?.data?.detail || 'Failed to enroll student. They may already be in this batch.'); } finally { setLoading(false); } }; return ( <form onSubmit={handleSubmit} className="space-y-4"> {error && <p className="form-error text-center">{error}</p>} <div> <label htmlFor="batch" className="form-label">Select Batch</label> <select id="batch" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} className="form-input" required> <option value="" disabled>-- Select a batch --</option> {loading ? ( <option disabled>Loading batches...</option> ) : ( batches.map(b => ( <option key={b.id} value={b.id}> {b.code} ({b.course_title}) </option> )) )} </select> </div> <button type="submit" className="btn-primary w-full justify-center" disabled={loading || !selectedBatch}>{loading ? <Loader2 className="animate-spin" /> : 'Enroll Student'}</button> </form> ); }
 function LogPaymentForm({ student, enrollments, onClose, onPaid }) { const [formData, setFormData] = useState({ amount: '', mode: 'cash', txn_id: '', enrollment: enrollments[0]?.id.toString() || '' }); const [loading, setLoading] = useState(false); const [error, setError] = useState(null); const selectedEnrollment = enrollments.find(e => e.id.toString() === formData.enrollment); const handleChange = (e) => { setFormData({ ...formData, [e.target.name]: e.target.value }); }; const handleSubmit = async (e) => { e.preventDefault(); if (!selectedEnrollment) { setError('Please select a valid enrollment.'); return; } setLoading(true); setError(null); const paymentData = { student: student.id, course: selectedEnrollment.batch.course, batch: selectedEnrollment.batch.id, amount: formData.amount, mode: formData.mode, txn_id: formData.txn_id, receipt_no: `RCPT-${Date.now()}` }; try { await api.post('/fees/receipts/', paymentData); onPaid(); onClose(); } catch (err) { setError(err.response?.data?.detail || 'Failed to log payment.'); } finally { setLoading(false); } }; if (enrollments.length === 0) { return ( <p className="text-center text-red-600">This student is not enrolled in any course. Please enroll them first.</p> ); } return ( <form onSubmit={handleSubmit} className="space-y-4"> {error && <p className="form-error text-center">{error}</p>} <div> <label htmlFor="enrollment" className="form-label">For Which Course/Batch?</label> <select id="enrollment" name="enrollment" value={formData.enrollment} onChange={handleChange} className="form-input" required> {enrollments.map(e => ( <option key={e.id} value={e.id}> {e.batch_code} ({e.batch.course_title}) </option> ))} </select> </div> <div> <label htmlFor="amount" className="form-label">Amount</label> <input type="number" name="amount" id="amount" value={formData.amount} onChange={handleChange} className="form-input" placeholder="0.00" step="0.01" required /> </div> <div> <label htmlFor="mode" className="form-label">Payment Mode</label> <select id="mode" name="mode" value={formData.mode} onChange={handleChange} className="form-input" required> <option value="cash">Cash</option> <option value="upi">UPI</option> <option value="bank">Bank Transfer</option> <option value="card">Card</option> </select> </div> {formData.mode !== 'cash' && ( <div> <label htmlFor="txn_id" className="form-label">Transaction ID (Optional)</label> <input type="text" name="txn_id" id="txn_id" value={formData.txn_id} onChange={handleChange} className="form-input" placeholder="UPI or Bank Ref ID" /> </div> )} <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Log Payment'}</button> </form> ); }
 
-// --- NEW CERTIFICATE FORM COMPONENT ---
+// --- FIXED CERTIFICATE FORM COMPONENT ---
 function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
-  const [selectedEnrollment, setSelectedEnrollment] = useState('');
+  const [selectedEnrollmentId, setSelectedEnrollmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Filter for enrollments that are 'completed' or 'active' (or just show all)
+  // Filter for enrollments
   const eligibleEnrollments = enrollments.filter(e => e.status === 'active' || e.status === 'completed');
 
   useEffect(() => {
-    if (eligibleEnrollments.length > 0) {
-      setSelectedEnrollment(eligibleEnrollments[0].id.toString());
+    if (eligibleEnrollments.length > 0 && !selectedEnrollmentId) {
+      setSelectedEnrollmentId(eligibleEnrollments[0].id.toString());
     }
-  }, [enrollments]);
+  }, [eligibleEnrollments, selectedEnrollmentId]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    
+    const enrollment = eligibleEnrollments.find(e => e.id.toString() === selectedEnrollmentId);
+    if (!enrollment) {
+      setError("Please select a valid enrollment.");
+      setLoading(false);
+      return;
+    }
+
     try {
       // POST to /api/v1/certificates/
+      // --- FIX: Send student and course IDs ---
       await api.post('/certificates/', {
-        enrollment: selectedEnrollment,
+        student: studentId,
+        course: enrollment.batch.course, // This is the course ID
+        remarks: "Issued via admin portal"
       });
       onSaved(); // Refresh parent data
       onClose(); // Close modal
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to issue certificate. It may already exist.');
+      setError(err.response?.data?.detail || err.response?.data[0] || 'Failed to issue certificate. It may already exist for this course.');
     } finally {
       setLoading(false);
     }
   };
 
   if (eligibleEnrollments.length === 0) {
-    return <p className="text-center text-gray-500">This student has no active or completed enrollments eligible for a certificate.</p>;
+    return <p className="text-center text-muted-foreground">This student has no active or completed enrollments eligible for a certificate.</p>;
   }
 
   return (
@@ -232,8 +255,8 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
         <label htmlFor="enrollment" className="form-label">Select Enrollment to Certify</label>
         <select
           id="enrollment"
-          value={selectedEnrollment}
-          onChange={(e) => setSelectedEnrollment(e.target.value)}
+          value={selectedEnrollmentId}
+          onChange={(e) => setSelectedEnrollmentId(e.target.value)}
           className="form-input"
           required
         >
@@ -244,11 +267,11 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
           ))}
         </select>
       </div>
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted-foreground">
         This will generate a certificate for the selected course. 
         The student and course name will be filled in automatically.
       </p>
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading || !selectedEnrollment}>
+      <button type="submit" className="btn-primary w-full justify-center" disabled={loading || !selectedEnrollmentId}>
         {loading ? <Loader2 className="animate-spin" /> : 'Generate and Issue Certificate'}
       </button>
     </form>

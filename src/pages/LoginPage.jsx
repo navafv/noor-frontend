@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.jsx';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Loader2 } from 'lucide-react';
 
 function LoginPage() {
   const [username, setUsername] = useState('');
@@ -11,6 +12,8 @@ function LoginPage() {
   const { loginUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // FIX: Default redirect changed to /account which will auto-sort
   const from = location.state?.from?.pathname || '/account';
 
   const handleSubmit = async (e) => {
@@ -19,7 +22,8 @@ function LoginPage() {
     setLoading(true);
     try {
       await loginUser(username, password);
-      // On success, loginUser now handles navigation
+      // On success, loginUser now handles navigation via AuthContext
+      // navigate(from, { replace: true }); // This line is now handled by AuthContext
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -27,23 +31,23 @@ function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="text-center">
-          <h1 className="logo text-5xl text-noor-pink">
+          <h1 className="logo text-5xl text-primary">
             Noor Stitching Institute
           </h1>
-          <h2 className="mt-2 text-2xl font-bold text-noor-heading">
+          <h2 className="mt-2 text-2xl font-bold text-foreground">
             Staff & Student Login
           </h2>
         </div>
 
         <form
           onSubmit={handleSubmit}
-          className="mt-8 space-y-6 rounded-lg bg-white p-8 shadow-md"
+          className="mt-8 space-y-6 rounded-lg bg-card p-8 shadow-md border border-border"
         >
           {error && (
-            <div className="rounded-md bg-red-50 p-3 text-center text-sm font-medium text-red-600">
+            <div className="form-error">
               {error}
             </div>
           )}
@@ -51,7 +55,7 @@ function LoginPage() {
           <div className="space-y-1">
             <label
               htmlFor="username"
-              className="text-sm font-medium text-gray-700"
+              className="form-label"
             >
               Username
             </label>
@@ -61,14 +65,14 @@ function LoginPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink"
+              className="form-input"
             />
           </div>
           
           <div className="space-y-1">
             <label
               htmlFor="password"
-              className="text-sm font-medium text-gray-700"
+              className="form-label"
             >
               Password
             </label>
@@ -78,21 +82,21 @@ function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-md border border-gray-300 p-3 shadow-sm focus:border-noor-pink focus:ring-noor-pink"
+              className="form-input"
             />
           </div>
           
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-md bg-noor-pink py-3 px-4 text-lg font-semibold text-white shadow-sm transition-all hover:bg-noor-pink-dark disabled:cursor-not-allowed disabled:bg-pink-300"
+            className="btn-primary w-full justify-center py-3 text-lg"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? <Loader2 className="animate-spin" /> : 'Login'}
           </button>
         </form>
         
         <p className="mt-6 text-center text-sm">
-          <Link to="/" className="font-medium text-noor-pink hover:underline">
+          <Link to="/home" className="font-medium text-primary hover:underline">
             &larr; Back to Home Page
           </Link>
         </p>

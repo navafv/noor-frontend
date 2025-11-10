@@ -1,22 +1,22 @@
 import React from 'react';
-import EnquiryForm from '../components/EnquiryForm';
+import EnquiryForm from '../components/EnquiryForm.jsx';
 import { Phone, Mail, MapPin } from 'lucide-react';
 
 function ContactPage() {
   return (
-    <div className="py-20 bg-white">
+    <div className="py-20 bg-background">
       <div className="mx-auto max-w-5xl px-4">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-noor-heading">Get In Touch</h1>
-          <p className="text-xl text-gray-600 mt-2">
+          <h1 className="text-4xl font-bold text-foreground">Get In Touch</h1>
+          <p className="text-xl text-muted-foreground mt-2">
             We'd love to hear from you. Start your journey today!
           </p>
         </div>
 
         <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-16">
           {/* Column 1: Contact Info */}
-          <div className="bg-gray-50 p-8 rounded-xl shadow-lg">
-            <h2 className="text-2xl font-semibold text-noor-heading mb-6">Contact Information</h2>
+          <div className="bg-card p-8 rounded-xl shadow-lg dark:border dark:border-border">
+            <h2 className="text-2xl font-semibold text-foreground mb-6">Contact Information</h2>
             <div className="space-y-6">
               <InfoRow
                 icon={MapPin}
@@ -31,14 +31,14 @@ function ContactPage() {
                 icon={Phone}
                 title="Phone"
                 lines={[
-                  <a href="tel:+919526978708" className="hover:text-noor-pink">+91 9526978708</a>
+                  <a href="tel:+919526978708" className="hover:text-primary">+91 9526978708</a>
                 ]}
               />
               <InfoRow
                 icon={Mail}
                 title="Email"
                 lines={[
-                  <a href="mailto:info@noorstitching.com" className="hover:text-noor-pink">info@noorstitching.com</a>,
+                  <a href="mailto:info@noorstitching.com" className="hover:text-primary">info@noorstitching.com</a>,
                   <span className="text-sm">(For enquiries)</span>
                 ]}
               />
@@ -46,8 +46,8 @@ function ContactPage() {
           </div>
 
           {/* Column 2: Enquiry Form */}
-          <div className="p-8 bg-white rounded-xl shadow-2xl border border-gray-100">
-            <h2 className="text-2xl font-semibold text-noor-heading mb-6">Send us a Message</h2>
+          <div className="p-8 bg-card rounded-xl shadow-2xl border border-border">
+            <h2 className="text-2xl font-semibold text-foreground mb-6">Send us a Message</h2>
             <EnquiryForm />
           </div>
         </div>
@@ -58,11 +58,11 @@ function ContactPage() {
 
 const InfoRow = ({ icon: Icon, title, lines }) => (
   <div className="flex">
-    <Icon className="w-6 h-6 text-noor-pink shrink-0 mt-1" />
+    <Icon className="w-6 h-6 text-primary shrink-0 mt-1" />
     <div className="ml-4">
-      <h3 className="text-lg font-semibold text-noor-heading">{title}</h3>
+      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       {lines.map((line, index) => (
-        <p key={index} className="text-gray-700">{line}</p>
+        <p key={index} className="text-muted-foreground">{line}</p>
       ))}
     </div>
   </div>

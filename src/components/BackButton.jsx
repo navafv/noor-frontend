@@ -15,7 +15,7 @@ function BackButton() {
   return (
     <button
       onClick={handleBack}
-      className="flex items-center text-sm font-medium text-gray-600 hover:text-noor-heading transition-colors mb-4"
+      className="flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mb-4"
     >
       <ChevronLeft size={20} className="mr-1" />
       Back

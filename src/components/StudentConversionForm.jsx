@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import api from '@/services/api.js'; // <-- UPDATED
+import api from '@/services/api.js';
 import { X, Loader2 } from 'lucide-react';
 import Modal from './Modal.jsx';
-import { useNavigate } from 'react-router-dom'; // <-- ADD THIS IMPORT
+import { useNavigate } from 'react-router-dom';
 
 /**
  * This form handles the logic for converting a student Enquiry
@@ -70,9 +70,9 @@ function StudentConversionForm({ enquiry, onClose }) {
         await api.patch(`/enquiries/${enquiry.id}/`, { status: 'converted' });
       }
 
-      // 3. Close the modal and navigate to the new student list
+      // 3. Close the modal and navigate to the new student's detail page
       onClose();
-      navigate('/admin/students');
+      navigate(`/admin/student/${studentResponse.data.id}`); // Go to new student
 
     } catch (err) {
       let errorMsg = 'Failed to create student. Please try again.';
@@ -87,6 +87,9 @@ function StudentConversionForm({ enquiry, onClose }) {
             errorMsg = `Reg No: ${errors.reg_no[0]}`;
          } else if (Array.isArray(errors)) {
            errorMsg = errors[0];
+         } else if (typeof errors === 'object') {
+            const firstKey = Object.keys(errors)[0];
+            errorMsg = `${firstKey}: ${errors[firstKey][0]}`;
          }
       }
       setError(errorMsg);
@@ -100,28 +103,28 @@ function StudentConversionForm({ enquiry, onClose }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Error Message */}
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
-          <p className="text-sm font-medium text-red-700">{error}</p>
+        <div className="form-error">
+          <p className="text-sm font-medium text-destructive">{error}</p>
         </div>
       )}
 
       {/* Pre-filled Enquiry Info */}
-      <div className="p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-semibold text-gray-700">Enquiry Information</h4>
-        <p className="text-sm text-gray-600">
+      <div className="p-4 bg-muted rounded-lg">
+        <h4 className="font-semibold text-muted-foreground">Enquiry Information</h4>
+        <p className="text-sm text-foreground">
           <strong>Name:</strong> {enquiry.name}
         </p>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-foreground">
           <strong>Phone:</strong> {enquiry.phone}
         </p>
         {enquiry.email && (
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-foreground">
             <strong>Email:</strong> {enquiry.email}
           </p>
         )}
       </div>
 
-      <h4 className="font-semibold text-noor-heading border-t pt-4">New Student Details</h4>
+      <h4 className="font-semibold text-foreground border-t border-border pt-4">New Student Details</h4>
       
       {/* New Student Fields */}
       <div>
@@ -166,7 +169,7 @@ function StudentConversionForm({ enquiry, onClose }) {
         />
       </div>
 
-      <h4 className="font-semibold text-noor-heading border-t pt-4">
+      <h4 className="font-semibold text-foreground border-t border-border pt-4">
         Student Account
       </h4>
 
@@ -209,7 +212,7 @@ function StudentConversionForm({ enquiry, onClose }) {
           className="btn-primary w-full justify-center"
           disabled={loading}
         >
-          {loading ? 'Converting...' : 'Create Student & Mark as Converted'}
+          {loading ? <Loader2 className="animate-spin" /> : 'Create Student & Mark as Converted'}
         </button>
       </div>
     </form>

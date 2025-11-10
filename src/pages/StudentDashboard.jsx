@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import api from '@/services/api';
+import { useAuth } from '../context/AuthContext.jsx';
+import api from '@/services/api.js';
 import { Loader2 } from 'lucide-react';
-import PageHeader from '@/components/PageHeader'; // <-- Import new header
+import PageHeader from '@/components/PageHeader.jsx'; // <-- Import new header
 
 function StudentDashboard() {
   const { user } = useAuth();
@@ -12,14 +12,17 @@ function StudentDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (user && user.student_id) {
+    // FIX: Check for user.id, which maps to student.user_id
+    const studentId = user?.student_id; // Get student ID from user object
+
+    if (user && studentId) {
       const fetchStudentData = async () => {
         try {
           setLoading(true);
           setError(null);
           const [outstandingRes, enrollmentsRes] = await Promise.all([
-            api.get(`/finance/outstanding/student/${user.student_id}/`),
-            api.get(`/enrollments/?student=${user.student_id}`)
+            api.get(`/finance/outstanding/student/${studentId}/`),
+            api.get(`/enrollments/?student=${studentId}`)
           ]);
           setDashboardData(outstandingRes.data);
           setEnrollments(enrollmentsRes.data.results || []);
@@ -30,7 +33,7 @@ function StudentDashboard() {
         }
       };
       fetchStudentData();
-    } else if (user && !user.student_id) {
+    } else if (user && !studentId) {
       setError('No student profile associated with this user.');
       setLoading(false);
     }
@@ -38,49 +41,49 @@ function StudentDashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <Loader2 className="animate-spin text-noor-pink" size={32} />
-      </div>
+      <>
+        <PageHeader title="My Dashboard" />
+        <div className="flex justify-center items-center min-h-[400px]">
+          <Loader2 className="animate-spin text-primary" size={32} />
+        </div>
+      </>
     );
   }
   
-  if (error) {
-    return <div className="p-4"><p className="form-error">{error}</p></div>;
-  }
-
   return (
     <>
-      {/* --- ADD THIS HEADER --- */}
-      <PageHeader title="My Dashboard" />
+      <PageHeader title="My Dashboard" showBackButton={false} />
 
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 max-w-lg mx-auto">
         {/* Welcome Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-noor-heading">
+          <h1 className="text-2xl font-bold text-foreground">
             Hi, {user.first_name || user.username}!
           </h1>
-          <p className="text-md text-gray-500">Welcome back.</p>
+          <p className="text-md text-muted-foreground">Welcome back.</p>
         </div>
         
+        {error && <p className="form-error mb-4">{error}</p>}
+
         {/* Fee Summary */}
         {dashboardData && (
-          <div className="mb-6 bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold text-noor-heading mb-4">Payment Status</h2>
+          <div className="mb-6 card p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Payment Status</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-500">Total Fees</p>
-                <p className="text-2xl font-bold text-noor-heading">
+                <p className="text-sm text-muted-foreground">Total Fees</p>
+                <p className="text-2xl font-bold text-foreground">
                   ₹{(dashboardData.total_paid + dashboardData.total_due).toLocaleString('en-IN')}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Paid</p>
+                <p className="text-sm text-muted-foreground">Total Paid</p>
                 <p className="text-2xl font-bold text-green-600">
                   ₹{dashboardData.total_paid.toLocaleString('en-IN')}
                 </p>
               </div>
-              <div className="col-span-2 border-t pt-4">
-                <p className="text-sm text-gray-500">Outstanding Dues</p>
+              <div className="col-span-2 border-t border-border pt-4">
+                <p className="text-sm text-muted-foreground">Outstanding Dues</p>
                 <p className={`text-3xl font-bold ${dashboardData.total_due > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   ₹{dashboardData.total_due.toLocaleString('en-IN')}
                 </p>
@@ -90,18 +93,18 @@ function StudentDashboard() {
         )}
         
         {/* Enrolled Courses */}
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <h2 className="text-lg font-semibold text-noor-heading mb-4">Your Courses</h2>
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Your Courses</h2>
           {enrollments.length === 0 ? (
-            <p className="text-gray-500">You are not yet enrolled in any courses.</p>
+            <p className="text-muted-foreground">You are not yet enrolled in any courses.</p>
           ) : (
             <ul className="space-y-4">
               {enrollments.map(e => (
-                <li key={e.id} className="p-4 bg-gray-50 rounded-lg">
+                <li key={e.id} className="p-4 bg-background rounded-lg">
                   <p className="font-semibold">{e.batch.course_title}</p>
-                  <p className="text-sm text-gray-600">Batch: {e.batch_code}</p>
-                  <p className="text-sm text-gray-500">
-                    Status: <span className={`font-medium ${e.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{e.status}</span>
+                  <p className="text-sm text-muted-foreground">Batch: {e.batch_code}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: <span className={`font-medium capitalize ${e.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{e.status}</span>
                   </p>
                 </li>
               ))}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Plus, DollarSign } from 'lucide-react';
 import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
+import PageHeader from '@/components/PageHeader.jsx';
 
 // Get today's date in YYYY-MM-DD format
 const getTodayDate = () => {
@@ -34,52 +35,47 @@ function ExpenseManagementPage() {
   const totalExpenses = expenses.reduce((acc, ex) => acc + parseFloat(ex.amount), 0);
 
   return (
-    <div className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-10 w-full bg-white shadow-sm">
-        <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-4">
-          <Link to="/admin/dashboard" className="flex items-center gap-1 text-noor-pink">
-            <ChevronLeft size={20} />
-            <span className="font-medium">Dashboard</span>
-          </Link>
-          <h1 className="text-lg font-semibold text-noor-heading">Manage Expenses</h1>
-          <button onClick={() => setIsModalOpen(true)} className="btn-primary p-2">
-            <Plus size={20} />
-          </button>
-        </div>
-      </header>
+    <div className="flex h-full flex-col">
+      <PageHeader title="Manage Expenses" />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <main className="flex-1 overflow-y-auto bg-background p-4">
         <div className="mx-auto max-w-2xl">
 
           {/* Total */}
-          <div className="mb-4 bg-white p-4 rounded-xl shadow-sm">
-            <p className="text-sm text-gray-500">Total Expenses Logged</p>
+          <div className="mb-4 card p-4">
+            <p className="text-sm text-muted-foreground">Total Expenses Logged</p>
             <p className="text-3xl font-bold text-red-600">
               ₹{totalExpenses.toLocaleString('en-IN')}
             </p>
           </div>
+          
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
+              <Plus size={18} /> Log New Expense
+            </button>
+          </div>
+
 
           {loading && (
             <div className="flex justify-center items-center min-h-[200px]">
-              <Loader2 className="animate-spin text-noor-pink" size={32} />
+              <Loader2 className="animate-spin text-primary" size={32} />
             </div>
           )}
           {error && <p className="form-error">{error}</p>}
 
           {!loading && (
-            <div className="bg-white rounded-xl shadow-sm">
-              <ul className="divide-y divide-gray-200">
+            <div className="card">
+              <ul className="divide-y divide-border">
                 {expenses.length === 0 ? (
-                  <p className="p-10 text-center text-gray-500">No expenses logged yet.</p>
+                  <p className="p-10 text-center text-muted-foreground">No expenses logged yet.</p>
                 ) : (
                   expenses.map(expense => (
                     <li key={expense.id} className="p-4 flex justify-between items-center">
                       <div>
-                        <p className="font-semibold text-noor-heading">{expense.name}</p>
-                        <p className="text-sm text-gray-500">{expense.category || 'General'}</p>
-                        <p className="text-xs text-gray-400">
+                        <p className="font-semibold text-foreground">{expense.description}</p>
+                        <p className="text-sm text-muted-foreground">{expense.category || 'General'}</p>
+                        <p className="text-xs text-muted-foreground">
                           {new Date(expense.date).toLocaleDateString()}
                         </p>
                       </div>
@@ -112,11 +108,10 @@ function ExpenseManagementPage() {
 // Form component for the modal
 function ExpenseForm({ onClose, onSaved }) {
   const [formData, setFormData] = useState({
-    name: '',
+    description: '',
     amount: '',
-    category: '',
+    category: 'other', // Default to 'other'
     date: getTodayDate(),
-    notes: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -130,7 +125,13 @@ function ExpenseForm({ onClose, onSaved }) {
     setLoading(true);
     setError(null);
     try {
-      await api.post('/expenses/', formData);
+      // FIX: Remove 'notes', as backend expects 'description'
+      await api.post('/expenses/', {
+        description: formData.description,
+        amount: formData.amount,
+        category: formData.category,
+        date: formData.date,
+      });
       onSaved();
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to log expense.');
@@ -142,15 +143,17 @@ function ExpenseForm({ onClose, onSaved }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="form-error text-center">{error}</p>}
+      
+      <div>
+        <label htmlFor="description" className="form-label">Description</label>
+        <input
+          type="text" name="description" id="description"
+          value={formData.description} onChange={handleChange}
+          className="form-input" required
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="name" className="form-label">Expense Name</label>
-          <input
-            type="text" name="name" id="name"
-            value={formData.name} onChange={handleChange}
-            className="form-input" required
-          />
-        </div>
         <div>
           <label htmlFor="amount" className="form-label">Amount (₹)</label>
           <input
@@ -159,33 +162,30 @@ function ExpenseForm({ onClose, onSaved }) {
             className="form-input" required step="0.01"
           />
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
         <div>
           <label htmlFor="category" className="form-label">Category</label>
-          <input
-            type="text" name="category" id="category"
+          {/* FIX: Use select to match backend CATEGORY_CHOICES */}
+          <select
+            name="category" id="category"
             value={formData.category} onChange={handleChange}
-            className="form-input" placeholder="e.g., Rent, Materials"
-          />
-        </div>
-        <div>
-          <label htmlFor="date" className="form-label">Date</label>
-          <input
-            type="date" name="date" id="date"
-            value={formData.date} onChange={handleChange}
             className="form-input" required
-          />
+          >
+            <option value="material">Material</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="salary">Salary</option>
+            <option value="other">Other</option>
+          </select>
         </div>
       </div>
       <div>
-        <label htmlFor="notes" className="form-label">Notes</label>
-        <textarea
-          name="notes" id="notes"
-          value={formData.notes} onChange={handleChange}
-          className="form-input" rows="2"
+        <label htmlFor="date" className="form-label">Date</label>
+        <input
+          type="date" name="date" id="date"
+          value={formData.date} onChange={handleChange}
+          className="form-input" required
         />
       </div>
+      
       <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
         {loading ? <Loader2 className="animate-spin" /> : 'Save Expense'}
       </button>

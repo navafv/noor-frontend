@@ -30,15 +30,15 @@ function Modal({ isOpen, onClose, title, children }) {
     >
       {/* Modal Panel: White bg, rounded, shadow, stops click propagation */}
       <div
-        className="relative w-full max-w-lg rounded-lg bg-white p-6 shadow-xl"
+        className="relative w-full max-w-lg rounded-lg bg-card text-card-foreground p-6 shadow-xl"
         onClick={handleModalContentClick}
       >
         {/* Modal Header: Title and Close Button */}
-        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-          <h3 className="text-xl font-semibold text-noor-heading">{title}</h3>
+        <div className="flex items-center justify-between pb-4 border-b border-border">
+          <h3 className="text-xl font-semibold text-foreground">{title}</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Close modal"
           >
             <X size={24} />
