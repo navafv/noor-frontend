@@ -1,13 +1,12 @@
 /*
  * UPDATED FILE: src/pages/StudentDetailPage.jsx
  *
- * FIX: Removed duplicate function declarations for 'InfoItem', 'ActionCard', etc.
- * at the end of the file to fix the 'Cannot redeclare' error.
+ * FIX: Added 'download' attribute to the certificate link to force download.
  */
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
-  CircleUserRound, Phone, Mail, Home, Shield,
+  ChevronLeft, Phone, Mail, Home, Shield,
   Award, Download, Loader2, BookOpen, DollarSign, Ruler, AlertCircle
 } from 'lucide-react';
 import api from '@/services/api.js';
@@ -35,6 +34,7 @@ function StudentDetailPage() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [isMeasurementModalOpen, setIsMeasurementModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const fetchStudentData = async () => {
     try {
@@ -87,6 +87,42 @@ function StudentDetailPage() {
   const latestMeasurement = measurements.length > 0 
     ? measurements.sort((a, b) => new Date(b.date_taken) - new Date(a.date_taken))[0] 
     : null;
+  
+  // --- NEW FUNCTION TO HANDLE PDF DOWNLOAD ---
+  const handleDownload = async (cert) => {
+    if (downloadingId === cert.id) return; // Already downloading
+    setDownloadingId(cert.id);
+    try {
+      // Fetch the PDF file as a 'blob' (binary large object)
+      const response = await api.get(cert.pdf_file, {
+        responseType: 'blob',
+      });
+      
+      // Create a temporary URL for the blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Create a hidden link element
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Get the filename from the URL (e.g., "CERT-20251110-0001_J1y9rJG.pdf")
+      const filename = cert.pdf_file.split('/').pop();
+      link.setAttribute('download', filename);
+      
+      // Append to the page, click it, then remove it
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url); // Clean up the temporary URL
+      
+    } catch (err) {
+      console.error("Failed to download file", err);
+      // You could set an error state here
+    } finally {
+      setDownloadingId(null); // Stop loading state
+    }
+  };
+  // --- END OF NEW FUNCTION ---
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-[50vh]">
@@ -161,11 +197,17 @@ function StudentDetailPage() {
               <InfoItem icon={Phone} label="Phone" value={student.user.phone} />
               {student.user.email && <InfoItem icon={Mail} label="Email" value={student.user.email} />}
               <InfoItem icon={Home} label="Address" value={student.address} />
-            </div>
-            <h3 className="text-lg font-semibold text-foreground mb-4 border-t border-border pt-4 mt-4">Guardian Information</h3>
-            <div className="space-y-4">
-              <InfoItem icon={CircleUserRound} label="Name" value={student.guardian_name} />
-              <InfoItem icon={Phone} label="Phone" value={student.guardian_phone} />
+              
+              <div className="border-t border-border pt-4 mt-4">
+                <div className="flex">
+                  <Shield size={16} className="mr-3 shrink-0 text-muted-foreground mt-1" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Guardian Information</p>
+                    <p className="text-sm font-medium text-foreground">{student.guardian_name || '-'}</p>
+                    <p className="text-sm text-muted-foreground">{student.guardian_phone || '-'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -199,14 +241,18 @@ function StudentDetailPage() {
                     <p className="font-semibold">{cert.course_title}</p>
                     <p className="text-sm text-muted-foreground">Issued on: {new Date(cert.issue_date).toLocaleDateString()}</p>
                     {cert.pdf_file && (
-                      <a 
-                        href={cert.pdf_file}
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-sm text-primary font-medium flex items-center gap-1 mt-1"
+                      <button 
+                        onClick={() => handleDownload(cert)}
+                        disabled={downloadingId === cert.id}
+                        className="text-sm text-primary font-medium flex items-center gap-1 mt-1 disabled:opacity-50"
                       >
-                        <Download size={14} /> View Certificate (PDF)
-                      </a>
+                        {downloadingId === cert.id ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Download size={14} />
+                        )}
+                        {downloadingId === cert.id ? 'Downloading...' : 'Download Certificate (PDF)'}
+                      </button>
                     )}
                   </li>
                 ))}
@@ -241,8 +287,6 @@ function StudentDetailPage() {
 }
 
 // --- Sub-components ---
-// (These are now defined only ONCE)
-
 const ActionCard = ({ icon: Icon, label, onClick }) => ( 
   <button 
     onClick={onClick} 
@@ -252,7 +296,6 @@ const ActionCard = ({ icon: Icon, label, onClick }) => (
     <span className="text-xs font-semibold">{label}</span> 
   </button> 
 );
-
 const InfoItem = ({ icon: Icon, label, value }) => ( 
   <div className="flex"> 
     <Icon size={16} className="mr-3 shrink-0 text-muted-foreground mt-1" /> 
@@ -262,7 +305,6 @@ const InfoItem = ({ icon: Icon, label, value }) => (
     </div> 
   </div> 
 );
-
 function EnrolledCoursesList({ enrollments }) { 
   return ( 
     <div className="card p-6 mt-4"> 
@@ -283,7 +325,6 @@ function EnrolledCoursesList({ enrollments }) {
     </div> 
   ); 
 }
-
 function PaymentHistoryList({ payments }) { 
   const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); 
   return ( 
@@ -311,7 +352,6 @@ function PaymentHistoryList({ payments }) {
     </div> 
   ); 
 }
-
 function EnrollStudentForm({ studentId, onClose, onEnrolled }) { 
   const [batches, setBatches] = useState([]); 
   const [selectedBatch, setSelectedBatch] = useState(''); 
@@ -366,7 +406,6 @@ function EnrollStudentForm({ studentId, onClose, onEnrolled }) {
     </form> 
   ); 
 }
-
 function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
   const [formData, setFormData] = useState({
     amount: '',
@@ -376,14 +415,10 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Find the selected enrollment object from the state
   const selectedEnrollment = enrollments.find(e => e.id.toString() === formData.enrollment);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedEnrollment) {
@@ -392,17 +427,15 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
     }
     setLoading(true);
     setError(null);
-
     const paymentData = {
       student: student.id,
-      course: selectedEnrollment.course_id, // <-- **FIX: Use course_id from serializer**
-      batch: selectedEnrollment.batch, // <-- **FIX: Use batch (which is the ID)**
+      course: selectedEnrollment.course_id,
+      batch: selectedEnrollment.batch,
       amount: formData.amount,
       mode: formData.mode,
       txn_id: formData.txn_id,
-      receipt_no: `RCPT-${Date.now()}` // This is a temporary placeholder
+      receipt_no: `RCPT-${Date.now()}`
     };
-
     try {
       await api.post('/finance/receipts/', paymentData);
       onPaid();
@@ -413,7 +446,6 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
       setLoading(false);
     }
   };
-
   if (enrollments.length === 0) {
     return (
       <p className="text-center text-red-600">This student is not enrolled in any course. Please enroll them first.</p>
@@ -433,7 +465,6 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
           required
         >
           {enrollments.map(e => (
-            // Use course_title (from serializer) for display
             <option key={e.id} value={e.id}>
               {e.batch_code} ({e.course_title})
             </option>
@@ -484,27 +515,20 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
           />
         </div>
       )}
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
-        {loading ? <Loader2 className="animate-spin" /> : 'Log Payment'}
-      </button>
+      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Log Payment'}</button>
     </form>
   );
 }
-
 function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Filter for enrollments
   const eligibleEnrollments = enrollments.filter(e => e.status === 'active' || e.status === 'completed');
-
   useEffect(() => {
     if (eligibleEnrollments.length > 0 && !selectedEnrollmentId) {
       setSelectedEnrollmentId(eligibleEnrollments[0].id.toString());
     }
   }, [eligibleEnrollments, selectedEnrollmentId]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -516,16 +540,14 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
       setLoading(false);
       return;
     }
-
     try {
-      // POST to /api/v1/certificates/
       await api.post('/certificates/', {
         student: studentId,
-        course: enrollment.course_id, // <-- **FIX: Use course_id from serializer**
+        course: enrollment.course_id,
         remarks: "Issued via admin portal"
       });
-      onSaved(); // Refresh parent data
-      onClose(); // Close modal
+      onSaved();
+      onClose();
     } catch (err) {
       const errorMsg = err.response?.data?.detail || 
                        err.response?.data?.[0] || 
@@ -536,11 +558,9 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
       setLoading(false);
     }
   };
-
   if (eligibleEnrollments.length === 0) {
     return <p className="text-center text-muted-foreground">This student has no active or completed enrollments eligible for a certificate.</p>;
   }
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="form-error text-center">{error}</p>}
@@ -554,7 +574,6 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
           required
         >
           {eligibleEnrollments.map(e => (
-            // Use course_title (from serializer) for display
             <option key={e.id} value={e.id}>
               {e.batch_code} ({e.course_title})
             </option>
@@ -562,8 +581,7 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
         </select>
       </div>
       <p className="text-sm text-muted-foreground">
-        This will generate a certificate for the selected course. 
-        The PDF will be generated in the background.
+        This will generate a certificate for the selected course.
       </p>
       <button type="submit" className="btn-primary w-full justify-center" disabled={loading || !selectedEnrollmentId}>
         {loading ? <Loader2 className="animate-spin" /> : 'Generate and Issue Certificate'}
