@@ -21,6 +21,7 @@ import AccountPage from './pages/AccountPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import AccountSettings from './pages/AccountSettings.jsx';
+import StudentAttendancePage from './pages/StudentAttendancePage.jsx';
 
 // --- "Admin" Pages (for staff) ---
 import AdminDashboard from './pages/AdminDashboard.jsx';
@@ -40,6 +41,7 @@ import CertificateManagementPage from './pages/CertificateManagementPage.jsx';
 import RoleManagementPage from './pages/RoleManagementPage.jsx';
 import FeeReminderLogPage from './pages/FeeReminderLogPage.jsx';
 import AuditLogPage from './pages/AuditLogPage.jsx';
+import UserManagementPage from './pages/UserManagementPage.jsx';
 
 // --- TEACHER PAGES ---
 import TeacherDashboard from './pages/TeacherDashboard.jsx';
@@ -74,6 +76,7 @@ function App() {
         }
       >
         <Route path="/student/dashboard" element={<StudentDashboard />} />
+        <Route path="/student/attendance" element={<StudentAttendancePage />} />
         {/* These routes are shared but render inside student layout */}
         <Route path="/account" element={<AccountPage />} />
         <Route path="/account/settings" element={<AccountSettings />} />
@@ -119,6 +122,7 @@ function App() {
         <Route path="/admin/certificates" element={<CertificateManagementPage />} />
         <Route path="/admin/roles" element={<RoleManagementPage />} />
         <Route path="/admin/reminders" element={<FeeReminderLogPage />} />
+        <Route path="/admin/users" element={<UserManagementPage />} />
 
         <Route 
           path="/admin/history/students" 

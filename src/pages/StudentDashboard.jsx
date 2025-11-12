@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
-import { Loader2, Star } from 'lucide-react';
+import { Loader2, Star, CheckSquare } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
-import Modal from '@/components/Modal.jsx'; // <-- Import Modal
-import FeedbackFormModal from '@/components/FeedbackFormModal.jsx'; // <-- Import new component
+import Modal from '@/components/Modal.jsx'; 
+import FeedbackFormModal from '@/components/FeedbackFormModal.jsx';
+import { Link } from 'react-router-dom';
 
 function StudentDashboard() {
   const { user } = useAuth();
@@ -108,6 +109,19 @@ function StudentDashboard() {
             </div>
           </div>
         )}
+
+        {/* Student Attendance */}
+        <div className="mb-6 card p-4 hover:bg-accent">
+          <Link to="/student/attendance" className="flex items-center">
+            <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+              <CheckSquare size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">My Attendance</h2>
+              <p className="text-sm text-muted-foreground">View your daily history and summary</p>
+            </div>
+          </Link>
+        </div>
         
         {/* Enrolled Courses */}
         <div className="card p-6">

@@ -130,7 +130,7 @@ function BatchTab() {
           <p className="text-sm text-muted-foreground">Trainer: {item.trainer_name || 'Not assigned'}</p>
           <div className="flex gap-4 text-sm mt-2">
             <span>Schedule: <strong>{item.schedule?.timing || 'Not set'}</strong></span>
-            <span>Starts: <strong>{new Date(item.start_date).toLocaleDateString()}</strong></span>
+            <span>Capacity: <strong>{item.capacity || 'Not set'}</strong></span>
           </div>
         </li>
       )}
@@ -316,8 +316,6 @@ function BatchForm({ courses, trainers, onSaved }) {
     course: '', 
     trainer: '', 
     code: '', 
-    start_date: '', 
-    end_date: '', 
     timing: '', // This will be nested into 'schedule'
     capacity: 10 
   });
@@ -328,13 +326,10 @@ function BatchForm({ courses, trainers, onSaved }) {
     e.preventDefault();
     setLoading(true);
     
-    // FIX: Send 'schedule' as JSON, remove 'timing'
     const dataToSend = {
       course: data.course,
       trainer: data.trainer || null,
       code: data.code,
-      start_date: data.start_date,
-      end_date: data.end_date,
       capacity: data.capacity,
       schedule: { timing: data.timing } // Nest timing inside schedule
     };
@@ -348,11 +343,7 @@ function BatchForm({ courses, trainers, onSaved }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div><label className="form-label">Course</label><select name="course" value={data.course} onChange={handleChange} className="form-input" required><option value="" disabled>Select course</option>{courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></div>
       <div><label className="form-label">Trainer</label><select name="trainer" value={data.trainer} onChange={handleChange} className="form-input"><option value="">Select trainer (optional)</option>{trainers.map(t => <option key={t.id} value={t.id}>{t.trainer_name}</option>)}</select></div>
-      <div><label className="form-label">Batch Code</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., 3MC-NOV25" /></div>
-      <div className="grid grid-cols-2 gap-4">
-        <div><label className="form-label">Start Date</label><input type="date" name="start_date" value={data.start_date} onChange={handleChange} className="form-input" required /></div>
-        <div><label className="form-label">End Date</label><input type="date" name="end_date" value={data.end_date} onChange={handleChange} className="form-input" required /></div>
-      </div>
+      <div><label className="form-label">Batch Code / Group Name</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., 3-Month Morning" /></div>
       <div className="grid grid-cols-2 gap-4">
         <div><label className="form-label">Schedule/Timing</label><input type="text" name="timing" value={data.timing} onChange={handleChange} className="form-input" placeholder="e.g., 10AM - 1PM" /></div>
         <div><label className="form-label">Capacity</label><input type="number" name="capacity" value={data.capacity} onChange={handleChange} className="form-input" required /></div>

@@ -101,6 +101,7 @@ function Sidebar({ onClose }) {
               <NavItem to="/admin/receipts" icon={ReceiptText} label="Receipts" />
               <NavItem to="/admin/stock" icon={Package} label="Stock" />
               <NavItem to="/admin/payroll" icon={Briefcase} label="Payroll" />
+              <NavItem to="/admin/users" icon={Users} label="User Accounts" />
               <NavItem to="/admin/roles" icon={Shield} label="Roles" />
               <li className="px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
                 Audit Logs

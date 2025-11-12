@@ -27,7 +27,7 @@ function TeacherBatches() {
         setLoading(true);
         setError(null);
         // Use the new teacher-specific endpoint
-        const res = await api.get('/courses/teacher/my-batches/');
+        const res = await api.get('/teacher/my-batches/');
         setBatches(res.data || []);
       } catch (err) {
         setError('Could not load your batches.');
@@ -43,7 +43,7 @@ function TeacherBatches() {
       setLoadingStudents(true);
       setIsModalOpen(true);
       setSelectedBatch(batch);
-      const res = await api.get(`/courses/teacher/my-batches/${batch.id}/students/`);
+      const res = await api.get(`/teacher/my-batches/${batch.id}/students/`);
       setStudents(res.data || []);
     } catch (err) {
       console.error("Failed to fetch students", err);

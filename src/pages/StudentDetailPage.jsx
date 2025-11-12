@@ -306,6 +306,7 @@ const InfoItem = ({ icon: Icon, label, value }) => (
     </div> 
   </div> 
 );
+
 function EnrolledCoursesList({ enrollments }) { 
   return ( 
     <div className="card p-6 mt-4"> 
@@ -316,9 +317,24 @@ function EnrolledCoursesList({ enrollments }) {
         <ul className="divide-y divide-border"> 
           {enrollments.map(e => ( 
             <li key={e.id} className="py-3"> 
-              <p className="text-sm font-semibold text-foreground">{e.batch_code} ({e.course_title})</p> 
-              <p className="text-sm text-muted-foreground">Status: <span className="font-medium">{e.status}</span></p> 
-              <p className="text-xs text-muted-foreground">Enrolled on: {new Date(e.enrolled_on).toLocaleDateString()}</p> 
+              <div className="flex justify-between items-center">
+                <p className="text-sm font-semibold text-foreground">{e.batch_code} ({e.course_title})</p>
+                <span className={`status-badge status-${e.status}`}>
+                  {e.status}
+                </span>
+              </div>
+              
+              {/* --- UPDATE THIS SECTION --- */}
+              <p className="text-xs text-muted-foreground mt-1">
+                Started on: {new Date(e.enrolled_on).toLocaleDateString()}
+              </p> 
+              {e.completion_date && (
+                <p className="text-xs text-muted-foreground">
+                  Est. Completion: {new Date(e.completion_date).toLocaleDateString()}
+                </p>
+              )}
+              {/* --- END UPDATE --- */}
+
             </li> 
           ))} 
         </ul> 
@@ -326,6 +342,7 @@ function EnrolledCoursesList({ enrollments }) {
     </div> 
   ); 
 }
+
 function PaymentHistoryList({ payments }) { 
   const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); 
   return ( 
