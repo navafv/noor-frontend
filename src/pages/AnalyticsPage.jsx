@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, DollarSign, TrendingUp, TrendingDown, AlertTriangle, PieChart, BarChart2 } from 'lucide-react';
+import { Loader2, DollarSign, TrendingUp, TrendingDown, AlertTriangle, PieChart, BarChart2, CheckCircle } from 'lucide-react'; // Added CheckCircle
 import api from '../services/api.js';
 import PageHeader from '../components/PageHeader.jsx';
+import {
+  ResponsiveContainer, BarChart as ReBarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Bar,
+  PieChart as RePieChart, Pie, Cell, Tooltip as ReTooltip
+} from 'recharts';
 
 /**
  * Page for viewing financial and outstanding fee analytics.
@@ -115,11 +119,18 @@ const OutstandingSummary = ({ data }) => (
         colorClass="text-red-600"
       />
     </div>
-    
+
+    {/* --- NEW PIE CHART --- */}
+    <div className="card p-4 mb-6" style={{ height: '350px' }}>
+      <h3 className="text-lg font-semibold text-foreground mb-4">Outstanding Fees by Course</h3>
+      <OutstandingPieChart data={data.summary} />
+    </div>
+    {/* --- END NEW PIE CHART --- */}
+
     {/* Per-Course Table */}
     <div className="card overflow-hidden">
       <h3 className="text-lg font-semibold text-foreground p-4 border-b border-border">
-        Outstanding by Course
+        Outstanding by Course (Raw Data)
       </h3>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-border">
@@ -158,7 +169,18 @@ const IncomeExpenseTable = ({ data }) => (
       <BarChart2 size={24} className="mr-3 text-primary" />
       Monthly Financials
     </h2>
+
+    {/* --- NEW BAR CHART --- */}
+    <div className="card p-4 mb-6" style={{ height: '400px' }}>
+      <h3 className="text-lg font-semibold text-foreground mb-4">Monthly Income vs. Outgoing</h3>
+      <IncomeExpenseChart data={data} />
+    </div>
+    {/* --- END NEW BAR CHART --- */}
+    
     <div className="card overflow-hidden">
+      <h3 className="text-lg font-semibold text-foreground p-4 border-b border-border">
+        Monthly Financials (Raw Data)
+      </h3>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted/50">
@@ -202,7 +224,98 @@ const StatCard = ({ title, value, icon: Icon, colorClass = 'text-primary' }) => 
   </div>
 );
 
-// Reusable table cell styles (add to index.css if desired, or keep here)
+// --- CHART COMPONENT 1 ---
+const IncomeExpenseChart = ({ data }) => {
+  // Use Tailwind's resolved colors
+  const colors = {
+    income: 'hsl(var(--primary))',
+    expense: 'hsl(var(--destructive))',
+    payroll: 'hsl(18 96% 56%)', // orange-600
+    text: 'hsl(var(--muted-foreground))'
+  };
+
+  const formatCurrency = (tick) => `₹${tick.toLocaleString('en-IN')}`;
+  
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <ReBarChart data={data} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <XAxis dataKey="month" stroke={colors.text} fontSize={12} />
+        <YAxis stroke={colors.text} fontSize={12} tickFormatter={formatCurrency} />
+        <Tooltip
+          formatter={(value) => formatCurrency(value)}
+          contentStyle={{
+            backgroundColor: 'hsl(var(--card))',
+            borderColor: 'hsl(var(--border))',
+            borderRadius: 'var(--radius)',
+          }}
+          cursor={{ fill: 'hsl(var(--accent))' }}
+        />
+        <Legend />
+        <Bar dataKey="income" fill={colors.income} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="expense" fill={colors.expense} radius={[4, 4, 0, 0]} />
+        <Bar dataKey="payroll" fill={colors.payroll} radius={[4, 4, 0, 0]} />
+      </ReBarChart>
+    </ResponsiveContainer>
+  );
+};
+
+// --- CHART COMPONENT 2 ---
+const OutstandingPieChart = ({ data }) => {
+  const chartData = data.filter(item => item.due > 0); // Only show courses with debt
+  const COLORS = ['hsl(var(--primary-400))', 'hsl(var(--secondary-400))', 'hsl(25 95% 53%)', 'hsl(142 71% 45%)'];
+  
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const item = payload[0];
+      return (
+        <div className="card p-2 text-sm shadow-lg">
+          <p className="font-bold">{item.name}</p>
+          {/* --- THIS IS THE FIX --- */}
+          <p>{`Due: ₹${item.value.toLocaleString('en-IN')} (${(item.percent * 100).toFixed(0)}%)`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        <CheckCircle size={24} className="mr-2 text-green-600" />
+        <p>No outstanding fees! All courses are paid up.</p>
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <RePieChart>
+        <ReTooltip content={<CustomTooltip />} />
+        <Pie
+          data={chartData}
+          dataKey="due"
+          nameKey="course"
+          cx="50%"
+          cy="50%"
+          outerRadius={100}
+          fill="#8884d8"
+          labelLine={false}
+          label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+          fontSize={12}
+          stroke="hsl(var(--border))"
+        >
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Legend />
+      </RePieChart>
+    </ResponsiveContainer>
+  );
+};
+
+// Reusable table cell styles
 const tableStyles = `
   .table-header {
     padding: 0.75rem 1rem;

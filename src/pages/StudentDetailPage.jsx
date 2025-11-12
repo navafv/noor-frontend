@@ -140,11 +140,12 @@ function StudentDetailPage() {
   
   if (!student) return <div className="p-4">Student not found.</div>;
 
-  const photoUrl = student.photo 
-    ? `${import.meta.env.VITE_API_BASE_URL}${student.photo}`
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || '';
+  const photoUrl = student.photo
+    ? `${BACKEND_URL}${student.photo}`
     : `https://placehold.co/400x400/EBF5FF/1E40AF?text=${getInitials(student.user.first_name, student.user.last_name)}`;
 
-
+    
   return (
     <div className="flex h-full flex-col">
       <PageHeader title="Student Profile" />

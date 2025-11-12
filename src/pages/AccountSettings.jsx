@@ -1,14 +1,215 @@
-/*
- * UPDATED FILE: src/pages/AccountSettings.jsx
- *
- * FIX: Added the standard PageHeader for UI consistency.
- */
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx'; // <-- 1. IMPORT
-import { Loader2 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader.jsx';
+import { Loader2, KeyRound, Save, Upload } from 'lucide-react'; // Import new icons
 
+// --- This is the new component for photo uploads ---
+function ChangePhotoForm() {
+  const { user, setUser } = useAuth();
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+      setError(null);
+      setSuccess(null);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) {
+      setError('Please select a photo to upload.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      // POST to the new /students/me/ endpoint
+      const response = await api.patch('/students/me/', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      setSuccess('Photo updated successfully!');
+      // Update the user in context with the new photo URL
+      // We must merge with existing student data (which is inside the user object)
+      setUser(prevUser => ({
+        ...prevUser,
+        student: {
+          ...prevUser.student,
+          photo: response.data.photo 
+        }
+      }));
+      setFile(null);
+      setPreview(null);
+      
+    } catch (err) {
+      setError(err.response?.data?.photo?.[0] || 'Failed to upload photo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card p-6 mt-8">
+      <h2 className="text-xl font-bold text-foreground mb-6 flex items-center">
+        <Upload size={20} className="mr-3 text-primary" />
+        Change Profile Photo
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {success && (
+          <div className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="form-error">
+            {error}
+          </div>
+        )}
+
+        <div>
+          <label htmlFor="photo" className="form-label">Select Photo</label>
+          <input
+            type="file"
+            name="photo"
+            id="photo"
+            accept="image/png, image/jpeg"
+            onChange={handleFileChange}
+            className="form-input"
+          />
+        </div>
+
+        {preview && (
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground mb-2">New Photo Preview:</p>
+            <img src={preview} alt="Preview" className="w-24 h-24 rounded-full object-cover mx-auto border-2 border-border" />
+          </div>
+        )}
+        
+        <div className="pt-2">
+          <button
+            type="submit"
+            className="btn-primary w-full justify-center"
+            disabled={loading || !file}
+          >
+            {loading ? <Loader2 className="animate-spin" /> : 'Upload Photo'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+
+/**
+ * A separate form for changing the user's password.
+ */
+function ChangePasswordForm() {
+  const [formData, setFormData] = useState({
+    old_password: '',
+    new_password: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // POST to the new endpoint
+      await api.post('/users/me/set-password/', formData);
+      setSuccess('Password changed successfully!');
+      // Clear form on success
+      setFormData({ old_password: '', new_password: '' });
+    } catch (err) {
+      setError(err.response?.data?.old_password?.[0] || err.response?.data?.new_password?.[0] || 'Failed to change password.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card p-6 mt-8">
+      <h2 className="text-xl font-bold text-foreground mb-6 flex items-center">
+        <KeyRound size={20} className="mr-3 text-primary" />
+        Change Password
+      </h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {success && (
+          <div className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="form-error">
+            {error}
+          </div>
+        )}
+
+        <div>
+          <label htmlFor="old_password" className="form-label">Old Password</label>
+          <input
+            type="password"
+            name="old_password"
+            id="old_password"
+            value={formData.old_password}
+            onChange={handleChange}
+            className="form-input"
+            required
+          />
+        </div>
+        
+        <div>
+          <label htmlFor="new_password" className="form-label">New Password</label>
+          <input
+            type="password"
+            name="new_password"
+            id="new_password"
+            value={formData.new_password}
+            onChange={handleChange}
+            className="form-input"
+            required
+          />
+        </div>
+        
+        <div className="pt-2">
+          <button
+            type="submit"
+            className="btn-primary w-full justify-center"
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="animate-spin" /> : 'Update Password'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+// --- This is the original component ---
 function AccountSettings() {
   const { user, setUser } = useAuth(); // Get user and the setter
   const [formData, setFormData] = useState({
@@ -36,8 +237,6 @@ function AccountSettings() {
       // Users update their own profile via /api/v1/users/{user.id}/
       const response = await api.patch(`/users/${user.id}/`, formData);
       
-      // Update the user in the global context
-      // We must merge with existing user data to preserve student_id
       setUser(prevUser => ({
         ...prevUser, 
         ...response.data 
@@ -52,11 +251,14 @@ function AccountSettings() {
   };
 
   return (
-    // FIX: Changed max-w-2xl to max-w-lg to match student portal
     <div className="p-4 max-w-lg mx-auto pb-20"> 
-      <PageHeader title="Account Settings" /> {/* <-- 2. ADD HEADER */}
+      <PageHeader title="Account Settings" />
       
+      {/* Profile Info Form */}
       <form onSubmit={handleSubmit} className="card p-6 space-y-4">
+        <h2 className="text-xl font-bold text-foreground mb-2">
+          Profile Information
+        </h2>
         {success && (
           <div className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700">
             {success}
@@ -135,10 +337,16 @@ function AccountSettings() {
             className="btn-primary w-full justify-center"
             disabled={loading}
           >
-            {loading ? <Loader2 className="animate-spin" /> : 'Save Changes'}
+            {loading ? <Loader2 className="animate-spin" /> : 'Save Profile'}
           </button>
         </div>
       </form>
+
+      {/* --- RENDER PHOTO FORM (only for students) --- */}
+      {user && !user.is_staff && <ChangePhotoForm />}
+
+      {/* --- PASSWORD FORM --- */}
+      <ChangePasswordForm />
     </div>
   );
 }

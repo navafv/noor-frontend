@@ -22,7 +22,11 @@ import {
   ReceiptText,
   BarChart2,
   Bell,
-  PieChart, // <-- Added icon
+  PieChart,
+  Award,
+  Shield,
+  Send,
+  History,
 } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => (
@@ -91,10 +95,18 @@ function Sidebar({ onClose }) {
               <NavItem to="/admin/enquiries" icon={Inbox} label="Enquiries" />
               <NavItem to="/admin/students" icon={Users} label="Students" />
               <NavItem to="/admin/courses" icon={Book} label="Courses" />
+              <NavItem to="/admin/certificates" icon={Award} label="Certificates" />
+              <NavItem to="/admin/reminders" icon={Send} label="Fee Reminders" />
               <NavItem to="/admin/expenses" icon={DollarSign} label="Expenses" />
               <NavItem to="/admin/receipts" icon={ReceiptText} label="Receipts" />
               <NavItem to="/admin/stock" icon={Package} label="Stock" />
               <NavItem to="/admin/payroll" icon={Briefcase} label="Payroll" />
+              <NavItem to="/admin/roles" icon={Shield} label="Roles" />
+              <li className="px-3 py-2 text-xs font-semibold uppercase text-muted-foreground">
+                Audit Logs
+              </li>
+              <NavItem to="/admin/history/students" icon={History} label="Student History" />
+              <NavItem to="/admin/history/users" icon={History} label="User History" />
             </>
           )}
           
