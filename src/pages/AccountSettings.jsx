@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
 import PageHeader from '@/components/PageHeader.jsx';
-import { Loader2, KeyRound, Save, Upload } from 'lucide-react'; // Import new icons
+import { Loader2, KeyRound, Save, Upload } from 'lucide-react'; 
 
-// --- This is the new component for photo uploads ---
+// ... (ChangePhotoForm component is unchanged) ...
 function ChangePhotoForm() {
   const { user, setUser } = useAuth();
   const [file, setFile] = useState(null);
@@ -37,7 +37,6 @@ function ChangePhotoForm() {
     formData.append('photo', file);
 
     try {
-      // POST to the new /students/me/ endpoint
       const response = await api.patch('/students/me/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -45,8 +44,6 @@ function ChangePhotoForm() {
       });
       
       setSuccess('Photo updated successfully!');
-      // Update the user in context with the new photo URL
-      // We must merge with existing student data (which is inside the user object)
       setUser(prevUser => ({
         ...prevUser,
         student: {
@@ -115,10 +112,7 @@ function ChangePhotoForm() {
   );
 }
 
-
-/**
- * A separate form for changing the user's password.
- */
+// ... (ChangePasswordForm component is unchanged) ...
 function ChangePasswordForm() {
   const [formData, setFormData] = useState({
     old_password: '',
@@ -139,10 +133,8 @@ function ChangePasswordForm() {
     setSuccess(null);
 
     try {
-      // POST to the new endpoint
       await api.post('/users/me/set-password/', formData);
       setSuccess('Password changed successfully!');
-      // Clear form on success
       setFormData({ old_password: '', new_password: '' });
     } catch (err) {
       setError(err.response?.data?.old_password?.[0] || err.response?.data?.new_password?.[0] || 'Failed to change password.');
@@ -209,9 +201,8 @@ function ChangePasswordForm() {
   );
 }
 
-// --- This is the original component ---
 function AccountSettings() {
-  const { user, setUser } = useAuth(); // Get user and the setter
+  const { user, setUser } = useAuth(); 
   const [formData, setFormData] = useState({
     first_name: user?.first_name || '',
     last_name: user?.last_name || '',
@@ -234,7 +225,6 @@ function AccountSettings() {
     setSuccess(null);
 
     try {
-      // Users update their own profile via /api/v1/users/{user.id}/
       const response = await api.patch(`/users/${user.id}/`, formData);
       
       setUser(prevUser => ({
@@ -343,6 +333,7 @@ function AccountSettings() {
       </form>
 
       {/* --- RENDER PHOTO FORM (only for students) --- */}
+      {/* --- SIMPLIFIED CHECK --- */}
       {user && !user.is_staff && <ChangePhotoForm />}
 
       {/* --- PASSWORD FORM --- */}

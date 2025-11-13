@@ -1,8 +1,6 @@
-/*
- * UPDATED FILE: src/pages/StudentDetailPage.jsx
- *
- * FIX: Added 'download' attribute to the certificate link to force download.
- */
+/* UPDATED FILE: navafv/noor-frontend/noor-frontend-c23097d14777e9c489af86e2822e1a66601485e8/src/pages/StudentDetailPage.jsx */
+
+// ... (imports are unchanged) ...
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -14,10 +12,12 @@ import Modal from '@/components/Modal.jsx';
 import MeasurementForm from '@/components/MeasurementForm.jsx';
 import PageHeader from '@/components/PageHeader.jsx';
 
-/**
- * Shows all details for a single student.
- */
+// ... (StudentDetailPage component and all its functions) ...
+// ... (No changes needed until we get to the EnrolledCoursesList sub-component) ...
+// ... (The main component fetches `enrollmentsRes` which now contains the new progress fields) ...
+
 function StudentDetailPage() {
+  // ... (all existing state and functions are unchanged) ...
   const { id } = useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
@@ -48,7 +48,7 @@ function StudentDetailPage() {
         outstandingRes
       ] = await Promise.all([
         api.get(`/students/${id}/`),
-        api.get(`/enrollments/?student=${id}`),
+        api.get(`/enrollments/?student=${id}`), // This will now contain progress
         api.get(`/finance/receipts/?student=${id}`),
         api.get(`/students/${id}/measurements/`),
         api.get(`/certificates/?student=${id}`),
@@ -88,41 +88,29 @@ function StudentDetailPage() {
     ? measurements.sort((a, b) => new Date(b.date_taken) - new Date(a.date_taken))[0] 
     : null;
   
-  // --- NEW FUNCTION TO HANDLE PDF DOWNLOAD ---
   const handleDownload = async (cert) => {
     if (downloadingId === cert.id) return; // Already downloading
     setDownloadingId(cert.id);
     try {
-      // Fetch the PDF file as a 'blob' (binary large object)
       const response = await api.get(cert.pdf_file, {
         responseType: 'blob',
       });
-      
-      // Create a temporary URL for the blob
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      
-      // Create a hidden link element
       const link = document.createElement('a');
       link.href = url;
-      
-      // Get the filename from the URL (e.g., "CERT-20251110-0001_J1y9rJG.pdf")
       const filename = cert.pdf_file.split('/').pop();
       link.setAttribute('download', filename);
-      
-      // Append to the page, click it, then remove it
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url); // Clean up the temporary URL
+      window.URL.revokeObjectURL(url);
       
     } catch (err) {
       console.error("Failed to download file", err);
-      // You could set an error state here
     } finally {
       setDownloadingId(null); // Stop loading state
     }
   };
-  // --- END OF NEW FUNCTION ---
 
   if (loading) return (
     <div className="flex justify-center items-center min-h-[50vh]">
@@ -154,7 +142,7 @@ function StudentDetailPage() {
       <main className="flex-1 overflow-y-auto bg-background p-4">
         <div className="mx-auto max-w-lg pb-20">
           
-          {/* Profile Header */}
+          {/* ... (Profile Header is unchanged) ... */}
           <div className="card p-6 flex flex-col items-center">
             <img 
               src={photoUrl} 
@@ -165,16 +153,14 @@ function StudentDetailPage() {
             <h1 className="text-2xl font-bold text-foreground mt-4">{student.user.first_name} {student.user.last_name}</h1>
             <p className="text-sm text-muted-foreground">Reg No: {student.reg_no}</p>
           </div>
-
-          {/* Quick Actions */}
+          {/* ... (Quick Actions are unchanged) ... */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
             <ActionCard icon={BookOpen} label="Enroll" onClick={() => setIsEnrollModalOpen(true)} />
             <ActionCard icon={DollarSign} label="Log Payment" onClick={() => setIsPaymentModalOpen(true)} />
             <ActionCard icon={Ruler} label="Measurements" onClick={() => setIsMeasurementModalOpen(true)} />
             <ActionCard icon={Award} label="Issue Certificate" onClick={() => setIsCertificateModalOpen(true)} />
           </div>
-          
-          {/* Outstanding Fee Card */}
+          {/* ... (Outstanding Fee Card is unchanged) ... */}
           {outstandingData && (
             <div className={`card p-4 mb-4 ${outstandingData.total_due > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
               <div className="flex items-center">
@@ -190,8 +176,7 @@ function StudentDetailPage() {
               </div>
             </div>
           )}
-
-          {/* Details Section */}
+          {/* ... (Details Section is unchanged) ... */}
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Student Information</h3>
             <div className="space-y-4">
@@ -212,10 +197,11 @@ function StudentDetailPage() {
             </div>
           </div>
           
+          {/* This component will now be updated */}
           <EnrolledCoursesList enrollments={enrollments} />
-          <PaymentHistoryList payments={payments} />
           
-          {/* Latest Measurements Section */}
+          {/* ... (Rest of the page is unchanged) ... */}
+          <PaymentHistoryList payments={payments} />
           <div className="card p-6 mt-4">
             <h3 className="text-lg font-semibold text-foreground mb-2">Latest Measurements</h3>
             {latestMeasurement ? (
@@ -229,8 +215,6 @@ function StudentDetailPage() {
               </div>
             ) : <p className="text-sm text-muted-foreground">No measurements recorded.</p>}
           </div>
-
-          {/* Issued Certificates Section */}
           <div className="card p-6 mt-4">
             <h3 className="text-lg font-semibold text-foreground mb-2">Issued Certificates</h3>
             {certificates.length === 0 ? (
@@ -260,11 +244,10 @@ function StudentDetailPage() {
               </ul>
             )}
           </div>
-
         </div>
       </main>
 
-      {/* Modals */}
+      {/* ... (Modals are unchanged, but CertificateForm will now get an error if course is not complete) ... */}
       <Modal isOpen={isEnrollModalOpen} onClose={() => setIsEnrollModalOpen(false)} title="Enroll Student in Batch">
         <EnrollStudentForm studentId={student.id} onClose={() => setIsEnrollModalOpen(false)} onEnrolled={handleDataRefresh} />
       </Modal>
@@ -307,6 +290,7 @@ const InfoItem = ({ icon: Icon, label, value }) => (
   </div> 
 );
 
+// --- UPDATE THIS COMPONENT ---
 function EnrolledCoursesList({ enrollments }) { 
   return ( 
     <div className="card p-6 mt-4"> 
@@ -328,9 +312,13 @@ function EnrolledCoursesList({ enrollments }) {
               <p className="text-xs text-muted-foreground mt-1">
                 Started on: {new Date(e.enrolled_on).toLocaleDateString()}
               </p> 
-              {e.completion_date && (
+              {e.status === 'completed' ? (
                 <p className="text-xs text-muted-foreground">
-                  Est. Completion: {new Date(e.completion_date).toLocaleDateString()}
+                  Completed on: {new Date(e.completion_date).toLocaleDateString()}
+                </p>
+              ) : (
+                <p className="text-sm font-medium text-foreground mt-1">
+                  Attendance: {e.present_days} / {e.required_days} days
                 </p>
               )}
               {/* --- END UPDATE --- */}
@@ -342,7 +330,9 @@ function EnrolledCoursesList({ enrollments }) {
     </div> 
   ); 
 }
+// --- END UPDATE ---
 
+// ... (PaymentHistoryList is unchanged) ...
 function PaymentHistoryList({ payments }) { 
   const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); 
   return ( 
@@ -370,6 +360,7 @@ function PaymentHistoryList({ payments }) {
     </div> 
   ); 
 }
+// ... (EnrollStudentForm is unchanged) ...
 function EnrollStudentForm({ studentId, onClose, onEnrolled }) { 
   const [batches, setBatches] = useState([]); 
   const [selectedBatch, setSelectedBatch] = useState(''); 
@@ -406,7 +397,7 @@ function EnrollStudentForm({ studentId, onClose, onEnrolled }) {
     <form onSubmit={handleSubmit} className="space-y-4"> 
       {error && <p className="form-error text-center">{error}</p>} 
       <div> 
-        <label htmlFor="batch" className="form-label">Select Batch</label> 
+        <label htmlFor="batch" className="form-label">Select Batch (Group)</label> 
         <select id="batch" value={selectedBatch} onChange={(e) => setSelectedBatch(e.target.value)} className="form-input" required> 
           <option value="" disabled>-- Select a batch --</option> 
           {loading ? ( 
@@ -424,6 +415,7 @@ function EnrollStudentForm({ studentId, onClose, onEnrolled }) {
     </form> 
   ); 
 }
+// ... (LogPaymentForm is unchanged) ...
 function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
   const [formData, setFormData] = useState({
     amount: '',
@@ -537,16 +529,21 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
     </form>
   );
 }
+// --- UPDATE CertificateForm ---
 function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const eligibleEnrollments = enrollments.filter(e => e.status === 'active' || e.status === 'completed');
+  
+  // --- 1. ONLY SHOW COMPLETED COURSES ---
+  const eligibleEnrollments = enrollments.filter(e => e.status === 'completed');
+
   useEffect(() => {
     if (eligibleEnrollments.length > 0 && !selectedEnrollmentId) {
       setSelectedEnrollmentId(eligibleEnrollments[0].id.toString());
     }
   }, [eligibleEnrollments, selectedEnrollmentId]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -554,7 +551,7 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
     
     const enrollment = eligibleEnrollments.find(e => e.id.toString() === selectedEnrollmentId);
     if (!enrollment) {
-      setError("Please select a valid enrollment.");
+      setError("Please select a valid (and completed) enrollment.");
       setLoading(false);
       return;
     }
@@ -570,20 +567,27 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
       const errorMsg = err.response?.data?.detail || 
                        err.response?.data?.[0] || 
                        (err.response?.data?.non_field_errors?.[0]) ||
-                       'Failed to issue certificate. It may already exist for this student and course.';
+                       'Failed to issue certificate. It may already exist or the course is not complete.';
       setError(errorMsg);
     } finally {
       setLoading(false);
     }
   };
-  if (eligibleEnrollments.length === 0) {
-    return <p className="text-center text-muted-foreground">This student has no active or completed enrollments eligible for a certificate.</p>;
+  
+  // --- 2. UPDATE EMPTY STATE MESSAGE ---
+  if (enrollments.filter(e => e.status === 'active').length > 0 && eligibleEnrollments.length === 0) {
+     return <p className="text-center text-muted-foreground">This student has active courses, but none are completed yet. A certificate can only be issued after they meet the attendance requirement.</p>;
   }
+  
+  if (eligibleEnrollments.length === 0) {
+    return <p className="text-center text-muted-foreground">This student has no completed enrollments eligible for a certificate.</p>;
+  }
+  
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="form-error text-center">{error}</p>}
       <div>
-        <label htmlFor="enrollment" className="form-label">Select Enrollment to Certify</label>
+        <label htmlFor="enrollment" className="form-label">Select Completed Enrollment</label>
         <select
           id="enrollment"
           value={selectedEnrollmentId}

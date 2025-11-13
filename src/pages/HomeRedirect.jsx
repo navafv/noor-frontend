@@ -1,12 +1,11 @@
 /*
  * UPDATED FILE: src/pages/HomeRedirect.jsx
  *
- * CRITICAL FIX: This file now correctly redirects all 3 roles
- * when they land on the root "/" path.
+ * SIMPLIFICATION: Removed "Teacher" logic.
  */
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext.jsx'; // <-- FIX: Use alias path
+import { useAuth } from '@/context/AuthContext.jsx'; 
 import { Loader2 } from 'lucide-react';
 
 function HomeRedirect() {
@@ -23,10 +22,8 @@ function HomeRedirect() {
 
   if (user) {
     // User is logged in, redirect to their correct dashboard
-    if (user.is_superuser) {
+    if (user.is_staff) { // <-- Simplified Check
       return <Navigate to="/admin/dashboard" replace />;
-    } else if (user.is_staff) {
-      return <Navigate to="/teacher/dashboard" replace />;
     } else {
       return <Navigate to="/student/dashboard" replace />;
     }

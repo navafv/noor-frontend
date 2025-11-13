@@ -1,10 +1,5 @@
-/*
- * UPDATED FILE: src/pages/CourseManagementPage.jsx
- *
- * FIX: The CourseForm and BatchForm sub-components now send the
- * correct field names and data structures to match the backend API.
- * ADD: Added a new "Feedback" tab to view student-submitted feedback.
- */
+/* UPDATED FILE: navafv/noor-frontend/noor-frontend-c23097d14777e9c489af86e2822e1a66601485e8/src/pages/CourseManagementPage.jsx */
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Loader2, Plus, Book, Box, User, MessageSquare, Star } from 'lucide-react';
@@ -12,7 +7,7 @@ import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
 import PageHeader from '@/components/PageHeader.jsx';
 
-// Main page component
+// ... (Main component and TabButton are unchanged) ...
 function CourseManagementPage() {
   const [activeTab, setActiveTab] = useState('courses');
   return (
@@ -42,7 +37,6 @@ function CourseManagementPage() {
   );
 }
 
-// ... (TabButton component is unchanged)
 const TabButton = ({ icon: Icon, label, isActive, onClick }) => (
   <button
     onClick={onClick}
@@ -54,7 +48,8 @@ const TabButton = ({ icon: Icon, label, isActive, onClick }) => (
   </button>
 );
 
-// ... (CourseTab component is unchanged)
+
+// --- UPDATE CourseTab ---
 function CourseTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +77,8 @@ function CourseTab() {
           <div className="flex gap-4 text-sm mt-2">
             <span>Fees: <strong>₹{parseFloat(item.total_fees).toLocaleString('en-IN')}</strong></span>
             <span>Duration: <strong>{item.duration_weeks} weeks</strong></span>
+            {/* --- ADDED REQUIRED DAYS --- */}
+            <span>Attendance Goal: <strong>{item.required_attendance_days} days</strong></span>
           </div>
         </li>
       )}
@@ -93,7 +90,7 @@ function CourseTab() {
   );
 }
 
-// ... (BatchTab component is unchanged)
+// --- UPDATE BatchTab ---
 function BatchTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -120,7 +117,7 @@ function BatchTab() {
 
   return (
     <CrudList
-      title="Batches"
+      title="Batches (Groups)" // <-- Renamed title
       items={items}
       loading={loading}
       onAdd={() => setIsModalOpen(true)}
@@ -129,20 +126,20 @@ function BatchTab() {
           <p className="font-semibold">Batch {item.code} ({item.course_title})</p>
           <p className="text-sm text-muted-foreground">Trainer: {item.trainer_name || 'Not assigned'}</p>
           <div className="flex gap-4 text-sm mt-2">
-            <span>Schedule: <strong>{item.schedule?.timing || 'Not set'}</strong></span>
+            {/* --- SIMPLIFIED BATCH INFO --- */}
             <span>Capacity: <strong>{item.capacity || 'Not set'}</strong></span>
           </div>
         </li>
       )}
     >
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Batch">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Batch (Group)">
         <BatchForm courses={courses} trainers={trainers} onSaved={() => { fetchItems(); setIsModalOpen(false); }} />
       </Modal>
     </CrudList>
   );
 }
 
-// ... (TrainerTab component is unchanged)
+// ... (TrainerTab component is unchanged) ...
 function TrainerTab() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -187,7 +184,7 @@ function TrainerTab() {
   );
 }
 
-// --- NEW FeedbackTab ---
+// ... (FeedbackTab component is unchanged) ...
 function FeedbackTab() {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -246,11 +243,7 @@ function FeedbackTab() {
   );
 }
 
-
-// --- Reusable Components for this page ---
-
-// Reusable list wrapper
-// FIX: Removed the 'onAdd' button from the base wrapper, as FeedbackTab doesn't need it.
+// ... (CrudList component is unchanged) ...
 const CrudList = ({ title, items, loading, onAdd, renderItem, children }) => (
   <>
     <div className="flex justify-between items-center mb-4">
@@ -274,23 +267,40 @@ const CrudList = ({ title, items, loading, onAdd, renderItem, children }) => (
   </>
 );
 
-// ... (CourseForm component is unchanged)
+
+// --- UPDATE CourseForm ---
 function CourseForm({ onSaved }) {
-  // FIX: Match backend model fields
   const [data, setData] = useState({ 
     code: '', 
     title: '', 
-    duration_weeks: 12, // <-- FIX: Renamed from 'duration'
-    total_fees: 0, // <-- FIX: Renamed from 'fees'
-    syllabus: '' 
+    duration_weeks: 12, 
+    total_fees: 0, 
+    syllabus: '',
+    required_attendance_days: 36 // <-- 1. ADD NEW FIELD
   });
   const [loading, setLoading] = useState(false);
-  const handleChange = (e) => setData({ ...data, [e.target.name]: e.target.value });
+  
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // --- 2. ADD LOGIC TO AUTO-UPDATE DAYS ---
+    let newData = { ...data, [name]: value };
+    if (name === 'duration_weeks') {
+      const weeks = parseInt(value, 10);
+      if (weeks === 12) {
+        newData.required_attendance_days = 36;
+      } else if (weeks === 24) {
+        newData.required_attendance_days = 72;
+      } else if (!isNaN(weeks)) {
+        newData.required_attendance_days = weeks * 3; // Default to 3 days/week
+      }
+    }
+    setData(newData);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await api.post('/courses/', data); // This POSTs the 'data' object
+    await api.post('/courses/', data); 
     setLoading(false);
     onSaved();
   };
@@ -300,8 +310,10 @@ function CourseForm({ onSaved }) {
       <div><label className="form-label">Course Title</label><input type="text" name="title" value={data.title} onChange={handleChange} className="form-input" required /></div>
       <div><label className="form-label">Course Code</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., 3MC or 6MC" /></div>
       <div><label className="form-label">Syllabus / Description</label><textarea name="syllabus" value={data.syllabus} onChange={handleChange} className="form-input" rows="3"></textarea></div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4"> {/* <-- 3. CHANGED TO 3 COLS */}
         <div><label className="form-label">Duration (weeks)</label><input type="number" name="duration_weeks" value={data.duration_weeks} onChange={handleChange} className="form-input" required /></div>
+        {/* --- 4. ADDED NEW INPUT --- */}
+        <div><label className="form-label">Required Days</label><input type="number" name="required_attendance_days" value={data.required_attendance_days} onChange={handleChange} className="form-input" required /></div>
         <div><label className="form-label">Total Fees (₹)</label><input type="number" name="total_fees" value={data.total_fees} onChange={handleChange} className="form-input" required /></div>
       </div>
       <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Save Course'}</button>
@@ -309,14 +321,14 @@ function CourseForm({ onSaved }) {
   );
 }
 
-// ... (BatchForm component is unchanged)
+
+// --- UPDATE BatchForm ---
 function BatchForm({ courses, trainers, onSaved }) {
-  // FIX: Add 'capacity', rename 'timing'
   const [data, setData] = useState({ 
     course: '', 
     trainer: '', 
     code: '', 
-    timing: '', // This will be nested into 'schedule'
+    // timing: '', // <-- 1. REMOVED TIMING
     capacity: 10 
   });
   const [loading, setLoading] = useState(false);
@@ -326,12 +338,13 @@ function BatchForm({ courses, trainers, onSaved }) {
     e.preventDefault();
     setLoading(true);
     
+    // --- 2. SIMPLIFIED PAYLOAD ---
     const dataToSend = {
       course: data.course,
       trainer: data.trainer || null,
       code: data.code,
       capacity: data.capacity,
-      schedule: { timing: data.timing } // Nest timing inside schedule
+      schedule: {} // Send empty schedule
     };
     
     await api.post('/batches/', dataToSend);
@@ -343,9 +356,9 @@ function BatchForm({ courses, trainers, onSaved }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div><label className="form-label">Course</label><select name="course" value={data.course} onChange={handleChange} className="form-input" required><option value="" disabled>Select course</option>{courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></div>
       <div><label className="form-label">Trainer</label><select name="trainer" value={data.trainer} onChange={handleChange} className="form-input"><option value="">Select trainer (optional)</option>{trainers.map(t => <option key={t.id} value={t.id}>{t.trainer_name}</option>)}</select></div>
-      <div><label className="form-label">Batch Code / Group Name</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., 3-Month Morning" /></div>
+      {/* --- 3. MOVED TO 2-COL GRID --- */}
       <div className="grid grid-cols-2 gap-4">
-        <div><label className="form-label">Schedule/Timing</label><input type="text" name="timing" value={data.timing} onChange={handleChange} className="form-input" placeholder="e.g., 10AM - 1PM" /></div>
+        <div><label className="form-label">Batch Code / Group Name</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., Group-A" /></div>
         <div><label className="form-label">Capacity</label><input type="number" name="capacity" value={data.capacity} onChange={handleChange} className="form-input" required /></div>
       </div>
       <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Save Batch'}</button>
@@ -353,7 +366,7 @@ function BatchForm({ courses, trainers, onSaved }) {
   );
 }
 
-// ... (TrainerForm component is unchanged)
+// ... (TrainerForm component is unchanged) ...
 function TrainerForm({ staffUsers, existingTrainers, onSaved }) {
   const [data, setData] = useState({ 
     user: '', 
@@ -399,6 +412,5 @@ function TrainerForm({ staffUsers, existingTrainers, onSaved }) {
     </form>
   );
 }
-
 
 export default CourseManagementPage;

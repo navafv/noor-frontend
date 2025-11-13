@@ -1,13 +1,13 @@
 /*
  * UPDATED FILE: src/pages/AccountPage.jsx
  *
- * FIX: Added the standard PageHeader for UI consistency.
+ * SIMPLIFICATION: Simplified role-based path logic.
  */
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Settings, LogOut, ChevronRight, BarChart2, LayoutDashboard } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx'; // <-- 1. IMPORT
+import PageHeader from '@/components/PageHeader.jsx'; 
 
 function AccountPage() {
   const { user, logoutUser } = useAuth();
@@ -23,7 +23,9 @@ function AccountPage() {
   };
 
   // Determine settings path based on role
-  const settingsPath = user?.is_staff ? "/admin/account/settings" : "/account/settings";
+  // --- SIMPLIFIED LOGIC ---
+  const settingsPath = user?.is_staff ? "/admin/account/settings" : "/student/account/settings";
+  const dashboardPath = user?.is_staff ? "/admin/dashboard" : "/student/dashboard";
   
   if (!user) {
     return <PageHeader title="Account" />; // Show header even if loading
@@ -31,7 +33,6 @@ function AccountPage() {
 
   return (
     <>
-      {/* --- 2. ADD THIS HEADER --- */}
       <PageHeader title="My Account" showBackButton={false} />
       
       <div className="p-4 pb-20 max-w-lg mx-auto">
@@ -59,21 +60,12 @@ function AccountPage() {
             Dashboard
           </h2>
           <div className="card overflow-hidden">
-            {user?.is_staff ? (
-              <AppLink
-                to="/admin/dashboard"
-                icon={BarChart2}
-                title="Admin Dashboard"
-                subtitle="Manage students, finance, and courses"
-              />
-            ) : (
-              <AppLink
-                to="/student/dashboard"
-                icon={LayoutDashboard}
-                title="My Dashboard"
-                subtitle="View your courses and payments"
-              />
-            )}
+            <AppLink
+              to={dashboardPath} // <-- Use simplified path
+              icon={user?.is_staff ? BarChart2 : LayoutDashboard}
+              title={user?.is_staff ? "Admin Dashboard" : "My Dashboard"}
+              subtitle={user?.is_staff ? "Manage institute" : "View your progress"}
+            />
           </div>
         </div>
 
@@ -85,7 +77,7 @@ function AccountPage() {
           <div className="card overflow-hidden">
             <ul className="divide-y divide-border">
               <AppLink
-                to={settingsPath} // Use role-based path
+                to={settingsPath} // Use simplified path
                 icon={Settings}
                 title="Account Settings"
                 subtitle="Update your profile information"
@@ -108,6 +100,7 @@ function AccountPage() {
 }
 
 const AppLink = ({ to, icon: Icon, title, subtitle }) => (
+  // ... (no change)
   <li>
     <Link to={to} className="block hover:bg-accent">
       <div className="flex items-center p-4">

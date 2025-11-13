@@ -1,26 +1,18 @@
 /*
  * UPDATED FILE: src/context/AuthContext.jsx
  *
- * CRITICAL FIX: This file contains the primary fix for all login issues.
- * 1. Removed the broken `getUserDetails` function.
- * 2. `checkUser` and `loginUser` now use `/users/me/` which is the correct
- * endpoint for *any* logged-in user to get their *own* profile.
- * This fixes the bug where students couldn't log in.
- * 3. `loginUser` now has correct redirect logic for all 3 roles:
- * - Admin (is_superuser) -> /admin/dashboard
- * - Teacher (is_staff, not superuser) -> /teacher/dashboard
- * - Student (not is_staff) -> /student/dashboard
+ * SIMPLIFICATION: Removed the "Teacher" role logic.
+ * 1. `loginUser` now redirects based on `is_staff` only.
+ * - Staff -> /admin/dashboard
+ * - Not Staff (Student) -> /student/dashboard
  */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '@/services/api.js'; // <-- FIX: Use alias path
+import api from '@/services/api.js';
 
 const AuthContext = createContext();
 
-/**
- * A simple, inline polyfill for jwt-decode to avoid import issues.
- * This decodes the payload part of a JWT.
- */
+// ... (jwtDecode function is unchanged) ...
 const jwtDecode = (token) => {
   try {
     const base64Url = token.split('.')[1];
@@ -62,11 +54,10 @@ export const AuthProvider = ({ children }) => {
     const checkUser = async () => {
       if (tokens) {
         try {
-          // 1. Set auth header for this request
+          // 1. Set auth header
           api.defaults.headers.common['Authorization'] = 'Bearer ' + tokens.access;
           
-          // 2. Fetch user's own profile from the /users/me/ endpoint
-          //    This works for ALL roles (Admin, Teacher, Student)
+          // 2. Fetch user's profile
           const userResponse = await api.get('/users/me/');
           const fullUser = userResponse.data;
           
@@ -76,8 +67,6 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
           console.error("Auth check failed, token might be invalid", error);
           if (error.response?.status !== 401) {
-             // 401s are handled by the interceptor, but other errors (like 500)
-             // should log the user out.
              logoutUser(false);
           }
         }
@@ -85,7 +74,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
     checkUser();
-  }, [tokens]); // Only re-run when tokens change
+  }, [tokens]); 
 
   const loginUser = async (username, password) => {
     try {
@@ -96,29 +85,26 @@ export const AuthProvider = ({ children }) => {
       });
       const newTokens = tokenResponse.data;
       
-      // 2. Set tokens and auth header for next request
+      // 2. Set tokens and auth header
       setTokens(newTokens);
       localStorage.setItem('authTokens', JSON.stringify(newTokens));
       api.defaults.headers.common['Authorization'] = 'Bearer ' + newTokens.access;
       
-      // 3. Fetch user's own profile from /users/me/
+      // 3. Fetch user's profile
       const userResponse = await api.get('/users/me/');
       const fullUser = userResponse.data;
       setUser(fullUser);
 
-      // 4. *** CRITICAL FIX: Role-based redirect ***
+      // 4. *** SIMPLIFIED ROLE-BASED REDIRECT ***
       const from = location.state?.from?.pathname;
 
       if (from) {
         navigate(from, { replace: true });
-      } else if (fullUser.is_superuser) {
-        // Role 1: Admin
+      } else if (fullUser.is_staff) { 
+        // Role 1: Admin/Staff
         navigate('/admin/dashboard', { replace: true });
-      } else if (fullUser.is_staff) {
-        // Role 2: Teacher
-        navigate('/teacher/dashboard', { replace: true });
       } else {
-        // Role 3: Student
+        // Role 2: Student
         navigate('/student/dashboard', { replace: true });
       }
     } catch (error) {
@@ -131,6 +117,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logoutUser = (redirect = true) => {
+    // ... (no change)
     setUser(null);
     setTokens(null);
     localStorage.removeItem('authTokens');
@@ -146,7 +133,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     loginUser,
     logoutUser,
-    setUser, // Expose setUser for profile updates
+    setUser,
   };
 
   return (

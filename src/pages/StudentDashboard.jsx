@@ -1,25 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
-import { Loader2, Star, CheckSquare } from 'lucide-react';
+import { Loader2, Star, CheckSquare, Check, DollarSign, Award } from 'lucide-react'; // <-- 1. IMPORT ICONS
 import PageHeader from '@/components/PageHeader.jsx';
 import Modal from '@/components/Modal.jsx'; 
 import FeedbackFormModal from '@/components/FeedbackFormModal.jsx';
 import { Link } from 'react-router-dom';
 
 function StudentDashboard() {
+  // ... (all state and functions are unchanged) ...
   const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // State for the feedback modal
   const [selectedEnrollment, setSelectedEnrollment] = useState(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const fetchStudentData = async () => {
-    // Don't set loading on refetch
     setError(null);
     try {
       const studentId = user?.student_id;
@@ -36,7 +34,7 @@ function StudentDashboard() {
     } catch (err) {
       setError(err.message || 'Could not load student data.');
     } finally {
-      setLoading(false); // Only set loading false once
+      setLoading(false); 
     }
   };
 
@@ -53,10 +51,9 @@ function StudentDashboard() {
 
   const handleFeedbackSaved = () => {
     setIsFeedbackModalOpen(false);
-    // Refresh enrollments to update the 'has_feedback' status
     fetchStudentData(); 
   };
-
+  
   if (loading) {
     return (
       <>
@@ -82,6 +79,29 @@ function StudentDashboard() {
         </div>
         
         {error && <p className="form-error mb-4">{error}</p>}
+
+        {/* --- 2. UPDATE QUICK LINKS --- */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <QuickLink 
+            to="/student/attendance"
+            icon={CheckSquare}
+            title="My Attendance"
+            color="text-blue-600 bg-blue-100"
+          />
+          <QuickLink 
+            to="/student/finance"
+            icon={DollarSign}
+            title="My Finance"
+            color="text-green-600 bg-green-100"
+          />
+          <QuickLink 
+            to="/student/certificates"
+            icon={Award}
+            title="My Certificates"
+            color="text-yellow-600 bg-yellow-100"
+          />
+        </div>
+        {/* --- END UPDATE --- */}
 
         {/* Fee Summary */}
         {dashboardData && (
@@ -109,19 +129,6 @@ function StudentDashboard() {
             </div>
           </div>
         )}
-
-        {/* Student Attendance */}
-        <div className="mb-6 card p-4 hover:bg-accent">
-          <Link to="/student/attendance" className="flex items-center">
-            <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
-              <CheckSquare size={24} />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">My Attendance</h2>
-              <p className="text-sm text-muted-foreground">View your daily history and summary</p>
-            </div>
-          </Link>
-        </div>
         
         {/* Enrolled Courses */}
         <div className="card p-6">
@@ -134,11 +141,29 @@ function StudentDashboard() {
                 <li key={e.id} className="p-4 bg-background rounded-lg border border-border">
                   <p className="font-semibold">{e.course_title}</p>
                   <p className="text-sm text-muted-foreground">Batch: {e.batch_code}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Status: <span className={`font-medium capitalize ${e.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{e.status}</span>
-                  </p>
                   
-                  {/* --- FEEDBACK BUTTON LOGIC --- */}
+                  {e.status === 'completed' ? (
+                    <p className="text-sm font-medium text-green-600">
+                      Status: Completed ({e.present_days} / {e.required_days} days)
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Status: <span className={`font-medium capitalize ${e.status === 'active' ? 'text-yellow-600' : 'text-muted-foreground'}`}>{e.status}</span>
+                      </p>
+                      {/* Progress Bar */}
+                      <div className="w-full bg-muted rounded-full h-2.5 my-2">
+                        <div 
+                          className="bg-primary h-2.5 rounded-full" 
+                          style={{ width: `${(e.present_days / e.required_days) * 100}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">
+                        Progress: {e.present_days} / {e.required_days} days
+                      </p>
+                    </>
+                  )}
+
                   {e.status === 'completed' && (
                     !e.has_feedback ? (
                       <button 
@@ -177,5 +202,17 @@ function StudentDashboard() {
     </>
   );
 }
+
+// --- 3. NEW HELPER COMPONENT ---
+const QuickLink = ({ to, icon: Icon, title, color }) => (
+  <Link to={to} className="card p-4 hover:bg-accent flex items-center">
+    <div className={`p-3 rounded-full ${color} mr-4`}>
+      <Icon size={20} />
+    </div>
+    <div>
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+    </div>
+  </Link>
+);
 
 export default StudentDashboard;
