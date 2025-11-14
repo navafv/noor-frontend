@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, User, Menu } from 'lucide-react';
+import { LayoutDashboard, User, Menu } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => {
   return (
@@ -19,17 +19,16 @@ const NavItem = ({ to, icon: Icon, label }) => {
   );
 };
 
-function BottomNav() {
+function AdminBottomNav() {
   return (
     <nav className="fixed bottom-0 z-10 w-full border-t border-border bg-card shadow-inner lg:hidden">
       <div className="mx-auto flex h-16 max-w-lg items-stretch">
-        <NavItem to="/student/dashboard" icon={Home} label="Home" />
-        {/* --- UPDATED: This is now a NavItem link --- */}
-        <NavItem to="/student/menu" icon={Menu} label="Menu" />
-        <NavItem to="/account" icon={User} label="Account" />
+        <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Home" />
+        <NavItem to="/admin/menu" icon={Menu} label="Menu" />
+        <NavItem to="/admin/account" icon={User} label="Account" />
       </div>
     </nav>
   );
 }
 
-export default BottomNav;
+export default AdminBottomNav;

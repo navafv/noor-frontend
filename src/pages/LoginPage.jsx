@@ -13,7 +13,6 @@ function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // FIX: Default redirect changed to /account which will auto-sort
   const from = location.state?.from?.pathname || '/account';
 
   const handleSubmit = async (e) => {
@@ -23,7 +22,6 @@ function LoginPage() {
     try {
       await loginUser(username, password);
       // On success, loginUser now handles navigation via AuthContext
-      // navigate(from, { replace: true }); // This line is now handled by AuthContext
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -70,12 +68,21 @@ function LoginPage() {
           </div>
           
           <div className="space-y-1">
-            <label
-              htmlFor="password"
-              className="form-label"
-            >
-              Password
-            </label>
+            <div className="flex justify-between items-center">
+              <label
+                htmlFor="password"
+                className="form-label"
+              >
+                Password
+              </label>
+              {/* --- NEW LINK --- */}
+              <Link
+                to="/forgot-password"
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Forgot?
+              </Link>
+            </div>
             <input
               type="password"
               id="password"

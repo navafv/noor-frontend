@@ -3,16 +3,15 @@ import { useAuth } from '@/context/AuthContext.jsx';
 import api from '@/services/api.js';
 import { Loader2, BellOff, Check, X, Minus, Percent } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
+import { useResponsive } from '../hooks/useResponsive.js'; // <-- IMPORT
 
-// Helper to get the correct icon for status
+// ... (getStatusIcon and getStatusText are unchanged) ...
 const getStatusIcon = (status) => {
   if (status === 'P') return <Check size={20} className="text-green-500" />;
   if (status === 'A') return <X size={20} className="text-red-500" />;
   if (status === 'L') return <Minus size={20} className="text-yellow-500" />;
   return null;
 };
-
-// Helper to get text color for status
 const getStatusText = (status) => {
   if (status === 'P') return 'text-green-600';
   if (status === 'A') return 'text-red-600';
@@ -26,6 +25,7 @@ function StudentAttendancePage() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isMobile } = useResponsive(); // <-- USE HOOK
 
   useEffect(() => {
     if (!user?.student_id) {
@@ -39,7 +39,6 @@ function StudentAttendancePage() {
         setLoading(true);
         setError(null);
         
-        // Fetch both summary and daily history
         const [summaryRes, historyRes] = await Promise.all([
           api.get(`/attendance/analytics/student/${user.student_id}/`),
           api.get('/attendance/my-history/')
@@ -61,7 +60,7 @@ function StudentAttendancePage() {
   if (loading) {
     return (
       <>
-        <PageHeader title="My Attendance" />
+        {isMobile && <PageHeader title="My Attendance" />}
         <div className="flex justify-center items-center min-h-[400px]">
           <Loader2 className="animate-spin text-primary" size={32} />
         </div>
@@ -71,9 +70,10 @@ function StudentAttendancePage() {
 
   return (
     <>
-      <PageHeader title="My Attendance" />
+      {/* --- UPDATED: Only show on mobile --- */}
+      {isMobile && <PageHeader title="My Attendance" />}
       
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="p-4 lg:p-8 max-w-lg mx-auto pb-20">
         {error && <p className="form-error mb-4">{error}</p>}
         
         {/* 1. Summary Section */}
@@ -125,7 +125,7 @@ function StudentAttendancePage() {
                   <div>
                     <p className="font-medium text-foreground">
                       {new Date(entry.date).toLocaleDateString('en-GB', {
-                        day: 'numeric', month: 'long', year: 'numeric'
+                        day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC'
                       })}
                     </p>
                     <p className="text-sm text-muted-foreground">{entry.course_title}</p>

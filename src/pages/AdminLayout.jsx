@@ -1,4 +1,3 @@
-/* UPDATED FILE: src/pages/AdminLayout.jsx */
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/admin/Sidebar.jsx';
@@ -9,8 +8,9 @@ function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
-      {/* Mobile Sidebar Backdrop */}
+    // --- UPDATED: Added responsive classes ---
+    <div className="hidden lg:flex h-screen bg-background text-foreground">
+      {/* Mobile Sidebar Backdrop (remains for tablet-size pop-out) */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/50 lg:hidden"

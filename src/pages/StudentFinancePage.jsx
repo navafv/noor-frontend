@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
 import { Loader2, DollarSign, Download, AlertCircle, ReceiptText } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
+import { useResponsive } from '../hooks/useResponsive.js'; // <-- IMPORT
 
 function StudentFinancePage() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ function StudentFinancePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const { isMobile } = useResponsive(); // <-- USE HOOK
 
   useEffect(() => {
     if (!user?.student_id) {
@@ -43,6 +45,7 @@ function StudentFinancePage() {
   }, [user]);
 
   const handleDownloadReceipt = async (receipt) => {
+    // ... (no change)
     if (downloadingId === receipt.id) return;
     setDownloadingId(receipt.id);
     try {
@@ -70,7 +73,7 @@ function StudentFinancePage() {
   if (loading) {
     return (
       <>
-        <PageHeader title="My Finance" />
+        {isMobile && <PageHeader title="My Finance" />}
         <div className="flex justify-center items-center min-h-[400px]">
           <Loader2 className="animate-spin text-primary" size={32} />
         </div>
@@ -80,9 +83,10 @@ function StudentFinancePage() {
   
   return (
     <>
-      <PageHeader title="My Finance" />
+      {/* --- UPDATED: Only show on mobile --- */}
+      {isMobile && <PageHeader title="My Finance" />}
       
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="p-4 lg:p-8 max-w-lg mx-auto pb-20">
         {error && <p className="form-error mb-4">{error}</p>}
         
         {/* 1. Outstanding Summary Card */}
@@ -134,9 +138,9 @@ function StudentFinancePage() {
                 <li key={receipt.id} className="p-4 flex justify-between items-center">
                   <div>
                     <p className="font-semibold text-foreground">₹{parseFloat(receipt.amount).toLocaleString('en-IN')}</p>
-                    <p className="text-sm text-muted-foreground">{receipt.receipt_no} ({receipt.get_mode_display})</p>
+                    <p className="text-sm text-muted-foreground">{receipt.receipt_no} ({receipt.mode})</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(receipt.date).toLocaleDateString()}
+                      {new Date(receipt.date).toLocaleDateString('en-IN', { timeZone: 'UTC' })}
                     </p>
                   </div>
                   <button

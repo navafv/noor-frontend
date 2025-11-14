@@ -1,18 +1,9 @@
-/*
- * UPDATED FILE: src/context/AuthContext.jsx
- *
- * SIMPLIFICATION: Removed the "Teacher" role logic.
- * 1. `loginUser` now redirects based on `is_staff` only.
- * - Staff -> /admin/dashboard
- * - Not Staff (Student) -> /student/dashboard
- */
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '@/services/api.js';
 
 const AuthContext = createContext();
 
-// ... (jwtDecode function is unchanged) ...
 const jwtDecode = (token) => {
   try {
     const base64Url = token.split('.')[1];
@@ -59,9 +50,20 @@ export const AuthProvider = ({ children }) => {
           
           // 2. Fetch user's profile
           const userResponse = await api.get('/users/me/');
-          const fullUser = userResponse.data;
+          let fullUser = userResponse.data;
           
-          // 3. Set user
+          // --- 3. NEW: IF USER IS A STUDENT, FETCH STUDENT PROFILE ---
+          if (fullUser.student_id) {
+            try {
+              const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
+              fullUser.student = studentResponse.data; // Attach student profile
+            } catch (e) {
+              console.error("Failed to fetch student profile", e);
+            }
+          }
+          // --- END NEW ---
+
+          // 4. Set user
           setUser(fullUser);
 
         } catch (error) {
@@ -92,19 +94,29 @@ export const AuthProvider = ({ children }) => {
       
       // 3. Fetch user's profile
       const userResponse = await api.get('/users/me/');
-      const fullUser = userResponse.data;
+      let fullUser = userResponse.data;
+
+      // --- 4. NEW: IF USER IS A STUDENT, FETCH STUDENT PROFILE ---
+      if (fullUser.student_id) {
+        try {
+          const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
+          fullUser.student = studentResponse.data; // Attach student profile
+        } catch (e) {
+          console.error("Failed to fetch student profile during login", e);
+        }
+      }
+      // --- END NEW ---
+
       setUser(fullUser);
 
-      // 4. *** SIMPLIFIED ROLE-BASED REDIRECT ***
+      // 5. Role-based redirect
       const from = location.state?.from?.pathname;
 
       if (from) {
         navigate(from, { replace: true });
       } else if (fullUser.is_staff) { 
-        // Role 1: Admin/Staff
         navigate('/admin/dashboard', { replace: true });
       } else {
-        // Role 2: Student
         navigate('/student/dashboard', { replace: true });
       }
     } catch (error) {
@@ -117,7 +129,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logoutUser = (redirect = true) => {
-    // ... (no change)
     setUser(null);
     setTokens(null);
     localStorage.removeItem('authTokens');

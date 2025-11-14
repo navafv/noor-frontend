@@ -2,11 +2,10 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- Import Layouts & Auth ---
-// import AppLayout from './components/AppLayout.jsx'; // <-- 1. NO LONGER USED DIRECTLY
 import AdminLayout from './pages/AdminLayout.jsx'; 
+import ResponsiveAdminLayout from './layouts/ResponsiveAdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PublicLayout from './components/PublicLayout.jsx'; 
-// --- 2. IMPORT NEW RESPONSIVE LAYOUT ---
 import ResponsiveStudentLayout from './layouts/ResponsiveStudentLayout.jsx';
 
 // --- Import Pages ---
@@ -17,6 +16,8 @@ import AboutPage from './pages/AboutPage.jsx';
 import ContactPage from './pages/ContactPage.jsx';
 import CoursesPage from './pages/CoursesPage.jsx';
 import VerifyCertificatePage from './pages/VerifyCertificatePage.jsx'; 
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 
 // --- "App" Pages (for logged-in users) ---
 import AccountPage from './pages/AccountPage.jsx';
@@ -24,9 +25,12 @@ import NotificationsPage from './pages/NotificationsPage.jsx';
 import StudentDashboard from './pages/StudentDashboard.jsx';
 import AccountSettings from './pages/AccountSettings.jsx';
 import StudentAttendancePage from './pages/StudentAttendancePage.jsx';
-// --- 3. IMPORT NEW STUDENT PAGES ---
 import StudentFinancePage from './pages/StudentFinancePage.jsx';
 import StudentCertificatesPage from './pages/StudentCertificatesPage.jsx';
+import StudentMaterialsPage from './pages/StudentMaterialsPage.jsx';
+import StudentMenuPage from './pages/StudentMenuPage.jsx';
+import StudentMessagePage from './pages/StudentMessagePage.jsx';
+import StudentCalendarPage from './pages/StudentCalendarPage.jsx'; // <-- NEW
 
 // --- "Admin" Pages (for staff) ---
 import AdminDashboard from './pages/AdminDashboard.jsx';
@@ -47,10 +51,12 @@ import RoleManagementPage from './pages/RoleManagementPage.jsx';
 import FeeReminderLogPage from './pages/FeeReminderLogPage.jsx';
 import AuditLogPage from './pages/AuditLogPage.jsx';
 import UserManagementPage from './pages/UserManagementPage.jsx';
-
-// --- 4. REMOVE TEACHER PAGES ---
-// import TeacherDashboard from './pages/TeacherDashboard.jsx';
-// import TeacherBatches from './pages/TeacherBatches.jsx';
+import AdminCourseMaterialsPage from './pages/AdminCourseMaterialsPage.jsx';
+import AdminMaterialDetailPage from './pages/AdminMaterialDetailPage.jsx';
+import AdminMenuPage from './pages/AdminMenuPage.jsx';
+import AdminInboxPage from './pages/AdminInboxPage.jsx';
+import AdminConversationPage from './pages/AdminConversationPage.jsx';
+import AdminCalendarPage from './pages/AdminCalendarPage.jsx'; // <-- NEW
 
 import './index.css';
 
@@ -67,44 +73,44 @@ function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/courses" element={<CoursesPage />} />
         <Route path="/verify" element={<VerifyCertificatePage />} /> 
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
       </Route>
 
       {/* 3. Login Page (No Layout) */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* 4. Student Portal (Mobile-first layout) */}
+      {/* 4. Student Portal (Responsive layout) */}
       <Route
         element={
           <ProtectedRoute studentOnly={true}>
-            {/* --- 5. USE NEW RESPONSIVE LAYOUT --- */}
             <ResponsiveStudentLayout />
           </ProtectedRoute>
         }
       >
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/student/attendance" element={<StudentAttendancePage />} />
-        {/* --- 6. ADD NEW STUDENT ROUTES --- */}
         <Route path="/student/finance" element={<StudentFinancePage />} />
         <Route path="/student/certificates" element={<StudentCertificatesPage />} />
+        <Route path="/student/materials" element={<StudentMaterialsPage />} />
+        <Route path="/student/menu" element={<StudentMenuPage />} />
+        <Route path="/student/messages" element={<StudentMessagePage />} />
+        <Route path="/student/calendar" element={<StudentCalendarPage />} /> {/* <-- NEW */}
         
-        {/* These routes are shared but render inside student layout */}
         <Route path="/account" element={<AccountPage />} />
-        {/* --- 7. FIX STUDENT SETTINGS PATH --- */}
         <Route path="/student/account/settings" element={<AccountSettings />} /> 
         <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
-
-      {/* 5. REMOVE Teacher Portal --- */}
       
-
-      {/* 6. Admin Portal (Desktop-first layout) */}
+      {/* 5. Admin Portal (Responsive layout) */}
       <Route
         element={
-          <ProtectedRoute adminOnly={true}>
-            <AdminLayout />
+          <ProtectedRoute staffOnly={true}>
+            <ResponsiveAdminLayout />
           </ProtectedRoute>
         }
       >
+        {/* Admin-only routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/admin/enquiries" element={<AdminEnquiryListPage />} />
         <Route path="/admin/enquiry/:id" element={<EnquiryDetailPage />} />
@@ -121,6 +127,12 @@ function App() {
         <Route path="/admin/roles" element={<RoleManagementPage />} />
         <Route path="/admin/reminders" element={<FeeReminderLogPage />} />
         <Route path="/admin/users" element={<UserManagementPage />} />
+        <Route path="/admin/materials" element={<AdminCourseMaterialsPage />} />
+        <Route path="/admin/materials/:courseId" element={<AdminMaterialDetailPage />} />
+        <Route path="/admin/menu" element={<AdminMenuPage />} />
+        <Route path="/admin/messages" element={<AdminInboxPage />} />
+        <Route path="/admin/messages/:conversationId" element={<AdminConversationPage />} />
+        <Route path="/admin/calendar" element={<AdminCalendarPage />} /> {/* <-- NEW */}
 
         <Route 
           path="/admin/history/students" 
@@ -131,25 +143,14 @@ function App() {
           element={<AuditLogPage modelName="User" endpoint="/history/users/" />} 
         />
         
-        {/* Admins can also access their account/notifications */}
+        {/* Staff-shared routes */}
         <Route path="/admin/account" element={<AccountPage />} />
         <Route path="/admin/account/settings" element={<AccountSettings />} />
         <Route path="/admin/notifications" element={<NotificationsPage />} />
+        <Route path="/admin/attendance" element={<AttendancePage />} />
       </Route>
       
-      {/* 7. Shared Staff Routes (Admin & Teacher) */}
-      <Route
-        element={
-          <ProtectedRoute staffOnly={true}>
-            <AdminLayout />
-          </ProtectedRoute>
-        }
-      >
-         <Route path="/admin/attendance" element={<AttendancePage />} />
-         {/* <Route path="/teacher/attendance" element={<AttendancePage />} /> */} {/* <-- 8. REMOVED */}
-      </Route>
-
-      {/* 8. Redirects for any other path */}
+      {/* 7. Redirects for any other path */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

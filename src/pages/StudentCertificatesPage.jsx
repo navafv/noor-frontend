@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import api from '@/services/api.js';
 import { Loader2, Award, Download, XCircle } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx';
+import { useResponsive } from '../hooks/useResponsive.js';
 
 function StudentCertificatesPage() {
   const { user } = useAuth();
@@ -10,8 +11,10 @@ function StudentCertificatesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const { isMobile } = useResponsive();
 
   useEffect(() => {
+    // ... (no change)
     if (!user?.student_id) {
       setLoading(false);
       setError("No student profile found.");
@@ -36,15 +39,19 @@ function StudentCertificatesPage() {
     fetchCertificates();
   }, [user]);
 
+  // --- UPDATED DOWNLOAD HANDLER ---
   const handleDownload = async (cert) => {
     if (downloadingId === cert.id) return;
     setDownloadingId(cert.id);
     setError(null);
     
     try {
-      const response = await api.get(cert.pdf_file, {
+      // --- THIS IS THE FIX ---
+      // Call our new, secure API endpoint
+      const response = await api.get(`/certificates/${cert.id}/download/`, {
         responseType: 'blob',
       });
+      // --- END FIX ---
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
@@ -65,9 +72,10 @@ function StudentCertificatesPage() {
   };
 
   if (loading) {
+    // ... (no change)
     return (
       <>
-        <PageHeader title="My Certificates" />
+        {isMobile && <PageHeader title="My Certificates" />}
         <div className="flex justify-center items-center min-h-[400px]">
           <Loader2 className="animate-spin text-primary" size={32} />
         </div>
@@ -77,9 +85,9 @@ function StudentCertificatesPage() {
   
   return (
     <>
-      <PageHeader title="My Certificates" />
+      {isMobile && <PageHeader title="My Certificates" />}
       
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="p-4 lg:p-8 max-w-lg mx-auto pb-20">
         {error && <p className="form-error mb-4">{error}</p>}
         
         <div className="card">
@@ -88,6 +96,7 @@ function StudentCertificatesPage() {
             Your Issued Certificates
           </h2>
           {certificates.length === 0 ? (
+            // ... (no change)
             <div className="text-center p-10 text-muted-foreground">
               <Award size={40} className="mx-auto" />
               <p className="mt-4 font-semibold">No certificates found</p>
@@ -102,10 +111,11 @@ function StudentCertificatesPage() {
                   <p className="font-semibold text-foreground">{cert.course_title}</p>
                   <p className="text-sm text-muted-foreground">Certificate No: {cert.certificate_no}</p>
                   <p className="text-xs text-muted-foreground">
-                    Issued on: {new Date(cert.issue_date).toLocaleDateString()}
+                    Issued on: {new Date(cert.issue_date).toLocaleDateString('en-IN', { timeZone: 'UTC' })}
                   </p>
                   
                   {cert.revoked ? (
+                    // ... (no change)
                     <div className="mt-2 flex items-center gap-2 text-red-600">
                       <XCircle size={16} />
                       <span className="text-sm font-medium">This certificate has been revoked.</span>

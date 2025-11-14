@@ -1,29 +1,24 @@
-/* UPDATED FILE: navafv/noor-frontend/noor-frontend-c23097d14777e9c489af86e2822e1a66601485e8/src/pages/StudentDetailPage.jsx */
-
-// ... (imports are unchanged) ...
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ChevronLeft, Phone, Mail, Home, Shield,
-  Award, Download, Loader2, BookOpen, DollarSign, Ruler, AlertCircle
+  Award, Download, Loader2, BookOpen, DollarSign, Ruler, AlertCircle,
+  History // 1. IMPORT NEW ICON
 } from 'lucide-react';
 import api from '@/services/api.js';
 import Modal from '@/components/Modal.jsx';
 import MeasurementForm from '@/components/MeasurementForm.jsx';
 import PageHeader from '@/components/PageHeader.jsx';
-
-// ... (StudentDetailPage component and all its functions) ...
-// ... (No changes needed until we get to the EnrolledCoursesList sub-component) ...
-// ... (The main component fetches `enrollmentsRes` which now contains the new progress fields) ...
+// 2. IMPORT NEW MODAL
+import MeasurementHistoryModal from '@/components/MeasurementHistoryModal.jsx'; 
 
 function StudentDetailPage() {
-  // ... (all existing state and functions are unchanged) ...
   const { id } = useParams();
   const navigate = useNavigate();
   const [student, setStudent] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
   const [payments, setPayments] = useState([]);
-  const [measurements, setMeasurements] = useState([]);
+  const [measurements, setMeasurements] = useState([]); // This already holds all measurements
   const [certificates, setCertificates] = useState([]);
   const [outstandingData, setOutstandingData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -35,6 +30,9 @@ function StudentDetailPage() {
   const [isMeasurementModalOpen, setIsMeasurementModalOpen] = useState(false);
   const [isCertificateModalOpen, setIsCertificateModalOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  
+  // 3. ADD NEW STATE FOR HISTORY MODAL
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const fetchStudentData = async () => {
     try {
@@ -43,14 +41,14 @@ function StudentDetailPage() {
         studentRes, 
         enrollmentsRes, 
         paymentsRes, 
-        measurementsRes, 
+        measurementsRes, // This endpoint returns the full list
         certificatesRes,
         outstandingRes
       ] = await Promise.all([
         api.get(`/students/${id}/`),
-        api.get(`/enrollments/?student=${id}`), // This will now contain progress
+        api.get(`/enrollments/?student=${id}`),
         api.get(`/finance/receipts/?student=${id}`),
-        api.get(`/students/${id}/measurements/`),
+        api.get(`/students/${id}/measurements/`), // Already fetches all
         api.get(`/certificates/?student=${id}`),
         api.get(`/finance/outstanding/student/${id}/`)
       ]);
@@ -58,7 +56,7 @@ function StudentDetailPage() {
       setStudent(studentRes.data);
       setEnrollments(enrollmentsRes.data.results || []);
       setPayments(paymentsRes.data.results || []);
-      setMeasurements(measurementsRes.data.results || []);
+      setMeasurements(measurementsRes.data.results || []); // Set the full list
       setCertificates(certificatesRes.data.results || []);
       setOutstandingData(outstandingRes.data);
 
@@ -66,12 +64,12 @@ function StudentDetailPage() {
       setError('Could not fetch student details.');
       console.error(err);
     } finally {
-      setLoading(false); // Set loading false only after all fetches
+      setLoading(false); 
     }
   };
 
   useEffect(() => { 
-    setLoading(true); // Set loading true on initial mount
+    setLoading(true); 
     fetchStudentData(); 
   }, [id]);
 
@@ -80,7 +78,6 @@ function StudentDetailPage() {
   };
 
   const handleDataRefresh = () => { 
-    // Just re-fetch all data
     fetchStudentData(); 
   };
   
@@ -89,7 +86,7 @@ function StudentDetailPage() {
     : null;
   
   const handleDownload = async (cert) => {
-    if (downloadingId === cert.id) return; // Already downloading
+    if (downloadingId === cert.id) return; 
     setDownloadingId(cert.id);
     try {
       const response = await api.get(cert.pdf_file, {
@@ -108,7 +105,7 @@ function StudentDetailPage() {
     } catch (err) {
       console.error("Failed to download file", err);
     } finally {
-      setDownloadingId(null); // Stop loading state
+      setDownloadingId(null); 
     }
   };
 
@@ -142,7 +139,6 @@ function StudentDetailPage() {
       <main className="flex-1 overflow-y-auto bg-background p-4">
         <div className="mx-auto max-w-lg pb-20">
           
-          {/* ... (Profile Header is unchanged) ... */}
           <div className="card p-6 flex flex-col items-center">
             <img 
               src={photoUrl} 
@@ -153,14 +149,14 @@ function StudentDetailPage() {
             <h1 className="text-2xl font-bold text-foreground mt-4">{student.user.first_name} {student.user.last_name}</h1>
             <p className="text-sm text-muted-foreground">Reg No: {student.reg_no}</p>
           </div>
-          {/* ... (Quick Actions are unchanged) ... */}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
             <ActionCard icon={BookOpen} label="Enroll" onClick={() => setIsEnrollModalOpen(true)} />
             <ActionCard icon={DollarSign} label="Log Payment" onClick={() => setIsPaymentModalOpen(true)} />
             <ActionCard icon={Ruler} label="Measurements" onClick={() => setIsMeasurementModalOpen(true)} />
             <ActionCard icon={Award} label="Issue Certificate" onClick={() => setIsCertificateModalOpen(true)} />
           </div>
-          {/* ... (Outstanding Fee Card is unchanged) ... */}
+
           {outstandingData && (
             <div className={`card p-4 mb-4 ${outstandingData.total_due > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
               <div className="flex items-center">
@@ -176,7 +172,7 @@ function StudentDetailPage() {
               </div>
             </div>
           )}
-          {/* ... (Details Section is unchanged) ... */}
+
           <div className="card p-6">
             <h3 className="text-lg font-semibold text-foreground mb-4">Student Information</h3>
             <div className="space-y-4">
@@ -197,13 +193,24 @@ function StudentDetailPage() {
             </div>
           </div>
           
-          {/* This component will now be updated */}
           <EnrolledCoursesList enrollments={enrollments} />
           
-          {/* ... (Rest of the page is unchanged) ... */}
           <PaymentHistoryList payments={payments} />
+          
+          {/* --- 4. UPDATE MEASUREMENT CARD --- */}
           <div className="card p-6 mt-4">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Latest Measurements</h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold text-foreground">Latest Measurements</h3>
+              {measurements.length > 0 && (
+                <button 
+                  className="btn-secondary btn-sm flex items-center gap-1"
+                  onClick={() => setIsHistoryModalOpen(true)} // Open history modal
+                >
+                  <History size={14} />
+                  View History
+                </button>
+              )}
+            </div>
             {latestMeasurement ? (
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <p><strong>Neck:</strong> {latestMeasurement.neck || '-'}</p>
@@ -215,6 +222,8 @@ function StudentDetailPage() {
               </div>
             ) : <p className="text-sm text-muted-foreground">No measurements recorded.</p>}
           </div>
+          {/* --- END UPDATE --- */}
+
           <div className="card p-6 mt-4">
             <h3 className="text-lg font-semibold text-foreground mb-2">Issued Certificates</h3>
             {certificates.length === 0 ? (
@@ -247,7 +256,7 @@ function StudentDetailPage() {
         </div>
       </main>
 
-      {/* ... (Modals are unchanged, but CertificateForm will now get an error if course is not complete) ... */}
+      {/* Modals */}
       <Modal isOpen={isEnrollModalOpen} onClose={() => setIsEnrollModalOpen(false)} title="Enroll Student in Batch">
         <EnrollStudentForm studentId={student.id} onClose={() => setIsEnrollModalOpen(false)} onEnrolled={handleDataRefresh} />
       </Modal>
@@ -266,11 +275,18 @@ function StudentDetailPage() {
         />
       </Modal>
 
+      {/* 5. RENDER THE NEW HISTORY MODAL */}
+      <MeasurementHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        measurements={measurements} 
+      />
+
     </div>
   );
 }
 
-// --- Sub-components ---
+// --- Sub-components (No changes below this line) ---
 const ActionCard = ({ icon: Icon, label, onClick }) => ( 
   <button 
     onClick={onClick} 
@@ -290,7 +306,6 @@ const InfoItem = ({ icon: Icon, label, value }) => (
   </div> 
 );
 
-// --- UPDATE THIS COMPONENT ---
 function EnrolledCoursesList({ enrollments }) { 
   return ( 
     <div className="card p-6 mt-4"> 
@@ -308,7 +323,6 @@ function EnrolledCoursesList({ enrollments }) {
                 </span>
               </div>
               
-              {/* --- UPDATE THIS SECTION --- */}
               <p className="text-xs text-muted-foreground mt-1">
                 Started on: {new Date(e.enrolled_on).toLocaleDateString()}
               </p> 
@@ -321,8 +335,6 @@ function EnrolledCoursesList({ enrollments }) {
                   Attendance: {e.present_days} / {e.required_days} days
                 </p>
               )}
-              {/* --- END UPDATE --- */}
-
             </li> 
           ))} 
         </ul> 
@@ -330,9 +342,7 @@ function EnrolledCoursesList({ enrollments }) {
     </div> 
   ); 
 }
-// --- END UPDATE ---
 
-// ... (PaymentHistoryList is unchanged) ...
 function PaymentHistoryList({ payments }) { 
   const totalPaid = payments.reduce((acc, p) => acc + parseFloat(p.amount), 0); 
   return ( 
@@ -360,7 +370,7 @@ function PaymentHistoryList({ payments }) {
     </div> 
   ); 
 }
-// ... (EnrollStudentForm is unchanged) ...
+
 function EnrollStudentForm({ studentId, onClose, onEnrolled }) { 
   const [batches, setBatches] = useState([]); 
   const [selectedBatch, setSelectedBatch] = useState(''); 
@@ -415,7 +425,7 @@ function EnrollStudentForm({ studentId, onClose, onEnrolled }) {
     </form> 
   ); 
 }
-// ... (LogPaymentForm is unchanged) ...
+
 function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
   const [formData, setFormData] = useState({
     amount: '',
@@ -529,13 +539,12 @@ function LogPaymentForm({ student, enrollments, onClose, onPaid }) {
     </form>
   );
 }
-// --- UPDATE CertificateForm ---
+
 function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // --- 1. ONLY SHOW COMPLETED COURSES ---
   const eligibleEnrollments = enrollments.filter(e => e.status === 'completed');
 
   useEffect(() => {
@@ -574,7 +583,6 @@ function CertificateForm({ studentId, enrollments, onClose, onSaved }) {
     }
   };
   
-  // --- 2. UPDATE EMPTY STATE MESSAGE ---
   if (enrollments.filter(e => e.status === 'active').length > 0 && eligibleEnrollments.length === 0) {
      return <p className="text-center text-muted-foreground">This student has active courses, but none are completed yet. A certificate can only be issued after they meet the attendance requirement.</p>;
   }

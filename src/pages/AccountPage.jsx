@@ -1,41 +1,43 @@
-/*
- * UPDATED FILE: src/pages/AccountPage.jsx
- *
- * SIMPLIFICATION: Simplified role-based path logic.
- */
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Settings, LogOut, ChevronRight, BarChart2, LayoutDashboard } from 'lucide-react';
+import { Settings, LogOut, ChevronRight, BarChart2, LayoutDashboard, Shield, LifeBuoy } from 'lucide-react';
 import PageHeader from '@/components/PageHeader.jsx'; 
+import { useResponsive } from '../hooks/useResponsive.js'; // <-- IMPORT
 
 function AccountPage() {
   const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive(); // <-- USE HOOK
 
   const handleLogout = () => {
+    // ... (no change)
     logoutUser();
-    navigate('/login'); // On logout, send to login
+    navigate('/login');
   };
 
   const getInitials = (firstName, lastName) => {
+    // ... (no change)
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || user?.username[0].toUpperCase() || '?';
   };
 
-  // Determine settings path based on role
-  // --- SIMPLIFIED LOGIC ---
+  // Determine paths based on role
   const settingsPath = user?.is_staff ? "/admin/account/settings" : "/student/account/settings";
   const dashboardPath = user?.is_staff ? "/admin/dashboard" : "/student/dashboard";
-  
+  const dashboardTitle = user?.is_staff ? "Admin Dashboard" : "My Dashboard";
+  const dashboardSubtitle = user?.is_staff ? "Manage institute" : "View your progress";
+  const dashboardIcon = user?.is_staff ? BarChart2 : LayoutDashboard;
+
   if (!user) {
     return <PageHeader title="Account" />; // Show header even if loading
   }
 
   return (
     <>
-      <PageHeader title="My Account" showBackButton={false} />
+      {/* --- UPDATED: Only show on mobile --- */}
+      {isMobile && <PageHeader title="My Account" showBackButton={false} />}
       
-      <div className="p-4 pb-20 max-w-lg mx-auto">
+      <div className="p-4 lg:p-8 max-w-lg mx-auto pb-20">
         {/* User Profile Header */}
         <div className="flex items-center space-x-4 mb-8">
           <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -54,46 +56,56 @@ function AccountPage() {
           </div>
         </div>
 
-        {/* Dashboard Link (Role-based) */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase text-muted-foreground mb-3">
-            Dashboard
-          </h2>
-          <div className="card overflow-hidden">
-            <AppLink
-              to={dashboardPath} // <-- Use simplified path
-              icon={user?.is_staff ? BarChart2 : LayoutDashboard}
-              title={user?.is_staff ? "Admin Dashboard" : "My Dashboard"}
-              subtitle={user?.is_staff ? "Manage institute" : "View your progress"}
-            />
-          </div>
-        </div>
-
-        {/* General Settings Section */}
-        <div className="mb-8">
-          <h2 className="text-xs font-semibold uppercase text-muted-foreground mb-3">
-            General
-          </h2>
-          <div className="card overflow-hidden">
-            <ul className="divide-y divide-border">
+        {/* Navigation List */}
+        <div className="card overflow-hidden">
+          <ul className="divide-y divide-border">
+            
+            {/* Dashboard Link (only show if not on mobile) */}
+            <li className="lg:hidden">
               <AppLink
-                to={settingsPath} // Use simplified path
-                icon={Settings}
-                title="Account Settings"
-                subtitle="Update your profile information"
+                to={dashboardPath}
+                icon={dashboardIcon}
+                title={dashboardTitle}
+                subtitle={dashboardSubtitle}
               />
-            </ul>
-          </div>
+            </li>
+            
+            {/* Account Settings */}
+            <AppLink
+              to={settingsPath}
+              icon={Settings}
+              title="Account Settings"
+              subtitle="Update profile & photo"
+            />
+
+            {/* Security */}
+            <AppLink
+              to={settingsPath} // Links to same page, but different section
+              icon={Shield}
+              title="Security"
+              subtitle="Change your password"
+            />
+
+            {/* Help */}
+            <AppLink
+              to="/contact" // Links to public contact page
+              icon={LifeBuoy}
+              title="Help & Contact"
+              subtitle="Get help or contact support"
+            />
+          </ul>
         </div>
 
         {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center justify-center space-x-2 text-left p-4 card text-red-600 font-medium hover:bg-destructive/10 transition-colors"
-        >
-          <LogOut size={20} />
-          <span>Logout</span>
-        </button>
+        <div className="mt-8">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center space-x-2 text-left p-4 card text-red-600 font-medium hover:bg-destructive/10 transition-colors"
+          >
+            <LogOut size={20} />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
     </>
   );

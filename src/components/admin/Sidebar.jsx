@@ -1,35 +1,15 @@
-/* * UPDATED FILE: src/components/admin/Sidebar.jsx
- *
- * SIMPLIFICATION: Removed all logic for "is_admin".
- * This component is now only rendered for staff, so all
- * admin links are shown by default.
- */
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import {
-  LayoutDashboard,
-  Inbox,
-  Users,
-  CheckSquare,
-  Book,
-  DollarSign,
-  Package,
-  LogOut,
-  X,
-  Settings,
-  Briefcase,
-  ReceiptText,
-  BarChart2,
-  Bell,
-  PieChart,
-  Award,
-  Shield,
-  Send,
-  History,
+  LayoutDashboard, Inbox, Users, CheckSquare, Book, DollarSign,
+  Package, LogOut, X, Settings, Briefcase, ReceiptText, BarChart2,
+  Bell, PieChart, Award, Shield, Send, History, Library, MessageSquare,
+  Calendar // <-- NEW ICON
 } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => (
+  // ... (no change)
   <NavLink
     to={to}
     end
@@ -48,7 +28,7 @@ const NavItem = ({ to, icon: Icon, label }) => (
 );
 
 function Sidebar({ onClose }) {
-  const { logoutUser } = useAuth(); // <-- Get user
+  const { logoutUser } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -58,6 +38,7 @@ function Sidebar({ onClose }) {
   
   return (
     <div className="flex h-full max-h-screen flex-col gap-2 bg-card text-card-foreground border-r border-border">
+      {/* ... (header no change) ... */}
       <div className="flex h-16 items-center justify-between border-b border-border px-6">
         <Link to="/admin/dashboard" className="flex items-center gap-2 font-semibold">
           <span className="logo text-2xl text-primary">Noor Institute</span>
@@ -72,8 +53,9 @@ function Sidebar({ onClose }) {
       </div>
       <div className="flex-1 overflow-y-auto">
         <nav className="grid items-start gap-1 p-4 text-sm font-medium">
-          {/* --- All links are now visible to any staff member --- */}
           <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
+          <NavItem to="/admin/messages" icon={MessageSquare} label="Inbox" />
+          <NavItem to="/admin/calendar" icon={Calendar} label="Calendar" /> {/* <-- NEW LINK */}
           <NavItem to="/admin/attendance" icon={CheckSquare} label="Attendance" />
           <NavItem to="/admin/analytics" icon={BarChart2} label="Financial Analytics" />
           <NavItem to="/admin/attendance-analytics" icon={PieChart} label="Attendance Analytics" />
@@ -81,6 +63,7 @@ function Sidebar({ onClose }) {
           <NavItem to="/admin/enquiries" icon={Inbox} label="Enquiries" />
           <NavItem to="/admin/students" icon={Users} label="Students" />
           <NavItem to="/admin/courses" icon={Book} label="Courses" />
+          <NavItem to="/admin/materials" icon={Library} label="Course Materials" />
           <NavItem to="/admin/certificates" icon={Award} label="Certificates" />
           <NavItem to="/admin/reminders" icon={Send} label="Fee Reminders" />
           <NavItem to="/admin/expenses" icon={DollarSign} label="Expenses" />
@@ -96,9 +79,9 @@ function Sidebar({ onClose }) {
           <NavItem to="/admin/history/users" icon={History} label="User History" />
         </nav>
       </div>
+      {/* ... (footer no change) ... */}
       <div className="mt-auto border-t border-border p-4">
         <nav className="grid gap-1">
-          {/* --- Paths are now static admin paths --- */}
           <NavItem to="/admin/account/settings" icon={Settings} label="Account Settings" />
           <button
             onClick={handleLogout}
