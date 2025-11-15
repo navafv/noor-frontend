@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // --- Import Layouts & Auth ---
-import AdminLayout from './pages/AdminLayout.jsx'; 
 import ResponsiveAdminLayout from './layouts/ResponsiveAdminLayout.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import PublicLayout from './components/PublicLayout.jsx'; 
