@@ -1,15 +1,10 @@
-/*
- * UPDATED FILE: src/pages/TeacherBatches.jsx
- *
- * FIX: Replaced alias imports (@/) with relative imports (../)
- * to resolve the build/compilation error.
- */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Book, Users, ChevronRight, User } from 'lucide-react';
 import api from '../services/api.js'; // <-- FIX: Relative path
 import PageHeader from '../components/PageHeader.jsx'; // <-- FIX: Relative path
 import Modal from '../components/Modal.jsx'; // <-- FIX: Relative path
+import { toast } from 'react-hot-toast'; // <-- NEW: Import toast
 
 function TeacherBatches() {
   const [batches, setBatches] = useState([]);
@@ -26,11 +21,11 @@ function TeacherBatches() {
       try {
         setLoading(true);
         setError(null);
-        // Use the new teacher-specific endpoint
         const res = await api.get('/teacher/my-batches/');
         setBatches(res.data || []);
       } catch (err) {
         setError('Could not load your batches.');
+        toast.error('Could not load your batches.');
       } finally {
         setLoading(false);
       }
@@ -46,6 +41,7 @@ function TeacherBatches() {
       const res = await api.get(`/teacher/my-batches/${batch.id}/students/`);
       setStudents(res.data || []);
     } catch (err) {
+      toast.error('Failed to fetch students.');
       console.error("Failed to fetch students", err);
     } finally {
       setLoadingStudents(false);
@@ -69,7 +65,7 @@ function TeacherBatches() {
             <div className="card overflow-hidden">
               <ul role="list" className="divide-y divide-border">
                 {batches.length === 0 ? (
-                  <p className="p-10 text-center text-muted-foreground">You are not assigned to any batches.</p>
+                  <p className="p-10 text-center text-muted-foreground">You are not assigned to any active batches.</p>
                 ) : (
                   batches.map((batch) => (
                     <li key={batch.id} className="block hover:bg-accent">
@@ -106,25 +102,24 @@ function TeacherBatches() {
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title={`Students in ${selectedBatch?.code}`}
+        title={`Students in ${selectedBatch?.code || 'Batch'}`}
       >
         {loadingStudents ? (
           <div className="flex justify-center items-center min-h-[150px]">
             <Loader2 className="animate-spin text-primary" size={32} />
           </div>
         ) : (
-          <ul className="divide-y divide-border -mx-6">
+          <ul className="divide-y divide-border -mx-6 max-h-[60vh] overflow-y-auto">
             {students.length === 0 ? (
               <p className="p-6 text-center text-muted-foreground">No active students found in this batch.</p>
             ) : (
               students.map(student => (
-                <li key={student.id} className="flex items-center p-4">
+                <li key={student.id} className="flex items-center p-4 px-6">
                   <User size={18} className="mr-3 text-muted-foreground" />
                   <div className="flex-1">
                     <p className="font-medium text-foreground">{student.user.first_name} {student.user.last_name}</p>
                     <p className="text-sm text-muted-foreground">{student.reg_no}</p>
                   </div>
-                  <ChevronRight size={20} className="text-muted-foreground" />
                 </li>
               ))
             )}

@@ -1,147 +1,159 @@
 import React, { useState, useEffect } from 'react';
-import api from '@/services/api.js'; // <-- UPDATED
-import { Link } from 'react-router-dom';
-import { ChevronRight, Inbox, Users, Loader2, User, Filter } from 'lucide-react'; // <-- IMPORTED USERS, INBOX, LOADER2
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, Inbox, ChevronRight, Phone } from 'lucide-react';
+import api from '../services/api.js';
+import { toast } from 'react-hot-toast';
+
+// Helper to format date string
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
 
 /**
- * A list component for displaying enquiries on the admin dashboard.
- * Receives 'users' as a prop from its parent (AdminDashboard)
+ * A reusable component to list enquiries.
+ * @param {number} [limit] - Max number of items to show (for dashboard).
+ * @param {string} [status] - Default status filter (e.g., "new").
+ * @param {boolean} [showPagination=false] - Show pagination controls.
+ * @param {boolean} [showFilters=false] - Show status filter tabs.
  */
-function EnquiryList({ users }) { // <-- RECEIVE 'users' PROP
+function EnquiryList({ limit, status, showPagination = false, showFilters = false }) {
   const [enquiries, setEnquiries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filterStatus, setFilterStatus] = useState(status || '');
   
-  // Filter States
-  const [statusFilter, setStatusFilter] = useState('');
-  const [assignedToFilter, setAssignedToFilter] = useState('');
+  const navigate = useNavigate();
+
+  const statusTabs = [
+    { label: 'All', value: '' },
+    { label: 'New', value: 'new' },
+    { label: 'Follow Up', value: 'follow_up' },
+    { label: 'Converted', value: 'converted' },
+    { label: 'Closed', value: 'closed' },
+  ];
 
   useEffect(() => {
     const fetchEnquiries = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
-        
-        const params = {};
-        if (statusFilter) params.status = statusFilter;
-        // if (assignedToFilter) params.assigned_to = assignedToFilter; // Backend doesn't support this filter yet
+        const params = new URLSearchParams({
+          page: page,
+          status: filterStatus,
+        });
+        if (limit) {
+          params.append('page_size', limit);
+        }
 
-        const response = await api.get('/enquiries/', { params });
-        setEnquiries(response.data.results); // 'results' is from DRF pagination
-      } catch (err)
-        {
-        setError('Could not fetch enquiries. Please try again later.');
-        console.error(err);
+        const res = await api.get(`/enquiries/?${params.toString()}`);
+        setEnquiries(res.data.results || []);
+        setTotalPages(Math.ceil((res.data.count || 0) / (limit || 20))); 
+      } catch (err) {
+        console.error("Failed to fetch enquiries:", err);
+        toast.error('Failed to load enquiries.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchEnquiries();
-  }, [statusFilter, assignedToFilter]); // Re-fetch when filters change
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <Loader2 className="animate-spin text-primary" size={32} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return <p className="form-error">{error}</p>;
-  }
+  }, [page, filterStatus, limit]);
 
   return (
-    <div className="bg-card rounded-xl shadow-sm overflow-hidden">
-      <div className="p-4 sm:px-6 border-b border-border">
-        <h3 className="text-lg font-semibold text-foreground flex items-center">
-          <Inbox size={20} className="mr-3 text-primary" />
-          Enquiry List
-        </h3>
-        <p className="text-sm text-muted-foreground mt-1">
-          Review new enquiries and convert them to students.
-        </p>
-        
-        {/* --- FILTERS --- */}
-        <div className="flex gap-4 mt-4">
-          <div className="flex-1">
-            <label htmlFor="statusFilter" className="form-label">Status</label>
-            <select 
-              id="statusFilter" 
-              className="form-input"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">All Statuses</option>
-              <option value="new">New</option>
-              <option value="follow_up">Follow Up</option>
-              <option value="converted">Converted</option>
-              <option value="closed">Closed</option>
-            </select>
-          </div>
-          {/* <div className="flex-1">
-            <label htmlFor="assignedToFilter" className="form-label">Assigned To</label>
-            <select 
-              id="assignedToFilter" 
-              className="form-input"
-              value={assignedToFilter}
-              onChange={(e) => setAssignedToFilter(e.target.value)}
-            >
-              <option value="">All Staff</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
-              ))}
-            </select>
-          </div> 
-          */}
+    <div className="bg-card rounded-lg border border-border shadow-sm">
+      {/* Filter Tabs */}
+      {showFilters && (
+        <div className="p-4 border-b border-border">
+          <nav className="flex flex-wrap gap-2">
+            {statusTabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => {
+                  setFilterStatus(tab.value);
+                  setPage(1); // Reset to first page
+                }}
+                className={`px-3 py-1 text-sm font-medium rounded-full
+                  ${filterStatus === tab.value 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'bg-muted text-muted-foreground hover:bg-accent'
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
-      </div>
-      
-      {enquiries.length === 0 ? (
-        <div className="text-center p-10">
-          <Inbox size={40} className="mx-auto text-muted-foreground" />
-          <h3 className="mt-4 font-semibold text-foreground">No Enquiries Found</h3>
-          <p className="mt-1 text-sm text-muted-foreground">No enquiries match your current filters.</p>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="animate-spin text-primary" size={40} />
+        </div>
+      ) : enquiries.length === 0 ? (
+        <div className="text-center p-12 text-muted-foreground">
+          <Inbox size={48} className="mx-auto mb-4" />
+          <p>No enquiries found.</p>
         </div>
       ) : (
         <ul role="list" className="divide-y divide-border">
           {enquiries.map((enquiry) => (
-            <li key={enquiry.id}>
-              <Link
-                to={`/admin/enquiry/${enquiry.id}`}
-                className="block hover:bg-accent"
-              >
-                <div className="flex items-center px-4 py-4 sm:px-6">
-                  <div className="min-w-0 flex-1 flex items-center">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-primary">
-                        {enquiry.name}
-                      </p>
-                      <p className="mt-1 flex items-center text-sm text-muted-foreground">
-                        <span className="truncate">{enquiry.phone}</span>
-                      </p>
-                    </div>
-                    <div className="hidden md:block min-w-0 flex-1 px-4">
-                       <p className="text-sm text-foreground">{enquiry.course_interest}</p>
-                       <p className="mt-1 text-sm text-muted-foreground">
-                         {new Date(enquiry.created_at).toLocaleDateString()}
-                       </p>
-                    </div>
-                  </div>
-                  <div className="ml-4 shrink-0">
-                    <span className={`status-badge status-${enquiry.status}`}>
-                      {enquiry.status}
-                    </span>
-                  </div>
-                  <div className="ml-5 shrink-0">
-                    <ChevronRight size={20} className="text-muted-foreground" />
-                  </div>
+            <li 
+              key={enquiry.id}
+              onClick={() => navigate(`/admin/enquiry/${enquiry.id}`)}
+              className="block hover:bg-accent cursor-pointer"
+            >
+              <div className="flex items-center p-4 sm:px-6">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-primary">
+                    {enquiry.name}
+                  </p>
+                  <p className="mt-1 flex items-center text-sm text-muted-foreground">
+                    <Phone size={16} className="mr-2" />
+                    {enquiry.phone}
+                  </p>
                 </div>
-              </Link>
+                <div className="ml-4 shrink-0 flex flex-col items-end gap-1">
+                  <span className={`status-badge status-${enquiry.status}`}>
+                    {enquiry.status.replace('_', ' ')}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {formatDate(enquiry.created_at)}
+                  </span>
+                </div>
+                <div className="ml-4 shrink-0">
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Pagination */}
+      {showPagination && totalPages > 1 && (
+        <div className="flex items-center justify-between p-4 border-t border-border">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="btn-outline btn-sm"
+          >
+            Previous
+          </button>
+          <span className="text-sm text-muted-foreground">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="btn-outline btn-sm"
+          >
+            Next
+          </button>
+        </div>
       )}
     </div>
   );

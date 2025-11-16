@@ -2,30 +2,27 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast'; // <-- NEW: Import toast
 
 function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  // const [error, setError] = useState(null); // <-- REMOVED
   const [loading, setLoading] = useState(false);
   
   const { loginUser } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  const from = location.state?.from?.pathname || '/account';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
     try {
+      // loginUser now shows its own success/error toasts
       await loginUser(username, password);
-      // On success, loginUser now handles navigation via AuthContext
     } catch (err) {
-      setError(err.message);
+      // Error is already handled and toasted by AuthContext
       setLoading(false);
     }
+    // Don't set loading(false) on success, as the page will redirect
   };
 
   return (
@@ -44,11 +41,7 @@ function LoginPage() {
           onSubmit={handleSubmit}
           className="mt-8 space-y-6 rounded-lg bg-card p-8 shadow-md border border-border"
         >
-          {error && (
-            <div className="form-error">
-              {error}
-            </div>
-          )}
+          {/* Error display is no longer needed here, toast handles it */}
           
           <div className="space-y-1">
             <label
@@ -75,7 +68,6 @@ function LoginPage() {
               >
                 Password
               </label>
-              {/* --- NEW LINK --- */}
               <Link
                 to="/forgot-password"
                 className="text-sm font-medium text-primary hover:underline"

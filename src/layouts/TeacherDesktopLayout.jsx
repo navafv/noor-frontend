@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import StudentSidebar from '../components/student/StudentSidebar.jsx'; // <-- FIX: Relative path
-import { Menu } from 'lucide-react';
+import TeacherSidebar from '../components/teacher/TeacherSidebar.jsx';
+import { Menu, Bell } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle.jsx';
 import { Link } from 'react-router-dom';
-import { Bell } from 'lucide-react';
 
-function StudentDesktopLayout() {
+function TeacherDesktopLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
@@ -26,12 +25,12 @@ function StudentDesktopLayout() {
                       isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
                     }`}
       >
-        <StudentSidebar onClose={() => setIsSidebarOpen(false)} />
+        <TeacherSidebar onClose={() => setIsSidebarOpen(false)} />
       </div>
 
       {/* Main Content */}
       <div className="flex flex-1 flex-col lg:pl-64">
-        {/* Simple Header for theme/notifications */}
+        {/* Header for theme/notifications */}
         <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-8">
           <button
             onClick={() => setIsSidebarOpen(true)}
@@ -43,7 +42,7 @@ function StudentDesktopLayout() {
           <div className="flex w-full items-center justify-end gap-4">
             <ThemeToggle />
             <Link
-              to="/notifications"
+              to="/teacher/notifications"
               className="p-2 text-muted-foreground hover:bg-accent rounded-full"
             >
               <Bell className="h-5 w-5" />
@@ -54,7 +53,6 @@ function StudentDesktopLayout() {
 
         {/* Outlet for pages */}
         <main className="flex-1 overflow-y-auto">
-          {/* Pages will provide their own PageHeader for titles */}
           <Outlet />
         </main>
       </div>
@@ -62,4 +60,4 @@ function StudentDesktopLayout() {
   );
 }
 
-export default StudentDesktopLayout;
+export default TeacherDesktopLayout;

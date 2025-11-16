@@ -1,15 +1,13 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx'; // <-- FIX
 import {
-  LayoutDashboard, Inbox, Users, CheckSquare, Book, DollarSign,
-  Package, LogOut, X, Settings, Briefcase, ReceiptText, BarChart2,
-  Bell, PieChart, Award, Shield, Send, History, Library, MessageSquare,
-  Calendar // <-- NEW ICON
+  LayoutDashboard, Inbox, Users, CheckSquare, Book, DollarSign, Package,
+  LogOut, X, Settings, Briefcase, ReceiptText, BarChart2, Bell, PieChart,
+  Award, Shield, Send, History, Library, MessageSquare, Calendar
 } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => (
-  // ... (no change)
   <NavLink
     to={to}
     end
@@ -38,7 +36,7 @@ function Sidebar({ onClose }) {
   
   return (
     <div className="flex h-full max-h-screen flex-col gap-2 bg-card text-card-foreground border-r border-border">
-      {/* ... (header no change) ... */}
+      {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-border px-6">
         <Link to="/admin/dashboard" className="flex items-center gap-2 font-semibold">
           <span className="logo text-2xl text-primary">Noor Institute</span>
@@ -51,6 +49,8 @@ function Sidebar({ onClose }) {
           <X className="h-6 w-6" />
         </button>
       </div>
+
+      {/* Navigation */}
       <div className="flex-1 overflow-y-auto">
         <nav className="grid items-start gap-1 p-4 text-sm font-medium">
           <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
@@ -79,7 +79,8 @@ function Sidebar({ onClose }) {
           <NavItem to="/admin/history/users" icon={History} label="User History" />
         </nav>
       </div>
-      {/* ... (footer no change) ... */}
+      
+      {/* Footer */}
       <div className="mt-auto border-t border-border p-4">
         <nav className="grid gap-1">
           <NavItem to="/admin/account/settings" icon={Settings} label="Account Settings" />

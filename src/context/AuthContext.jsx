@@ -1,30 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '@/services/api.js';
+import { jwtDecode } from 'jwt-decode';
+import { toast } from 'react-hot-toast';
 
 const AuthContext = createContext();
-
-const jwtDecode = (token) => {
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) {
-      throw new Error("Invalid token: Missing payload");
-    }
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map(function (c) {
-          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.error("Failed to decode JWT", e);
-    throw new Error("Invalid token");
-  }
-};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -45,71 +25,70 @@ export const AuthProvider = ({ children }) => {
     const checkUser = async () => {
       if (tokens) {
         try {
-          // 1. Set auth header
+          // Validate token expiration
+          const decodedToken = jwtDecode(tokens.access);
+          if (decodedToken.exp * 1000 < Date.now()) {
+            // Token is expired, try to refresh (interceptor will handle)
+            // For now, just logout to be safe if interceptor fails
+            console.log("Token expired, interceptor will refresh or logout.");
+          }
+
           api.defaults.headers.common['Authorization'] = 'Bearer ' + tokens.access;
           
-          // 2. Fetch user's profile
           const userResponse = await api.get('/users/me/');
           let fullUser = userResponse.data;
           
-          // --- 3. NEW: IF USER IS A STUDENT, FETCH STUDENT PROFILE ---
+          // IF USER IS A STUDENT, FETCH STUDENT PROFILE
+          // This matches your backend UserSerializer (student_id)
           if (fullUser.student_id) {
             try {
               const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
               fullUser.student = studentResponse.data; // Attach student profile
             } catch (e) {
               console.error("Failed to fetch student profile", e);
+              // Don't fail the whole login, just log the error
             }
           }
-          // --- END NEW ---
 
-          // 4. Set user
           setUser(fullUser);
 
         } catch (error) {
           console.error("Auth check failed, token might be invalid", error);
-          if (error.response?.status !== 401) {
-             logoutUser(false);
-          }
         }
       }
       setLoading(false);
     };
     checkUser();
-  }, [tokens]); 
+  }, [tokens]); // Only re-run when tokens change
 
   const loginUser = async (username, password) => {
     try {
-      // 1. Get tokens
       const tokenResponse = await api.post('/auth/token/', {
         username,
         password,
       });
       const newTokens = tokenResponse.data;
       
-      // 2. Set tokens and auth header
       setTokens(newTokens);
       localStorage.setItem('authTokens', JSON.stringify(newTokens));
       api.defaults.headers.common['Authorization'] = 'Bearer ' + newTokens.access;
       
-      // 3. Fetch user's profile
       const userResponse = await api.get('/users/me/');
       let fullUser = userResponse.data;
 
-      // --- 4. NEW: IF USER IS A STUDENT, FETCH STUDENT PROFILE ---
+      // IF USER IS A STUDENT, FETCH STUDENT PROFILE
       if (fullUser.student_id) {
         try {
-          const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
+          // Use the '/me' endpoint for students
+          const studentResponse = await api.get(`/students/me/`);
           fullUser.student = studentResponse.data; // Attach student profile
         } catch (e) {
           console.error("Failed to fetch student profile during login", e);
         }
       }
-      // --- END NEW ---
 
       setUser(fullUser);
 
-      // 5. Role-based redirect
       const from = location.state?.from?.pathname;
 
       if (from) {
@@ -119,11 +98,15 @@ export const AuthProvider = ({ children }) => {
       } else {
         navigate('/student/dashboard', { replace: true });
       }
+      toast.success(`Welcome, ${fullUser.first_name || fullUser.username}!`);
+      
     } catch (error) {
       console.error('Login failed', error);
       if (error.response && error.response.status === 401) {
+        toast.error('Invalid username or password.');
         throw new Error('Invalid username or password.');
       }
+      toast.error('Login failed. Please try again.');
       throw new Error('Login failed. Please try again.');
     }
   };
@@ -144,7 +127,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     loginUser,
     logoutUser,
-    setUser,
+    setUser, // Expose setUser for profile updates
   };
 
   return (

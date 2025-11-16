@@ -2,26 +2,27 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '@/services/api.js';
 import { Loader2, Mail } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [success, setSuccess] = useState(false); // Keep success to disable form
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
-    setSuccess(null);
+    setSuccess(false);
 
     try {
       // This hits /api/v1/auth/password-reset/
       const response = await api.post('/auth/password-reset/', { email });
-      setSuccess(response.data.detail);
+      setSuccess(true);
+      toast.success(response.data.detail);
       setEmail('');
     } catch (err) {
-      setError(err.response?.data?.email?.[0] || 'An error occurred. Please try again.');
+      const errorMsg = err.response?.data?.email?.[0] || 'An error occurred. Please try again.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -46,12 +47,7 @@ function ForgotPasswordPage() {
           onSubmit={handleSubmit}
           className="mt-8 space-y-6 rounded-lg bg-card p-8 shadow-md border border-border"
         >
-          {error && <div className="form-error">{error}</div>}
-          {success && (
-            <div className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700">
-              {success}
-            </div>
-          )}
+          {/* Error is now handled by toast */}
           
           <div className="space-y-1">
             <label htmlFor="email" className="form-label">
@@ -65,6 +61,7 @@ function ForgotPasswordPage() {
               required
               className="form-input"
               placeholder="you@example.com"
+              disabled={success} // Disable after success
             />
           </div>
           

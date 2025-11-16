@@ -1,128 +1,126 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader2, Search, CheckCircle, XCircle, Award } from 'lucide-react';
 import api from '../services/api.js';
+import { Loader2, Search, CheckCircle, XCircle, Award } from 'lucide-react';
 
-/**
- * A public page for anyone to verify a certificate using its hash.
- * It can be accessed via /verify?hash=...
- */
+// Format date
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
 function VerifyCertificatePage() {
   const [searchParams] = useSearchParams();
   const [hash, setHash] = useState(searchParams.get('hash') || '');
-  const [inputHash, setInputHash] = useState(searchParams.get('hash') || '');
-  
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [certificate, setCertificate] = useState(null);
+  const [result, setResult] = useState(null); // To store success data
+  const [error, setError] = useState(null);   // To store error message
 
-  // Automatically search if hash is in URL
-  useEffect(() => {
-    if (hash) {
-      verifyHash(hash);
-    }
-  }, [hash]);
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!hash) return;
 
-  const verifyHash = async (hashToVerify) => {
-    if (!hashToVerify) return;
-    
     setLoading(true);
+    setResult(null);
     setError(null);
-    setCertificate(null);
 
     try {
-      // This is a public endpoint, so no auth is needed
-      const res = await api.get(`/certificates/verify/${hashToVerify}/`);
-      setCertificate(res.data);
+      // This is the public, unauthenticated endpoint
+      const res = await api.get(`/certificates/verify/${hash}/`);
+      setResult(res.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Certificate not found or revoked.');
+      setError(err.response?.data?.message || 'Verification failed.');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setHash(inputHash); // This will trigger the useEffect
-  };
+  
+  // If a hash is in the URL on load, auto-submit
+  useEffect(() => {
+    if (hash) {
+      handleSubmit();
+    }
+  }, []); // Run only on initial load
 
   return (
-    <div className="py-20 bg-background min-h-[70vh]">
-      <div className="mx-auto max-w-lg px-4">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-foreground">Verify Certificate</h1>
-          <p className="text-xl text-muted-foreground mt-2">
-            Enter the verification code (UUID) found on the certificate.
+    <div className="bg-background min-h-[70vh]">
+      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <Award className="w-16 h-16 text-primary mx-auto mb-4" />
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Verify Certificate
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Enter the unique code from the certificate to verify its authenticity.
           </p>
         </div>
 
         {/* Search Form */}
-        <form onSubmit={handleSubmit} className="mt-10 flex gap-2">
+        <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
-            value={inputHash}
-            onChange={(e) => setInputHash(e.target.value)}
+            value={hash}
+            onChange={(e) => setHash(e.target.value)}
             className="form-input flex-1"
             placeholder="Enter certificate verification code..."
-            required
           />
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={loading || !hash}
+          >
             {loading ? <Loader2 className="animate-spin" /> : <Search size={20} />}
           </button>
         </form>
 
-        {/* Result Area */}
-        <div className="mt-10">
-          {loading && (
-            <div className="flex justify-center items-center min-h-[200px]">
-              <Loader2 className="animate-spin text-primary" size={40} />
+        {/* Results */}
+        <div className="mt-8">
+          {result && (
+            <div className="card p-6 border-green-500 bg-green-500/5">
+              <div className="flex items-center gap-4 mb-4">
+                <CheckCircle className="w-12 h-12 text-green-600" />
+                <div>
+                  <h2 className="text-2xl font-semibold text-green-700 dark:text-green-300">
+                    Certificate is Valid
+                  </h2>
+                  <p className="text-muted-foreground">This certificate is authentic.</p>
+                </div>
+              </div>
+              <ul className="space-y-2 border-t border-green-500/20 pt-4">
+                <ResultItem label="Student" value={result.student_name} />
+                <ResultItem label="Course" value={result.course_title} />
+                <ResultItem label="Certificate No" value={result.certificate_no} />
+                <ResultItem label="Issue Date" value={formatDate(result.issue_date)} />
+              </ul>
             </div>
           )}
-          
           {error && (
-            <VerificationResult 
-              icon={XCircle}
-              iconColor="text-red-600"
-              title="Verification Failed"
-              message={error}
-            />
-          )}
-
-          {certificate && (
-            <VerificationResult
-              icon={CheckCircle}
-              iconColor="text-green-600"
-              title="Certificate Verified"
-            >
-              <div className="mt-4 space-y-3 text-left">
-                <InfoRow label="Student" value={certificate.student} />
-                <InfoRow label="Course" value={certificate.course} />
-                <InfoRow label="Certificate No" value={certificate.certificate_no} />
-                <InfoRow label="Issue Date" value={new Date(certificate.issue_date).toLocaleDateString()} />
+            <div className="card p-6 border-destructive bg-destructive/5">
+              <div className="flex items-center gap-4">
+                <XCircle className="w-12 h-12 text-destructive" />
+                <div>
+                  <h2 className="text-2xl font-semibold text-destructive">
+                    Certificate Not Valid
+                  </h2>
+                  <p className="text-muted-foreground">{error}</p>
+                </div>
               </div>
-            </VerificationResult>
+            </div>
           )}
-
         </div>
       </div>
     </div>
   );
 }
 
-const VerificationResult = ({ icon: Icon, iconColor, title, message, children }) => (
-  <div className="card p-8 flex flex-col items-center text-center">
-    <Icon size={64} className={iconColor} />
-    <h2 className={`text-2xl font-bold mt-4 ${iconColor}`}>{title}</h2>
-    {message && <p className="text-muted-foreground mt-2">{message}</p>}
-    {children}
-  </div>
-);
-
-const InfoRow = ({ label, value }) => (
-  <div className="border-t border-border pt-3">
-    <p className="text-sm font-medium text-muted-foreground">{label}</p>
-    <p className="text-lg font-semibold text-foreground">{value}</p>
-  </div>
+const ResultItem = ({ label, value }) => (
+  <li className="flex justify-between text-sm">
+    <span className="text-muted-foreground">{label}:</span>
+    <span className="font-semibold text-foreground">{value}</span>
+  </li>
 );
 
 export default VerifyCertificatePage;

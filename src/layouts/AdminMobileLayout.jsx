@@ -3,9 +3,6 @@ import { Outlet } from 'react-router-dom';
 import AdminBottomNav from '../components/admin/AdminBottomNav.jsx';
 import AdminMobileHeader from '../components/admin/AdminMobileHeader.jsx';
 
-/**
- * This is the new layout for the MOBILE ADMIN experience.
- */
 function AdminMobileLayout() {
   return (
     <div className="flex h-screen flex-col lg:hidden">

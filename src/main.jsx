@@ -1,25 +1,32 @@
-/*
- * UPDATED FILE: src/main.jsx
- *
- * FIX: Added the ThemeProvider to wrap the app,
- * enabling dark/light/system mode.
- */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from '@/App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext.jsx';
-import ThemeProvider from '@/context/ThemeContext.jsx'; // <-- 1. IMPORT
+import ThemeProvider from '@/context/ThemeContext.jsx';
+import { Toaster } from 'react-hot-toast';
 import '@/index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <ThemeProvider> {/* <-- 2. WRAP APP */}
+      <ThemeProvider>
+        <AuthProvider>
           <App />
-        </ThemeProvider>
-      </AuthProvider>
+          <Toaster
+            position="top-center"
+            reverseOrder={false}
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: 'hsl(var(--card))',
+                color: 'hsl(var(--foreground))',
+                border: '1px solid hsl(var(--border))',
+              },
+            }}
+          />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

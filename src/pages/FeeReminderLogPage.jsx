@@ -1,131 +1,92 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Send, Check, X, AlertCircle } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api.js';
+import { Loader2, Send } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
 
-/**
- * Page for viewing the log of all fee reminders.
- * Admin-only feature.
- */
+// Format date
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+};
+
 function FeeReminderLogPage() {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Filters
-  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filterStatus, setFilterStatus] = useState('');
 
-  const fetchReminders = useCallback(async () => {
+  const fetchReminders = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const params = {
-        status: statusFilter || undefined,
-      };
-
-      const response = await api.get('/finance/reminders/', { params });
-      setReminders(response.data.results || []);
+      const params = new URLSearchParams({ page, status: filterStatus });
+      const res = await api.get(`/finance/reminders/?${params.toString()}`);
+      setReminders(res.data.results || []);
+      setTotalPages(Math.ceil((res.data.count || 0) / 20));
     } catch (err) {
-      setError('Could not fetch reminder log.');
-      console.error(err);
+      toast.error('Failed to load reminders.');
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  };
 
   useEffect(() => {
     fetchReminders();
-  }, [fetchReminders]);
-  
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'sent':
-        return <Check size={16} className="text-green-500 shrink-0" />;
-      case 'failed':
-        return <X size={16} className="text-red-500 shrink-0" />;
-      case 'pending':
-      default:
-        return <Send size={16} className="text-blue-500 shrink-0" />;
-    }
-  };
+  }, [page, filterStatus]);
 
   return (
-    <div className="flex h-full flex-col">
+    <>
       <PageHeader title="Fee Reminder Log" />
 
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-4xl">
-          
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
           {/* Filters */}
-          <div className="card p-4 mb-6">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label htmlFor="statusFilter" className="form-label">Filter by Status</label>
-                <select 
-                  name="status" 
-                  id="statusFilter" 
-                  value={statusFilter} 
-                  onChange={(e) => setStatusFilter(e.target.value)} 
-                  className="form-input"
-                >
-                  <option value="">All Statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="sent">Sent</option>
-                  <option value="failed">Failed</option>
-                </select>
-              </div>
-            </div>
+          <div className="mb-6">
+            <select
+              value={filterStatus}
+              onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+              className="form-input w-full md:w-1/3"
+            >
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="sent">Sent</option>
+              <option value="failed">Failed</option>
+            </select>
           </div>
 
-          {loading && (
-            <div className="flex justify-center items-center min-h-[300px]">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          )}
-          {error && <p className="form-error mx-4">{error}</p>}
-          
-          {!loading && !error && reminders.length === 0 && (
-            <div className="text-center p-10 card">
-              <Send size={40} className="mx-auto text-muted-foreground" />
-              <h3 className="mt-4 font-semibold text-foreground">No Reminders Found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                No reminders match your filters.
-              </p>
-            </div>
-          )}
-
-          {/* Reminders List */}
-          {!loading && !error && reminders.length > 0 && (
-            <div className="card overflow-hidden">
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : reminders.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No reminders found.</p>
+            ) : (
               <ul role="list" className="divide-y divide-border">
                 {reminders.map((r) => (
-                  <li key={r.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      {getStatusIcon(r.status)}
-                      <div className="grow">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-foreground">{r.student_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(r.sent_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {r.course_title}
-                        </p>
-                        <p className="text-sm text-foreground mt-2 italic">
-                          "{r.message}"
-                        </p>
-                      </div>
+                  <li key={r.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-foreground">{r.student_name}</p>
+                      <p className="text-sm text-muted-foreground">{r.course_title}</p>
+                      <p className="text-xs text-muted-foreground">{r.message}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`status-badge status-${r.status}`}>{r.status}</span>
+                      <p className="text-xs text-muted-foreground mt-1">{formatDate(r.sent_at)}</p>
                     </div>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+            {/* TODO: Add Pagination controls */}
+          </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 

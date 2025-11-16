@@ -1,8 +1,3 @@
-/*
- * UPDATED FILE: src/pages/HomeRedirect.jsx
- *
- * SIMPLIFICATION: Removed "Teacher" logic.
- */
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext.jsx'; 
@@ -21,10 +16,14 @@ function HomeRedirect() {
   }
 
   if (user) {
-    // User is logged in, redirect to their correct dashboard
-    if (user.is_staff) { // <-- Simplified Check
+    if (user.is_superuser) {
+      // Role: Admin
       return <Navigate to="/admin/dashboard" replace />;
+    } else if (user.is_staff) {
+      // Role: Teacher
+      return <Navigate to="/teacher/dashboard" replace />;
     } else {
+      // Role: Student
       return <Navigate to="/student/dashboard" replace />;
     }
   }

@@ -1,111 +1,116 @@
-import React, { useState, useEffect } from 'react';
-import api from '@/services/api.js';
+import React, { useState } from 'react';
+import api from '../services/api.js';
+import { toast } from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 
-function MeasurementForm({ studentId, latestMeasurement, onClose, onSaved }) {
+// Define the fields
+const measurementFields = [
+  { name: 'neck', label: 'Neck' },
+  { name: 'chest', label: 'Chest' },
+  { name: 'waist', label: 'Waist' },
+  { name: 'hips', label: 'Hips' },
+  { name: 'sleeve_length', label: 'Sleeve Length' },
+  { name: 'inseam', label: 'Inseam' },
+];
+
+function MeasurementForm({ studentId, onSuccess }) {
   const [formData, setFormData] = useState({
+    date_taken: new Date().toISOString().split('T')[0],
     neck: '',
     chest: '',
     waist: '',
     hips: '',
     sleeve_length: '',
     inseam: '',
-    notes: '',
+    notes: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  // Pre-fill form if we have the latest measurements
-  useEffect(() => {
-    if (latestMeasurement) {
-      setFormData({
-        neck: latestMeasurement.neck || '',
-        chest: latestMeasurement.chest || '',
-        waist: latestMeasurement.waist || '',
-        hips: latestMeasurement.hips || '',
-        sleeve_length: latestMeasurement.sleeve_length || '',
-        inseam: latestMeasurement.inseam || '',
-        notes: latestMeasurement.notes || '',
-      });
-    }
-  }, [latestMeasurement]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    // Filter out empty strings and send them as null
-    const dataToSend = { ...formData };
-    for (const key in dataToSend) {
-      if (dataToSend[key] === '') {
-        dataToSend[key] = null;
+    setIsLoading(true);
+    
+    // Filter out empty string fields and convert to number
+    const payload = { ...formData };
+    for (const key of measurementFields.map(f => f.name)) {
+      if (payload[key] === '') {
+        payload[key] = null;
+      } else if (payload[key] !== null) {
+        payload[key] = parseFloat(payload[key]);
       }
     }
 
+    const promise = api.post(`/students/${studentId}/measurements/`, payload);
+
     try {
-      // POST to the nested route we fixed in the backend
-      await api.post(`/students/${studentId}/measurements/`, dataToSend);
-      onSaved(); // Refresh parent data
-      onClose(); // Close modal
+      await toast.promise(promise, {
+        loading: 'Saving measurements...',
+        success: 'Measurements saved successfully!',
+        error: (err) => err.response?.data?.detail || 'Failed to save measurements.',
+      });
+      
+      if (onSuccess) {
+        onSuccess();
+      }
+
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to save measurements.');
+      // Error is already toasted
+      console.error(err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="form-error text-center">{error}</p>}
-      
-      <div className="grid grid-cols-2 gap-4">
-        <FormInput label="Neck" name="neck" value={formData.neck} onChange={handleChange} />
-        <FormInput label="Chest" name="chest" value={formData.chest} onChange={handleChange} />
-        <FormInput label="Waist" name="waist" value={formData.waist} onChange={handleChange} />
-        <FormInput label="Hips" name="hips" value={formData.hips} onChange={handleChange} />
-        <FormInput label="Sleeve Length" name="sleeve_length" value={formData.sleeve_length} onChange={handleChange} />
-        <FormInput label="Inseam" name="inseam" value={formData.inseam} onChange={handleChange} />
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {measurementFields.map(field => (
+          <div key={field.name}>
+            <label htmlFor={field.name} className="form-label">{field.label} (cm)</label>
+            <input
+              type="number"
+              step="0.01"
+              id={field.name}
+              name={field.name}
+              value={formData[field.name]}
+              onChange={handleChange}
+              className="form-input"
+            />
+          </div>
+        ))}
       </div>
       
       <div>
         <label htmlFor="notes" className="form-label">Notes</label>
         <textarea
-          name="notes"
           id="notes"
+          name="notes"
+          rows={3}
           value={formData.notes}
           onChange={handleChange}
           className="form-input"
-          rows="3"
         />
       </div>
 
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
-        {loading ? <Loader2 className="animate-spin" /> : 'Save Measurements'}
-      </button>
+      <div className="flex justify-end gap-2 pt-4">
+        <button
+          type="submit"
+          className="btn-primary w-full"
+          disabled={isLoading}
+        >
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Save Measurements'}
+        </button>
+      </div>
     </form>
   );
 }
-
-// Helper for form inputs
-const FormInput = ({ label, name, value, onChange }) => (
-  <div>
-    <label htmlFor={name} className="form-label">{label}</label>
-    <input
-      type="number"
-      name={name}
-      id={name}
-      value={value}
-      onChange={onChange}
-      className="form-input"
-      step="0.01"
-      placeholder="0.0"
-    />
-  </div>
-);
 
 export default MeasurementForm;

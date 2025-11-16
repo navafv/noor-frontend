@@ -1,20 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import PageHeader from '@/components/PageHeader.jsx';
-import api from '@/services/api.js';
-import { Loader2, BellOff, Check } from 'lucide-react';
+import api from '../services/api.js';
+import { Loader2, Bell, Send, CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext.jsx';
+import SendNotificationModal from '../components/admin/SendNotificationModal.jsx';
+
+// Map backend levels to icons and colors
+const levelIcons = {
+  info: { Icon: Info, color: 'text-blue-500' },
+  success: { Icon: CheckCircle, color: 'text-green-500' },
+  warning: { Icon: AlertTriangle, color: 'text-yellow-500' },
+  error: { Icon: XCircle, color: 'text-red-500' },
+};
 
 function NotificationsPage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchNotifications = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await api.get('/notifications/'); //
+      // This endpoint is automatically filtered by user
+      const res = await api.get('/notifications/');
       setNotifications(res.data.results || []);
     } catch (err) {
-      setError('Failed to load notifications.');
+      toast.error('Failed to load notifications.');
     } finally {
       setLoading(false);
     }
@@ -24,73 +37,68 @@ function NotificationsPage() {
     fetchNotifications();
   }, []);
 
-  const markAsRead = async (id) => {
+  const handleMarkAsRead = async (id) => {
+    // We'll just DELETE the notification, which is simpler
     try {
-      // Optimistic update
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-      );
-      await api.patch(`/notifications/${id}/`, { is_read: true }); // FIX: Standard patch
+      await api.delete(`/notifications/${id}/`);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+      toast.success('Notification cleared.');
     } catch (err) {
-      // Revert if error
-      setNotifications(prev => 
-        prev.map(n => n.id === id ? { ...n, is_read: false } : n)
-      );
-      console.error('Failed to mark as read');
+      toast.error('Failed to clear notification.');
     }
   };
 
   return (
-    <div className="p-4 max-w-lg mx-auto">
-      <PageHeader title="Notifications" />
+    <>
+      <PageHeader title="Notifications">
+        {user?.is_staff && (
+          <button className="btn-primary flex items-center gap-2" onClick={() => setIsModalOpen(true)}>
+            <Send size={18} />
+            Send Notification
+          </button>
+        )}
+      </PageHeader>
 
-      {loading && (
-        <div className="flex justify-center items-center min-h-[200px]">
-          <Loader2 className="animate-spin text-primary" size={32} />
-        </div>
-      )}
-      {error && <p className="form-error">{error}</p>}
-
-      {!loading && (
-        <div className="card">
-          {notifications.length === 0 ? (
-            <div className="text-center p-10 text-muted-foreground">
-              <BellOff size={40} className="mx-auto" />
-              <p className="mt-4 font-semibold">No notifications</p>
-            </div>
-          ) : (
-            <ul className="divide-y divide-border">
-              {notifications.map(n => (
-                <li key={n.id} className={`p-4 ${n.is_read ? 'opacity-60' : ''}`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className={`font-semibold ${
-                        n.level === 'warning' ? 'text-yellow-600' 
-                        : n.level === 'error' ? 'text-red-600' 
-                        : 'text-foreground'
-                      }`}>{n.title}</span>
-                      <p className="text-muted-foreground text-sm">{n.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(n.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    {!n.is_read && (
+      <main className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : notifications.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">You have no unread notifications.</p>
+            ) : (
+              <ul role="list" className="divide-y divide-border">
+                {notifications.map((n) => {
+                  const { Icon, color } = levelIcons[n.level] || levelIcons.info;
+                  return (
+                    <li key={n.id} className="p-4 flex items-start gap-4">
+                      <Icon className={`w-6 h-6 ${color} shrink-0 mt-1`} />
+                      <div className="flex-1">
+                        <p className="font-semibold text-foreground">{n.title}</p>
+                        <p className="text-sm text-muted-foreground">{n.message}</p>
+                      </div>
                       <button 
-                        onClick={() => markAsRead(n.id)}
-                        className="ml-4 p-2 text-sm text-primary hover:bg-accent rounded-full"
-                        title="Mark as read"
+                        onClick={() => handleMarkAsRead(n.id)}
+                        className="btn-outline btn-sm"
                       >
-                        <Check size={18} />
+                        <Check size={16} />
                       </button>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
         </div>
+      </main>
+
+      {user?.is_staff && (
+        <SendNotificationModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+        />
       )}
-    </div>
+    </>
   );
 }
 

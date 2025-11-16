@@ -1,31 +1,130 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, DollarSign, Briefcase } from 'lucide-react';
 import api from '../services/api.js';
-import Modal from '../components/Modal.jsx';
+import { Loader2, Plus, Briefcase } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
+import Modal from '../components/Modal.jsx';
+import { toast } from 'react-hot-toast';
 
-/**
- * Main page component for managing payroll.
- * This is an Admin-only feature.
- */
+// Format currency
+const formatCurrency = (amount) => {
+  return `₹${Number(amount).toLocaleString('en-IN')}`;
+};
+
+// --- Add Payroll Modal ---
+const AddPayrollModal = ({ isOpen, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    trainer: '', // This will be an ID
+    month: '', // YYYY-MM
+    earnings: '{}',
+    deductions: '{}',
+    net_pay: '',
+    status: 'Pending'
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    let earningsJSON, deductionsJSON;
+    try {
+      earningsJSON = JSON.parse(formData.earnings);
+      deductionsJSON = JSON.parse(formData.deductions);
+    } catch (err) {
+      toast.error('Earnings or Deductions is not valid JSON.');
+      setIsLoading(false);
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      trainer: parseInt(formData.trainer, 10),
+      net_pay: parseFloat(formData.net_pay),
+      earnings: earningsJSON,
+      deductions: deductionsJSON,
+    };
+
+    const promise = api.post('/finance/payroll/', payload);
+
+    try {
+      await toast.promise(promise, {
+        loading: 'Saving payroll...',
+        success: 'Payroll record saved successfully!',
+        error: (err) => err.response?.data?.detail || 'Failed to save payroll.'
+      });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Add Payroll Record" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* TODO: Replace Trainer ID with an async search select */}
+        <FormInput label="Trainer ID" name="trainer" value={formData.trainer} onChange={handleChange} type="number" required />
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput label="Month (YYYY-MM)" name="month" value={formData.month} onChange={handleChange} placeholder="e.g., 2025-11" required />
+          <FormInput label="Net Pay" name="net_pay" value={formData.net_pay} onChange={handleChange} type="number" step="0.01" required />
+        </div>
+        <FormSelect label="Status" name="status" value={formData.status} onChange={handleChange} required>
+          <option value="Pending">Pending</option>
+          <option value="Paid">Paid</option>
+        </FormSelect>
+        <FormTextarea label="Earnings (JSON)" name="earnings" value={formData.earnings} onChange={handleChange} rows={3} />
+        <FormTextarea label="Deductions (JSON)" name="deductions" value={formData.deductions} onChange={handleChange} rows={3} />
+        
+        <div className="flex justify-end pt-4">
+          <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin" /> : 'Save Payroll'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+// Helper components for the form
+const FormInput = ({ label, ...props }) => (
+  <div>
+    <label htmlFor={props.name} className="form-label">{label}</label>
+    <input id={props.name} {...props} className="form-input" />
+  </div>
+);
+const FormTextarea = ({ label, ...props }) => (
+  <div>
+    <label htmlFor={props.name} className="form-label">{label}</label>
+    <textarea id={props.name} {...props} className="form-input" />
+  </div>
+);
+const FormSelect = ({ label, children, ...props }) => (
+  <div>
+    <label htmlFor={props.name} className="form-label">{label}</label>
+    <select id={props.name} {...props} className="form-input">
+      {children}
+    </select>
+  </div>
+);
+
+// --- Main Page Component ---
 function PayrollManagementPage() {
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [trainers, setTrainers] = useState([]);
 
   const fetchPayrolls = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const [payrollRes, trainerRes] = await Promise.all([
-        api.get('/finance/payroll/'),
-        api.get('/trainers/') // Fetch trainers for the form dropdown
-      ]);
-      setPayrolls(payrollRes.data.results || []);
-      setTrainers(trainerRes.data.results || []);
+      const res = await api.get('/finance/payroll/');
+      setPayrolls(res.data.results || []);
     } catch (err) {
-      setError('Failed to fetch payroll data.');
+      toast.error('Failed to load payrolls.');
     } finally {
       setLoading(false);
     }
@@ -35,176 +134,59 @@ function PayrollManagementPage() {
     fetchPayrolls();
   }, []);
 
-  const handleSaved = () => {
-    fetchPayrolls(); // Refresh the list
-    setIsModalOpen(false);
-  };
-  
-  const totalPaid = payrolls
-    .filter(p => p.status === 'Paid')
-    .reduce((acc, p) => acc + parseFloat(p.net_pay), 0);
-
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader title="Manage Payroll" />
+    <>
+      <PageHeader title="Payroll Management">
+        <button className="btn-primary flex items-center gap-2" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} />
+          Add Payroll
+        </button>
+      </PageHeader>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-4xl">
-
-          {/* Summary */}
-          <div className="mb-4 card p-4">
-            <p className="text-sm text-muted-foreground">Total Paid Out (All Time)</p>
-            <p className="text-3xl font-bold text-blue-600">
-              ₹{totalPaid.toLocaleString('en-IN')}
-            </p>
-          </div>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          {/* TODO: Add filters for month/trainer */}
           
-          <div className="flex justify-end mb-4">
-            <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
-              <Plus size={18} /> New Payroll Entry
-            </button>
-          </div>
-
-          {loading && (
-            <div className="flex justify-center items-center min-h-[200px]">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          )}
-          {error && <p className="form-error">{error}</p>}
-
-          {!loading && (
-            <div className="card">
-              <ul className="divide-y divide-border">
-                {payrolls.length === 0 ? (
-                  <p className="p-10 text-center text-muted-foreground">No payrolls found.</p>
-                ) : (
-                  payrolls.map(payroll => (
-                    <li key={payroll.id} className="p-4 flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {payroll.trainer?.trainer_name || 'Unknown Trainer'}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Month: {payroll.month}
-                        </p>
-                        <span className={`status-badge status-${payroll.status?.toLowerCase()}`}>
-                          {payroll.status}
-                        </span>
-                      </div>
-                      <p className="text-xl font-semibold text-foreground">
-                        ₹{parseFloat(payroll.net_pay).toLocaleString('en-IN')}
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-primary" size={40} />
+              </div>
+            ) : payrolls.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No payroll records found.</p>
+            ) : (
+              <ul role="list" className="divide-y divide-border">
+                {payrolls.map((payroll) => (
+                  <li key={payroll.id} className="flex items-center justify-between p-4">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {payroll.trainer?.user?.first_name} {payroll.trainer?.user?.last_name}
                       </p>
-                    </li>
-                  ))
-                )}
+                      <p className="text-sm text-muted-foreground">
+                        Month: {payroll.month}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">{formatCurrency(payroll.net_pay)}</p>
+                      <span className={`status-badge ${payroll.status === 'Paid' ? 'status-completed' : 'status-pending'}`}>
+                        {payroll.status}
+                      </span>
+                    </div>
+                  </li>
+                ))}
               </ul>
-            </div>
-          )}
+            )}
+            {/* TODO: Add Pagination controls here */}
+          </div>
         </div>
       </main>
 
-      {/* Add Payroll Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New Payroll">
-        <PayrollForm 
-          trainers={trainers}
-          onClose={() => setIsModalOpen(false)} 
-          onSaved={handleSaved} 
-        />
-      </Modal>
-    </div>
-  );
-}
-
-// Form component for the modal
-function PayrollForm({ trainers, onClose, onSaved }) {
-  const [formData, setFormData] = useState({
-    trainer: trainers[0]?.id.toString() || '',
-    month: new Date().toISOString().substring(0, 7), // YYYY-MM
-    net_pay: '',
-    status: 'Pending',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      // Send data
-      await api.post('/finance/payroll/', {
-        trainer: formData.trainer,
-        month: formData.month,
-        net_pay: formData.net_pay,
-        status: formData.status,
-        earnings: {}, // Send empty JSON, backend defaults to dict
-        deductions: {}, // Send empty JSON, backend defaults to dict
-      });
-      onSaved();
-    } catch (err) {
-      setError(err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'Failed to save payroll. Check if an entry for this trainer and month already exists.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="form-error text-center">{error}</p>}
-      
-      <div>
-        <label htmlFor="trainer" className="form-label">Trainer</label>
-        <select
-          name="trainer" id="trainer"
-          value={formData.trainer} onChange={handleChange}
-          className="form-input" required
-        >
-          <option value="" disabled>Select a trainer</option>
-          {trainers.map(t => (
-            <option key={t.id} value={t.id}>{t.trainer_name} ({t.emp_no})</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="month" className="form-label">Month</label>
-          <input
-            type="month" name="month" id="month"
-            value={formData.month} onChange={handleChange}
-            className="form-input" required
-          />
-        </div>
-        <div>
-          <label htmlFor="net_pay" className="form-label">Net Pay (₹)</label>
-          <input
-            type="number" name="net_pay" id="net_pay"
-            value={formData.net_pay} onChange={handleChange}
-            className="form-input" required step="0.01"
-          />
-        </div>
-      </div>
-       <div>
-        <label htmlFor="status" className="form-label">Status</label>
-        <select
-          name="status" id="status"
-          value={formData.status} onChange={handleChange}
-          className="form-input" required
-        >
-          <option value="Pending">Pending</option>
-          <option value="Paid">Paid</option>
-        </select>
-      </div>
-      
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
-        {loading ? <Loader2 className="animate-spin" /> : 'Save Payroll'}
-      </button>
-    </form>
+      <AddPayrollModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchPayrolls}
+      />
+    </>
   );
 }
 

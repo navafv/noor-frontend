@@ -2,41 +2,42 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
-/**
- * A standardized header for all student portal pages and admin content pages.
- * It provides a consistent "Back" button and a centered title.
- * * Props:
- * - title: (string) The title to display.
- * - showBackButton: (boolean) Optional, defaults to true. Set to false to hide the back button (e.g., on main dashboard).
- */
-function PageHeader({ title, showBackButton = true }) {
+function BackButton() {
   const navigate = useNavigate();
+  return (
+    <button
+      onClick={() => navigate(-1)}
+      className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+    >
+      <ChevronLeft size={20} />
+      Back
+    </button>
+  );
+}
 
+/**
+ * A standard page header for all app pages.
+ * @param {string} title - The title to display.
+ * @param {boolean} [showBackButton=true] - Show the back button.
+ * @param {React.ReactNode} [children] - Elements to render on the right (e.g., buttons).
+ */
+function PageHeader({ title, showBackButton = true, children }) {
   return (
     <header className="sticky top-0 z-10 w-full bg-card shadow-sm border-b border-border">
-      {/* Use max-w-lg for Student/Mobile view, max-w-4xl for Admin/Desktop view */}
-      <div className="mx-auto flex h-16 max-w-4xl items-center px-4">
+      <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
-        {/* Back Button */}
-        <div className="w-10"> {/* Spacer div */}
-          {showBackButton && (
-            <button
-              onClick={() => navigate(-1)} // This goes to the previous page in history
-              className="p-2 text-primary rounded-full hover:bg-accent"
-              aria-label="Go back"
-            >
-              <ChevronLeft size={24} />
-            </button>
-          )}
+        {/* Left Side: Back Button & Title */}
+        <div className="flex-1 min-w-0">
+          {showBackButton && <BackButton />}
+          <h1 className="truncate text-2xl font-bold leading-tight text-foreground md:text-3xl">
+            {title}
+          </h1>
         </div>
         
-        {/* Page Title */}
-        <h1 className="mx-auto text-lg font-semibold text-foreground text-center truncate">
-          {title}
-        </h1>
-        
-        {/* Spacer to keep title centered */}
-        <div className="w-10"></div>
+        {/* Right Side: Action Buttons */}
+        <div className="shrink-0 ml-4">
+          {children}
+        </div>
       </div>
     </header>
   );

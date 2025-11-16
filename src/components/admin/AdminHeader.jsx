@@ -1,13 +1,8 @@
-/* * UPDATED FILE: src/components/admin/AdminHeader.jsx
- *
- * SIMPLIFICATION: Removed role-based path logic.
- * This header is only for admins now.
- */
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Bell } from 'lucide-react';
-import ThemeToggle from '../ThemeToggle.jsx'; 
-import { useAuth } from '../../context/AuthContext.jsx'; 
+import ThemeToggle from '../ThemeToggle.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 function AdminHeader({ onMenuClick }) {
   const { user } = useAuth();
@@ -18,7 +13,7 @@ function AdminHeader({ onMenuClick }) {
 
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b border-border bg-card px-4 md:px-8">
-      {/* Mobile Menu Button */}
+      {/* Mobile Menu Button (for tablet) */}
       <button
         onClick={onMenuClick}
         className="p-2 text-muted-foreground hover:bg-accent rounded-md lg:hidden"

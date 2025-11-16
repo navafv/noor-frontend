@@ -1,138 +1,81 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { Settings, LogOut, ChevronRight, BarChart2, LayoutDashboard, Shield, LifeBuoy } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx'; 
-import { useResponsive } from '../hooks/useResponsive.js'; // <-- IMPORT
+import PageHeader from '../components/PageHeader.jsx';
+import { User, Mail, Phone, Shield, UserCheck, Award, Edit } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 function AccountPage() {
-  const { user, logoutUser } = useAuth();
-  const navigate = useNavigate();
-  const { isMobile } = useResponsive(); // <-- USE HOOK
-
-  const handleLogout = () => {
-    // ... (no change)
-    logoutUser();
-    navigate('/login');
-  };
-
-  const getInitials = (firstName, lastName) => {
-    // ... (no change)
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || user?.username[0].toUpperCase() || '?';
-  };
-
-  // Determine paths based on role
-  const settingsPath = user?.is_staff ? "/admin/account/settings" : "/student/account/settings";
-  const dashboardPath = user?.is_staff ? "/admin/dashboard" : "/student/dashboard";
-  const dashboardTitle = user?.is_staff ? "Admin Dashboard" : "My Dashboard";
-  const dashboardSubtitle = user?.is_staff ? "Manage institute" : "View your progress";
-  const dashboardIcon = user?.is_staff ? BarChart2 : LayoutDashboard;
+  const { user } = useAuth();
 
   if (!user) {
-    return <PageHeader title="Account" />; // Show header even if loading
+    return null; // or a loader
   }
+  
+  const isStudent = !user.is_staff;
+  const isAdmin = user.is_superuser;
+  const isTeacher = user.is_staff && !user.is_superuser;
+  
+  // Determine the correct path to settings
+  let settingsPath = '/account/settings';
+  if (isStudent) settingsPath = '/student/account/settings';
+  else if (isTeacher) settingsPath = '/teacher/account/settings';
+  else if (isAdmin) settingsPath = '/admin/account/settings';
 
   return (
     <>
-      {/* --- UPDATED: Only show on mobile --- */}
-      {isMobile && <PageHeader title="My Account" showBackButton={false} />}
-      
-      <div className="p-4 lg:p-8 max-w-lg mx-auto pb-20">
-        {/* User Profile Header */}
-        <div className="flex items-center space-x-4 mb-8">
-          <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-            <span className="text-2xl font-medium text-primary">
-              {getInitials(user?.first_name, user?.last_name)}
-            </span>
-          </span>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">
-              {user?.first_name || user?.username}
-            </h1>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
-            <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary mt-2">
-              {user?.role?.name || (user?.is_staff ? 'Staff' : 'Student')}
-            </span>
+      <PageHeader title="My Profile" showBackButton={false}>
+        <Link to={settingsPath} className="btn-primary flex items-center gap-2">
+          <Edit size={18} />
+          Edit Profile
+        </Link>
+      </PageHeader>
+
+      <main className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="card p-6">
+            <h3 className="text-xl font-semibold text-foreground mb-6">
+              User Information
+            </h3>
+            <dl className="space-y-4">
+              <DetailItem icon={User} label="Full Name" value={`${user.first_name} ${user.last_name}`} />
+              <DetailItem icon={Shield} label="Username" value={user.username} />
+              <DetailItem icon={Mail} label="Email" value={user.email || 'N/A'} />
+              <DetailItem icon={Phone} label="Phone" value={user.phone || 'N/A'} />
+              <DetailItem icon={UserCheck} label="Role" value={
+                isAdmin ? 'Administrator' : isTeacher ? 'Teacher' : 'Student'
+              } />
+            </dl>
           </div>
+
+          {isStudent && user.student && (
+            <div className="card p-6 mt-8">
+              <h3 className="text-xl font-semibold text-foreground mb-6">
+                Student Details
+              </h3>
+              <dl className="space-y-4">
+                <DetailItem icon={Award} label="Registration No." value={user.student.reg_no} />
+                <DetailItem icon={User} label="Guardian Name" value={user.student.guardian_name} />
+                <DetailItem icon={Phone} label="Guardian Phone" value={user.student.guardian_phone} />
+              </dl>
+            </div>
+          )}
+          
+          {/* TODO: Add a similar card for Teacher details if needed */}
         </div>
-
-        {/* Navigation List */}
-        <div className="card overflow-hidden">
-          <ul className="divide-y divide-border">
-            
-            {/* Dashboard Link (only show if not on mobile) */}
-            <li className="lg:hidden">
-              <AppLink
-                to={dashboardPath}
-                icon={dashboardIcon}
-                title={dashboardTitle}
-                subtitle={dashboardSubtitle}
-              />
-            </li>
-            
-            {/* Account Settings */}
-            <AppLink
-              to={settingsPath}
-              icon={Settings}
-              title="Account Settings"
-              subtitle="Update profile & photo"
-            />
-
-            {/* Security */}
-            <AppLink
-              to={settingsPath} // Links to same page, but different section
-              icon={Shield}
-              title="Security"
-              subtitle="Change your password"
-            />
-
-            {/* Help */}
-            <AppLink
-              to="/contact" // Links to public contact page
-              icon={LifeBuoy}
-              title="Help & Contact"
-              subtitle="Get help or contact support"
-            />
-          </ul>
-        </div>
-
-        {/* Logout Button */}
-        <div className="mt-8">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center space-x-2 text-left p-4 card text-red-600 font-medium hover:bg-destructive/10 transition-colors"
-          >
-            <LogOut size={20} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
+      </main>
     </>
   );
 }
 
-const AppLink = ({ to, icon: Icon, title, subtitle }) => (
-  // ... (no change)
-  <li>
-    <Link to={to} className="block hover:bg-accent">
-      <div className="flex items-center p-4">
-        <div className="shrink-0">
-          <Icon className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <div className="min-w-0 flex-1 px-4">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {title}
-          </p>
-          <p className="mt-1 flex items-center text-sm text-muted-foreground">
-            <span className="truncate">{subtitle}</span>
-          </p>
-        </div>
-        <div className="shrink-0">
-          <ChevronRight size={20} className="text-muted-foreground" />
-        </div>
-      </div>
-    </Link>
-  </li>
+// Helper component
+const DetailItem = ({ icon: Icon, label, value }) => (
+  <div className="flex gap-4">
+    <Icon className="w-5 h-5 text-primary shrink-0" />
+    <div>
+      <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <p className="text-base font-semibold text-foreground">{value}</p>
+    </div>
+  </div>
 );
 
 export default AccountPage;

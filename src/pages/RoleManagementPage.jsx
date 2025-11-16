@@ -1,198 +1,129 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Plus, Users, Save } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
-import Modal from '@/components/Modal.jsx';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api.js';
+import { Loader2, Plus, Shield, Edit } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import Modal from '../components/Modal.jsx';
+import { toast } from 'react-hot-toast';
 
-/**
- * Page for creating and managing user roles.
- * Admin-only feature.
- */
-function RoleManagementPage() {
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(null); // For editing
-
-  const fetchRoles = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get('/roles/');
-      setRoles(response.data.results || response.data || []); // Handle paginated or non-paginated
-    } catch (err) {
-      setError('Could not fetch roles.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+// --- Role Modal (Add/Edit) ---
+const RoleModal = ({ isOpen, onClose, onSuccess, item }) => {
+  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  const isEditing = !!item;
 
   useEffect(() => {
-    fetchRoles();
-  }, [fetchRoles]);
+    if (item) setFormData({ name: item.name, description: item.description });
+    else setFormData({ name: '', description: '' });
+  }, [item]);
 
-  const openModal = (role = null) => {
-    setSelectedRole(role); // If role is null, it's a "New" form
-    setIsModalOpen(true);
-  };
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSaved = () => {
-    fetchRoles(); // Refresh the list
-    setIsModalOpen(false);
-    setSelectedRole(null);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const promise = isEditing
+      ? api.patch(`/roles/${item.id}/`, formData)
+      : api.post('/roles/', formData);
+    
+    try {
+      await toast.promise(promise, {
+        loading: `${isEditing ? 'Updating' : 'Creating'} role...`,
+        success: `Role ${isEditing ? 'updated' : 'created'}!`,
+        error: (err) => err.response?.data?.name?.[0] || 'An error occurred.'
+      });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader title="Role Management" />
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit Role' : 'Add New Role'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormInput label="Role Name" name="name" value={formData.name} onChange={handleChange} required />
+        <FormInput label="Description" name="description" value={formData.description} onChange={handleChange} />
+        <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Save Role'}
+        </button>
+      </form>
+    </Modal>
+  );
+};
 
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-2xl">
-          
-          <div className="flex justify-end mb-4">
-            <button onClick={() => openModal(null)} className="btn-primary flex items-center gap-2">
-              <Plus size={18} /> New Role
-            </button>
-          </div>
+// Helper component
+const FormInput = ({ label, ...props }) => (
+  <div>
+    <label htmlFor={props.name} className="form-label">{label}</label>
+    <input id={props.name} {...props} className="form-input" />
+  </div>
+);
 
-          {loading && (
-            <div className="flex justify-center items-center min-h-[300px]">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          )}
-          {error && <p className="form-error mx-4">{error}</p>}
-          
-          {!loading && !error && roles.length === 0 && (
-            <div className="text-center p-10 card">
-              <Users size={40} className="mx-auto text-muted-foreground" />
-              <h3 className="mt-4 font-semibold text-foreground">No Roles Found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Click "New Role" to create one.
-              </p>
-            </div>
-          )}
+// --- Main Page Component ---
+function RoleManagementPage() {
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState({ isOpen: false, item: null });
 
-          {/* Roles List */}
-          {!loading && !error && roles.length > 0 && (
-            <div className="card overflow-hidden">
+  const fetchRoles = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/roles/');
+      setRoles(res.data.results || []);
+    } catch (err) {
+      toast.error('Failed to load roles.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoles();
+  }, []);
+
+  return (
+    <>
+      <PageHeader title="Role Management">
+        <button className="btn-primary flex items-center gap-2" onClick={() => setModal({ isOpen: true, item: null })}>
+          <Plus size={18} />
+          Add Role
+        </button>
+      </PageHeader>
+
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-4xl">
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : roles.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No roles found.</p>
+            ) : (
               <ul role="list" className="divide-y divide-border">
                 {roles.map((role) => (
-                  <li key={role.id} className="p-4 flex justify-between items-center">
+                  <li key={role.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-foreground">{role.name}</p>
-                      <p className="text-sm text-muted-foreground">{role.description || 'No description'}</p>
+                      <p className="text-sm text-muted-foreground">{role.description}</p>
                     </div>
-                    <button 
-                      onClick={() => openModal(role)}
-                      className="btn-secondary btn-sm"
-                    >
-                      Edit
+                    <button onClick={() => setModal({ isOpen: true, item: role })} className="btn-outline btn-sm">
+                      <Edit size={16} />
                     </button>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
 
-      {/* Add/Edit Role Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title={selectedRole ? 'Edit Role' : 'Create New Role'}
-      >
-        <RoleForm 
-          role={selectedRole}
-          onClose={() => setIsModalOpen(false)} 
-          onSaved={handleSaved} 
-        />
-      </Modal>
-    </div>
-  );
-}
-
-// --- Form Component for the Modal ---
-function RoleForm({ role, onClose, onSaved }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const isEditing = !!role;
-
-  useEffect(() => {
-    if (isEditing) {
-      setFormData({
-        name: role.name || '',
-        description: role.description || '',
-      });
-    } else {
-      setFormData({ name: '', description: '' });
-    }
-  }, [role, isEditing]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      if (isEditing) {
-        // Update (PATCH)
-        await api.patch(`/roles/${role.id}/`, formData);
-      } else {
-        // Create (POST)
-        await api.post('/roles/', formData);
-      }
-      onSaved();
-    } catch (err) {
-      setError(err.response?.data?.name?.[0] || 'A role with this name may already exist.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="form-error text-center">{error}</p>}
-      
-      <div>
-        <label htmlFor="name" className="form-label">Role Name</label>
-        <input
-          type="text" name="name" id="name"
-          value={formData.name} onChange={handleChange}
-          className="form-input" required
-          placeholder="e.g., Admin, Teacher, Student"
-        />
-      </div>
-      
-      <div>
-        <label htmlFor="description" className="form-label">Description (Optional)</label>
-        <textarea
-          name="description" id="description"
-          value={formData.description} onChange={handleChange}
-          className="form-input" rows="3"
-        />
-      </div>
-      
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>
-        {loading ? <Loader2 className="animate-spin" /> : (
-          <>
-            <Save size={18} className="mr-2" />
-            {isEditing ? 'Save Changes' : 'Create Role'}
-          </>
-        )}
-      </button>
-    </form>
+      <RoleModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ isOpen: false, item: null })}
+        onSuccess={fetchRoles}
+        item={modal.item}
+      />
+    </>
   );
 }
 

@@ -1,26 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Loader2, Book, ChevronRight, Package } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
+import api from '../services/api.js';
+import { Loader2, Book, ChevronRight } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
-/**
- * Admin page to list all courses, acting as an entry point
- * to manage materials for each course.
- */
 function AdminCourseMaterialsPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCourses = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const res = await api.get('/courses/');
         setCourses(res.data.results || []);
       } catch (err) {
-        setError('Failed to load courses.');
+        toast.error('Failed to load courses.');
       } finally {
         setLoading(false);
       }
@@ -29,58 +26,44 @@ function AdminCourseMaterialsPage() {
   }, []);
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader title="Manage Course Materials" />
+    <>
+      <PageHeader title="Course Materials" />
 
-      <main className="flex-1 overflow-y-auto bg-background p-4">
+      <main className="p-4 md:p-8">
         <div className="mx-auto max-w-4xl">
-          <p className="text-muted-foreground mb-4">
-            Select a course to add, edit, or remove its materials (files, links, etc.).
+          <p className="text-muted-foreground mb-6">
+            Select a course to view, add, or remove its materials.
           </p>
-
-          {loading && (
-            <div className="flex justify-center items-center min-h-[300px]">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          )}
-          {error && <p className="form-error mx-4">{error}</p>}
           
-          {!loading && !error && courses.length === 0 && (
-            <div className="text-center p-10 card">
-              <Package size={40} className="mx-auto text-muted-foreground" />
-              <h3 className="mt-4 font-semibold text-foreground">No Courses Found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                You must create a course before you can add materials to it.
-              </p>
-            </div>
-          )}
-
-          {!loading && !error && courses.length > 0 && (
-            <div className="card overflow-hidden">
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : courses.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No courses found.</p>
+            ) : (
               <ul role="list" className="divide-y divide-border">
-                {courses.map(course => (
-                  <li key={course.id}>
-                    <Link
-                      to={`/admin/materials/${course.id}`}
-                      className="block hover:bg-accent"
-                    >
-                      <div className="flex items-center p-4">
-                        <Book size={20} className="mr-4 text-primary" />
-                        <div className="flex-1">
-                          <p className="font-semibold text-foreground">{course.title}</p>
-                          <p className="text-sm text-muted-foreground">{course.code}</p>
-                        </div>
-                        <ChevronRight size={20} className="text-muted-foreground" />
+                {courses.map((course) => (
+                  <li 
+                    key={course.id}
+                    onClick={() => navigate(`/admin/materials/${course.id}`)}
+                    className="p-4 flex items-center justify-between hover:bg-accent cursor-pointer"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Book size={20} className="text-primary" />
+                      <div>
+                        <p className="font-semibold text-foreground">{course.title}</p>
+                        <p className="text-sm text-muted-foreground">{course.code}</p>
                       </div>
-                    </Link>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 

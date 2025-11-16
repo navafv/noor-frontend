@@ -1,415 +1,325 @@
-/* UPDATED FILE: navafv/noor-frontend/noor-frontend-c23097d14777e9c489af86e2822e1a66601485e8/src/pages/CourseManagementPage.jsx */
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronLeft, Loader2, Plus, Book, Box, User, MessageSquare, Star } from 'lucide-react';
-import api from '@/services/api.js';
-import Modal from '@/components/Modal.jsx';
-import PageHeader from '@/components/PageHeader.jsx';
+import api from '../services/api.js';
+import { Loader2, Plus, Edit, Book, Briefcase, UserCheck } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import Modal from '../components/Modal.jsx';
+import { toast } from 'react-hot-toast';
 
-// ... (Main component and TabButton are unchanged) ...
-function CourseManagementPage() {
-  const [activeTab, setActiveTab] = useState('courses');
-  return (
-    <div className="flex h-screen flex-col">
-      <PageHeader title="Course Management" />
-
-      {/* Tab Navigation */}
-      <nav className="sticky top-16 z-10 bg-card border-b border-border">
-        <div className="mx-auto flex max-w-4xl px-4">
-          <TabButton icon={Book} label="Courses" isActive={activeTab === 'courses'} onClick={() => setActiveTab('courses')} />
-          <TabButton icon={Box} label="Batches" isActive={activeTab === 'batches'} onClick={() => setActiveTab('batches')} />
-          <TabButton icon={User} label="Trainers" isActive={activeTab === 'trainers'} onClick={() => setActiveTab('trainers')} />
-          <TabButton icon={MessageSquare} label="Feedback" isActive={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} />
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-4xl">
-          {activeTab === 'courses' && <CourseTab />}
-          {activeTab === 'batches' && <BatchTab />}
-          {activeTab === 'trainers' && <TrainerTab />}
-          {activeTab === 'feedback' && <FeedbackTab />}
-        </div>
-      </main>
-    </div>
-  );
-}
-
-const TabButton = ({ icon: Icon, label, isActive, onClick }) => (
-  <button
-    onClick={onClick}
-    className={`flex-1 flex items-center justify-center gap-2 p-4 border-b-2 font-medium transition-colors
-      ${isActive ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-  >
-    <Icon size={18} />
-    {label}
-  </button>
+// --- Reusable Form Input ---
+const FormInput = ({ label, name, ...props }) => (
+  <div>
+    <label htmlFor={name} className="form-label">{label}</label>
+    <input id={name} name={name} className="form-input" {...props} />
+  </div>
 );
 
-
-// --- UPDATE CourseTab ---
-function CourseTab() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const fetchItems = async () => {
-    setLoading(true);
-    const res = await api.get('/courses/');
-    setItems(res.data.results || []);
-    setLoading(false);
-  };
+// --- Course Modal (Add/Edit) ---
+const CourseModal = ({ isOpen, onClose, onSuccess, item }) => {
+  const [formData, setFormData] = useState({
+    code: '', title: '', duration_weeks: '', total_fees: '', syllabus: '', required_attendance_days: ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => {
+    if (item) setFormData(item);
+    else setFormData({ code: '', title: '', duration_weeks: '', total_fees: '', syllabus: '', required_attendance_days: '' });
+  }, [item]);
+
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const promise = item
+      ? api.patch(`/courses/${item.id}/`, formData)
+      : api.post('/courses/', formData);
+    
+    try {
+      await toast.promise(promise, {
+        loading: `${item ? 'Updating' : 'Creating'} course...`,
+        success: `Course ${item ? 'updated' : 'created'}!`,
+        error: (err) => err.response?.data?.detail || 'An error occurred.'
+      });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <CrudList
-      title="Courses"
-      items={items}
-      loading={loading}
-      onAdd={() => setIsModalOpen(true)}
-      renderItem={item => (
-        <li key={item.id} className="p-4">
-          <p className="font-semibold">{item.title} ({item.code})</p>
-          <p className="text-sm text-muted-foreground">{item.syllabus?.substring(0, 100) || 'No syllabus'}</p>
-          <div className="flex gap-4 text-sm mt-2">
-            <span>Fees: <strong>₹{parseFloat(item.total_fees).toLocaleString('en-IN')}</strong></span>
-            <span>Duration: <strong>{item.duration_weeks} weeks</strong></span>
-            {/* --- ADDED REQUIRED DAYS --- */}
-            <span>Attendance Goal: <strong>{item.required_attendance_days} days</strong></span>
+    <Modal isOpen={isOpen} onClose={onClose} title={item ? 'Edit Course' : 'Add New Course'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormInput label="Code" name="code" value={formData.code} onChange={handleChange} required />
+        <FormInput label="Title" name="title" value={formData.title} onChange={handleChange} required />
+        <FormInput label="Duration (Weeks)" name="duration_weeks" value={formData.duration_weeks} onChange={handleChange} type="number" required />
+        <FormInput label="Total Fees" name="total_fees" value={formData.total_fees} onChange={handleChange} type="number" step="0.01" required />
+        <FormInput label="Required Attendance" name="required_attendance_days" value={formData.required_attendance_days} onChange={handleChange} type="number" required />
+        <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Save Course'}
+        </button>
+      </form>
+    </Modal>
+  );
+};
+
+// --- Batch Modal (Add/Edit) ---
+const BatchModal = ({ isOpen, onClose, onSuccess, item, courses, trainers }) => {
+  const [formData, setFormData] = useState({ code: '', course: '', trainer: '', capacity: '10' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (item) setFormData({ ...item, course: item.course.id, trainer: item.trainer.id });
+    else setFormData({ code: '', course: courses[0]?.id || '', trainer: trainers[0]?.id || '', capacity: '10' });
+  }, [item, courses, trainers]);
+
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const payload = { ...formData, course: parseInt(formData.course), trainer: parseInt(formData.trainer) };
+    const promise = item
+      ? api.patch(`/batches/${item.id}/`, payload)
+      : api.post('/batches/', payload);
+    
+    try {
+      await toast.promise(promise, {
+        loading: `${item ? 'Updating' : 'Creating'} batch...`,
+        success: `Batch ${item ? 'updated' : 'created'}!`,
+        error: (err) => err.response?.data?.code?.[0] || 'An error occurred.'
+      });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={item ? 'Edit Batch' : 'Add New Batch'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormInput label="Batch Code" name="code" value={formData.code} onChange={handleChange} required />
+        <FormInput label="Capacity" name="capacity" value={formData.capacity} onChange={handleChange} type="number" required />
+        <div>
+          <label className="form-label">Course</label>
+          <select name="course" value={formData.course} onChange={handleChange} className="form-input">
+            {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="form-label">Trainer</label>
+          <select name="trainer" value={formData.trainer} onChange={handleChange} className="form-input">
+            {trainers.map(t => <option key={t.id} value={t.id}>{t.trainer_name}</option>)}
+          </select>
+        </div>
+        <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Save Batch'}
+        </button>
+      </form>
+    </Modal>
+  );
+};
+
+// --- Trainer Modal (Add/Edit) ---
+const TrainerModal = ({ isOpen, onClose, onSuccess, item, users }) => {
+  const [formData, setFormData] = useState({ user: '', emp_no: '', join_date: '', salary: '' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (item) setFormData({ ...item, user: item.user.id });
+    else setFormData({ user: users[0]?.id || '', emp_no: '', join_date: new Date().toISOString().split('T')[0], salary: '' });
+  }, [item, users]);
+
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const payload = { ...formData, user: parseInt(formData.user) };
+    const promise = item
+      ? api.patch(`/trainers/${item.id}/`, payload)
+      : api.post('/trainers/', payload);
+    
+    try {
+      await toast.promise(promise, {
+        loading: `${item ? 'Updating' : 'Creating'} trainer...`,
+        success: `Trainer ${item ? 'updated' : 'created'}!`,
+        error: (err) => err.response?.data?.detail || 'An error occurred.'
+      });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={item ? 'Edit Trainer' : 'Add New Trainer'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="form-label">User Account</label>
+          <select name="user" value={formData.user} onChange={handleChange} className="form-input" disabled={!!item}>
+            {users.map(u => <option key={u.id} value={u.id}>{u.username} ({u.first_name} {u.last_name})</option>)}
+          </select>
+          {item && <p className="text-xs text-muted-foreground">User account cannot be changed after creation.</p>}
+        </div>
+        <FormInput label="Employee No." name="emp_no" value={formData.emp_no} onChange={handleChange} required />
+        <FormInput label="Join Date" name="join_date" value={formData.join_date} onChange={handleChange} type="date" required />
+        <FormInput label="Salary" name="salary" value={formData.salary} onChange={handleChange} type="number" step="0.01" required />
+        <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Save Trainer'}
+        </button>
+      </form>
+    </Modal>
+  );
+};
+
+// --- List Component for Tab Content ---
+const ListComponent = ({ items, onEdit, columns, loading }) => (
+  loading ? (
+    <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+  ) : (
+    <ul role="list" className="divide-y divide-border">
+      {items.map(item => (
+        <li key={item.id} className="flex items-center justify-between p-4">
+          <div className="grid grid-cols-3 gap-4 flex-1">
+            {columns.map(col => (
+              <div key={col.key}>
+                <p className="text-xs text-muted-foreground">{col.label}</p>
+                <p className="text-sm font-medium text-foreground">{item[col.key]}</p>
+              </div>
+            ))}
           </div>
+          <button onClick={() => onEdit(item)} className="btn-outline btn-sm ml-4">
+            <Edit size={16} />
+          </button>
         </li>
-      )}
-    >
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Course">
-        <CourseForm onSaved={() => { fetchItems(); setIsModalOpen(false); }} />
-      </Modal>
-    </CrudList>
-  );
-}
+      ))}
+    </ul>
+  )
+);
 
-// --- UPDATE BatchTab ---
-function BatchTab() {
-  const [items, setItems] = useState([]);
+// --- Main Page Component ---
+function CourseManagementPage() {
+  const [activeTab, setActiveTab] = useState('courses');
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  
-  // Data for modal dropdowns
-  const [courses, setCourses] = useState([]);
-  const [trainers, setTrainers] = useState([]);
+  const [data, setData] = useState({ courses: [], batches: [], trainers: [], users: [] });
+  const [modal, setModal] = useState({ type: null, item: null }); // type: 'course', 'batch', 'trainer'
 
-  const fetchItems = async () => {
-    setLoading(true);
-    const [batchRes, courseRes, trainerRes] = await Promise.all([
-      api.get('/batches/'),
-      api.get('/courses/'),
-      api.get('/trainers/')
-    ]);
-    setItems(batchRes.data.results || []);
-    setCourses(courseRes.data.results || []);
-    setTrainers(trainerRes.data.results || []);
-    setLoading(false);
-  };
-
-  useEffect(() => { fetchItems(); }, []);
-
-  return (
-    <CrudList
-      title="Batches (Groups)" // <-- Renamed title
-      items={items}
-      loading={loading}
-      onAdd={() => setIsModalOpen(true)}
-      renderItem={item => (
-        <li key={item.id} className="p-4">
-          <p className="font-semibold">Batch {item.code} ({item.course_title})</p>
-          <p className="text-sm text-muted-foreground">Trainer: {item.trainer_name || 'Not assigned'}</p>
-          <div className="flex gap-4 text-sm mt-2">
-            {/* --- SIMPLIFIED BATCH INFO --- */}
-            <span>Capacity: <strong>{item.capacity || 'Not set'}</strong></span>
-          </div>
-        </li>
-      )}
-    >
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Batch (Group)">
-        <BatchForm courses={courses} trainers={trainers} onSaved={() => { fetchItems(); setIsModalOpen(false); }} />
-      </Modal>
-    </CrudList>
-  );
-}
-
-// ... (TrainerTab component is unchanged) ...
-function TrainerTab() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [staffUsers, setStaffUsers] = useState([]);
-
-  const fetchItems = async () => {
-    setLoading(true);
-    const [trainerRes, userRes] = await Promise.all([
-        api.get('/trainers/'),
-        api.get('/users/?is_staff=true') // Fetch users who can be trainers
-    ]);
-    setItems(trainerRes.data.results || []);
-    setStaffUsers(userRes.data.results || []);
-    setLoading(false);
-  };
-  
-  useEffect(() => { fetchItems(); }, []);
-
-  return (
-    <CrudList
-      title="Trainers"
-      items={items}
-      loading={loading}
-      onAdd={() => setIsModalOpen(true)}
-      renderItem={item => (
-        <li key={item.id} className="p-4">
-          <p className="font-semibold">{item.trainer_name} ({item.emp_no})</p>
-          <p className="text-sm text-muted-foreground">Joined: {new Date(item.join_date).toLocaleDateString()}</p>
-          <p className="text-sm text-muted-foreground">Salary: ₹{parseFloat(item.salary).toLocaleString('en-IN')}</p>
-        </li>
-      )}
-    >
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Trainer">
-        <TrainerForm 
-          staffUsers={staffUsers} 
-          existingTrainers={items}
-          onSaved={() => { fetchItems(); setIsModalOpen(false); }} 
-        />
-      </Modal>
-    </CrudList>
-  );
-}
-
-// ... (FeedbackTab component is unchanged) ...
-function FeedbackTab() {
-  const [feedback, setFeedback] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchFeedback = async () => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/feedback/');
-      setFeedback(res.data.results || []);
+      const [coursesRes, batchesRes, trainersRes, usersRes] = await Promise.all([
+        api.get('/courses/'),
+        api.get('/batches/'),
+        api.get('/trainers/'),
+        api.get('/users/', { params: { is_staff: true } }) // Get staff users for trainer creation
+      ]);
+      setData({
+        courses: coursesRes.data.results || [],
+        batches: batchesRes.data.results || [],
+        trainers: trainersRes.data.results || [],
+        users: usersRes.data.results || []
+      });
     } catch (err) {
-      console.error("Failed to fetch feedback", err);
+      toast.error('Failed to load data.');
     } finally {
       setLoading(false);
     }
   };
-  
-  useEffect(() => { fetchFeedback(); }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[300px]">
-        <Loader2 className="animate-spin text-primary" size={40} />
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const openModal = (type, item = null) => setModal({ type, item });
+  const closeModal = () => setModal({ type: null, item: null });
+
+  const tabs = [
+    { id: 'courses', label: 'Courses', icon: Book },
+    { id: 'batches', label: 'Batches', icon: Briefcase },
+    { id: 'trainers', label: 'Trainers', icon: UserCheck },
+  ];
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-foreground mb-4">Student Feedback</h2>
-      {feedback.length === 0 ? (
-        <p className="card p-10 text-center text-muted-foreground">No feedback has been submitted yet.</p>
-      ) : (
-        <div className="space-y-4">
-          {feedback.map(item => (
-            <div key={item.id} className="card p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-semibold text-foreground">{item.student_name}</p>
-                  <p className="text-sm text-muted-foreground">Batch: {item.batch_code}</p>
-                </div>
-                <div className="flex items-center gap-1 text-yellow-500">
-                  <Star size={20} fill="currentColor" />
-                  <span className="text-xl font-bold">{item.rating}</span>
-                </div>
-              </div>
-              {item.comments && (
-                <p className="text-muted-foreground mt-3 pt-3 border-t border-border italic">
-                  "{item.comments}"
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ... (CrudList component is unchanged) ...
-const CrudList = ({ title, items, loading, onAdd, renderItem, children }) => (
-  <>
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-      {onAdd && ( // Only show button if 'onAdd' prop is passed
-        <button onClick={onAdd} className="btn-primary flex items-center gap-2">
-          <Plus size={18} /> New {title.slice(0, -1)}
+    <>
+      <PageHeader title="Course Management">
+        <button className="btn-primary flex items-center gap-2" onClick={() => openModal(activeTab)}>
+          <Plus size={18} />
+          Add New {activeTab.slice(0, -1)}
         </button>
-      )}
-    </div>
-    {loading ? (
-      <div className="flex justify-center items-center min-h-[200px]"><Loader2 className="animate-spin text-primary" /></div>
-    ) : (
-      <div className="card">
-        <ul className="divide-y divide-border">
-          {items.length === 0 ? <p className="p-10 text-center text-muted-foreground">No {title.toLowerCase()} found.</p> : items.map(renderItem)}
-        </ul>
-      </div>
-    )}
-    {children}
-  </>
-);
+      </PageHeader>
 
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          {/* Tabs */}
+          <div className="mb-6 border-b border-border">
+            <nav className="flex -mb-px space-x-8">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-1 py-4 border-b-2 font-medium text-sm
+                    ${activeTab === tab.id
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  <tab.icon size={16} />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
 
-// --- UPDATE CourseForm ---
-function CourseForm({ onSaved }) {
-  const [data, setData] = useState({ 
-    code: '', 
-    title: '', 
-    duration_weeks: 12, 
-    total_fees: 0, 
-    syllabus: '',
-    required_attendance_days: 36 // <-- 1. ADD NEW FIELD
-  });
-  const [loading, setLoading] = useState(false);
-  
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    // --- 2. ADD LOGIC TO AUTO-UPDATE DAYS ---
-    let newData = { ...data, [name]: value };
-    if (name === 'duration_weeks') {
-      const weeks = parseInt(value, 10);
-      if (weeks === 12) {
-        newData.required_attendance_days = 36;
-      } else if (weeks === 24) {
-        newData.required_attendance_days = 72;
-      } else if (!isNaN(weeks)) {
-        newData.required_attendance_days = weeks * 3; // Default to 3 days/week
-      }
-    }
-    setData(newData);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    await api.post('/courses/', data); 
-    setLoading(false);
-    onSaved();
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div><label className="form-label">Course Title</label><input type="text" name="title" value={data.title} onChange={handleChange} className="form-input" required /></div>
-      <div><label className="form-label">Course Code</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., 3MC or 6MC" /></div>
-      <div><label className="form-label">Syllabus / Description</label><textarea name="syllabus" value={data.syllabus} onChange={handleChange} className="form-input" rows="3"></textarea></div>
-      <div className="grid grid-cols-3 gap-4"> {/* <-- 3. CHANGED TO 3 COLS */}
-        <div><label className="form-label">Duration (weeks)</label><input type="number" name="duration_weeks" value={data.duration_weeks} onChange={handleChange} className="form-input" required /></div>
-        {/* --- 4. ADDED NEW INPUT --- */}
-        <div><label className="form-label">Required Days</label><input type="number" name="required_attendance_days" value={data.required_attendance_days} onChange={handleChange} className="form-input" required /></div>
-        <div><label className="form-label">Total Fees (₹)</label><input type="number" name="total_fees" value={data.total_fees} onChange={handleChange} className="form-input" required /></div>
-      </div>
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Save Course'}</button>
-    </form>
-  );
-}
-
-
-// --- UPDATE BatchForm ---
-function BatchForm({ courses, trainers, onSaved }) {
-  const [data, setData] = useState({ 
-    course: '', 
-    trainer: '', 
-    code: '', 
-    // timing: '', // <-- 1. REMOVED TIMING
-    capacity: 10 
-  });
-  const [loading, setLoading] = useState(false);
-  const handleChange = (e) => setData({ ...data, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    // --- 2. SIMPLIFIED PAYLOAD ---
-    const dataToSend = {
-      course: data.course,
-      trainer: data.trainer || null,
-      code: data.code,
-      capacity: data.capacity,
-      schedule: {} // Send empty schedule
-    };
-    
-    await api.post('/batches/', dataToSend);
-    setLoading(false);
-    onSaved();
-  };
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div><label className="form-label">Course</label><select name="course" value={data.course} onChange={handleChange} className="form-input" required><option value="" disabled>Select course</option>{courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select></div>
-      <div><label className="form-label">Trainer</label><select name="trainer" value={data.trainer} onChange={handleChange} className="form-input"><option value="">Select trainer (optional)</option>{trainers.map(t => <option key={t.id} value={t.id}>{t.trainer_name}</option>)}</select></div>
-      {/* --- 3. MOVED TO 2-COL GRID --- */}
-      <div className="grid grid-cols-2 gap-4">
-        <div><label className="form-label">Batch Code / Group Name</label><input type="text" name="code" value={data.code} onChange={handleChange} className="form-input" required placeholder="e.g., Group-A" /></div>
-        <div><label className="form-label">Capacity</label><input type="number" name="capacity" value={data.capacity} onChange={handleChange} className="form-input" required /></div>
-      </div>
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Save Batch'}</button>
-    </form>
-  );
-}
-
-// ... (TrainerForm component is unchanged) ...
-function TrainerForm({ staffUsers, existingTrainers, onSaved }) {
-  const [data, setData] = useState({ 
-    user: '', 
-    emp_no: '', 
-    join_date: new Date().toISOString().split('T')[0], // Default to today
-    salary: 0 
-  });
-  const [loading, setLoading] = useState(false);
-  const handleChange = (e) => setData({ ...data, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    await api.post('/trainers/', data);
-    setLoading(false);
-    onSaved();
-  };
-
-  // Filter out staff users who are already trainers
-  const existingTrainerUserIds = existingTrainers.map(t => t.user);
-  const availableStaff = staffUsers.filter(u => !existingTrainerUserIds.includes(u.id));
-  
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="form-label">User Account</label>
-        <select name="user" value={data.user} onChange={handleChange} className="form-input" required>
-          <option value="" disabled>Select staff member</option>
-          {availableStaff.length === 0 && <option disabled>No available staff accounts. Create a new staff user first.</option>}
-          {availableStaff.map(u => (
-            <option key={u.id} value={u.id}>
-              {u.first_name} {u.last_name} ({u.username})
-            </option>
-          ))}
-        </select>
-      </div>
-      <div><label className="form-label">Employee No.</label><input type="text" name="emp_no" value={data.emp_no} onChange={handleChange} className="form-input" required placeholder="e.g., T-001" /></div>
-      <div className="grid grid-cols-2 gap-4">
-        <div><label className="form-label">Joining Date</label><input type="date" name="join_date" value={data.join_date} onChange={handleChange} className="form-input" required /></div>
-        <div><label className="form-label">Salary (₹)</label><input type="number" name="salary" value={data.salary} onChange={handleChange} className="form-input" required /></div>
-      </div>
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Save Trainer'}</button>
-    </form>
+          {/* Content */}
+          <div className="card overflow-hidden">
+            {activeTab === 'courses' && (
+              <ListComponent
+                loading={loading}
+                items={data.courses}
+                onEdit={(item) => openModal('course', item)}
+                columns={[
+                  { label: 'Title', key: 'title' },
+                  { label: 'Code', key: 'code' },
+                  { label: 'Fees', key: 'total_fees' }
+                ]}
+              />
+            )}
+            {activeTab === 'batches' && (
+              <ListComponent
+                loading={loading}
+                items={data.batches.map(b => ({...b, course_title: b.course?.title, trainer_name: b.trainer?.trainer_name}))}
+                onEdit={(item) => openModal('batch', item)}
+                columns={[
+                  { label: 'Code', key: 'code' },
+                  { label: 'Course', key: 'course_title' },
+                  { label: 'Trainer', key: 'trainer_name' }
+                ]}
+              />
+            )}
+            {activeTab === 'trainers' && (
+              <ListComponent
+                loading={loading}
+                items={data.trainers.map(t => ({...t, name: t.trainer_name, email: t.user?.email}))}
+                onEdit={(item) => openModal('trainer', item)}
+                columns={[
+                  { label: 'Name', key: 'name' },
+                  { label: 'Employee No', key: 'emp_no' },
+                  { label: 'Email', key: 'email' }
+                ]}
+              />
+            )}
+          </div>
+        </div>
+      </main>
+      
+      {/* Modals */}
+      <CourseModal isOpen={modal.type === 'course'} onClose={closeModal} onSuccess={fetchData} item={modal.item} />
+      <BatchModal isOpen={modal.type === 'batch'} onClose={closeModal} onSuccess={fetchData} item={modal.item} courses={data.courses} trainers={data.trainers} />
+      <TrainerModal isOpen={modal.type === 'trainer'} onClose={closeModal} onSuccess={fetchData} item={modal.item} users={data.users} />
+    </>
   );
 }
 

@@ -1,70 +1,48 @@
 import React from 'react';
-import EnquiryForm from '../components/EnquiryForm.jsx';
 import { Phone, Mail, MapPin } from 'lucide-react';
 
 function ContactPage() {
   return (
-    <div className="py-20 bg-background">
-      <div className="mx-auto max-w-5xl px-4">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-foreground">Get In Touch</h1>
-          <p className="text-xl text-muted-foreground mt-2">
-            We'd love to hear from you. Start your journey today!
+    <div className="bg-background min-h-[70vh]">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Get In Touch
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground">
+            We'd love to hear from you. Please reach out with any questions.
           </p>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-16">
-          {/* Column 1: Contact Info */}
-          <div className="bg-card p-8 rounded-xl shadow-lg dark:border dark:border-border">
-            <h2 className="text-2xl font-semibold text-foreground mb-6">Contact Information</h2>
-            <div className="space-y-6">
-              <InfoRow
-                icon={MapPin}
-                title="Address"
-                lines={[
-                  "Noor Stitching Institute,",
-                  "Madrassa Building, Kacheriparamba,",
-                  "Munderi, 670591"
-                ]}
-              />
-              <InfoRow
-                icon={Phone}
-                title="Phone"
-                lines={[
-                  <a href="tel:+919526978708" className="hover:text-primary">+91 9526978708</a>
-                ]}
-              />
-              <InfoRow
-                icon={Mail}
-                title="Email"
-                lines={[
-                  <a href="mailto:info@noorstitching.com" className="hover:text-primary">info@noorstitching.com</a>,
-                  <span className="text-sm">(For enquiries)</span>
-                ]}
-              />
-            </div>
-          </div>
-
-          {/* Column 2: Enquiry Form */}
-          <div className="p-8 bg-card rounded-xl shadow-2xl border border-border">
-            <h2 className="text-2xl font-semibold text-foreground mb-6">Send us a Message</h2>
-            <EnquiryForm />
-          </div>
+        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+          <ContactCard 
+            icon={Phone} 
+            title="Phone" 
+            content="+91 9526978708" 
+          />
+          <ContactCard 
+            icon={Mail} 
+            title="Email" 
+            content="info@noorinstitute.com" 
+          />
+          <ContactCard 
+            icon={MapPin} 
+            title="Address" 
+            content="Munderi, Malappuram, Kerala, India" 
+          />
         </div>
+        
+        {/* You could add a Google Maps embed here */}
       </div>
     </div>
   );
 }
 
-const InfoRow = ({ icon: Icon, title, lines }) => (
-  <div className="flex">
-    <Icon className="w-6 h-6 text-primary shrink-0 mt-1" />
-    <div className="ml-4">
-      <h3 className="text-lg font-semibold text-foreground">{title}</h3>
-      {lines.map((line, index) => (
-        <p key={index} className="text-muted-foreground">{line}</p>
-      ))}
-    </div>
+const ContactCard = ({ icon: Icon, title, content }) => (
+  <div className="card p-8 text-center">
+    <Icon className="w-12 h-12 text-primary mx-auto mb-4" />
+    <h3 className="text-xl font-semibold text-foreground mb-2">{title}</h3>
+    <p className="text-muted-foreground">{content}</p>
   </div>
 );
 

@@ -1,7 +1,6 @@
-/* NEW FILE: src/components/ThemeToggle.jsx */
 import React from 'react';
-import { useTheme } from '@/context/ThemeContext.jsx';
 import { Sun, Moon, Laptop } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext.jsx';
 
 function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -16,15 +15,15 @@ function ThemeToggle() {
     }
   };
 
+  const Icon = theme === 'light' ? Sun : theme === 'dark' ? Moon : Laptop;
+
   return (
     <button
       onClick={cycleTheme}
-      className="p-2 text-muted-foreground hover:bg-accent rounded-full"
+      className="p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-full"
       aria-label="Toggle theme"
     >
-      {theme === 'light' && <Sun className="h-5 w-5" />}
-      {theme === 'dark' && <Moon className="h-5 w-5" />}
-      {theme === 'system' && <Laptop className="h-5 w-5" />}
+      <Icon className="h-5 w-5" />
     </button>
   );
 }

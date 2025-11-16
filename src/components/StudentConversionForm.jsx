@@ -1,228 +1,138 @@
 import React, { useState } from 'react';
-import api from '@/services/api.js';
-import { X, Loader2, User, Phone, Mail } from 'lucide-react';
-import Modal from './Modal.jsx';
-import { useNavigate } from 'react-router-dom';
+import api from '../services/api.js';
+import { toast } from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
-/**
- * This form handles the logic for converting a student Enquiry
- * into a full Student and creating their User account.
- *
- * Props:
- * - enquiry: The enquiry object with { name, phone, email, id }
- * - onClose: Function to call to close the modal
- */
-function StudentConversionForm({ enquiry, onClose }) {
-  const navigate = useNavigate();
-  
-  // Auto-generate a username suggestion
-  const suggestedUsername = (enquiry.email?.split('@')[0] || enquiry.name.toLowerCase().replace(/[^a-z0-9]/g, '.'))
-    .replace('..', '.'); // Clean up
-
+function StudentConversionForm({ enquiry, onSuccess }) {
   const [formData, setFormData] = useState({
+    user_payload: {
+      first_name: enquiry?.name.split(' ')[0] || '',
+      last_name: enquiry?.name.split(' ').slice(1).join(' ') || '',
+      phone: enquiry?.phone || '',
+      email: enquiry?.email || '',
+      username: '',
+      password: '',
+    },
     guardian_name: '',
     guardian_phone: '',
     address: '',
-    username: suggestedUsername,
-    password: '',
+    admission_date: new Date().toISOString().split('T')[0], // Default to today
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUserPayloadChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      user_payload: {
+        ...prev.user_payload,
+        [name]: value,
+      },
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
+    setIsLoading(true);
 
-    // Split name into first_name and last_name
-    const nameParts = enquiry.name.trim().split(' ');
-    const firstName = nameParts.shift() || '';
-    const lastName = nameParts.join(' ') || ''; // <-- **FIX: Default to empty string, not firstname**
+    const { user_payload } = formData;
+    if (!user_payload.username || !user_payload.password) {
+      toast.error('Username and Password are required.');
+      setIsLoading(false);
+      return;
+    }
 
-    // This structure MUST match your StudentSerializer's `create` method
-    const studentData = {
-      guardian_name: formData.guardian_name,
-      guardian_phone: formData.guardian_phone,
-      address: formData.address,
-      user_payload: {
-        username: formData.username,
-        password: formData.password,
-        first_name: firstName,
-        last_name: lastName,
-        email: enquiry.email || '', // Handle optional email
-        phone: enquiry.phone,
-      }
-    };
+    const promise = api.post('/students/', formData);
 
     try {
-      // 1. Create the new student (which also creates the user)
-      // This POSTs to /api/v1/students/
-      const studentResponse = await api.post('/students/', studentData);
+      const newStudent = await toast.promise(promise, {
+        loading: 'Creating student account...',
+        success: 'Student created successfully!',
+        error: (err) => {
+          // Parse complex backend errors
+          const errors = err.response?.data;
+          if (errors?.user_payload) {
+            const userErrors = errors.user_payload;
+            const key = Object.keys(userErrors)[0];
+            return `User Error: ${key} - ${userErrors[key][0]}`;
+          }
+          if (errors) {
+            const key = Object.keys(errors)[0];
+            return `${key}: ${errors[key][0]}`;
+          }
+          return 'Conversion failed. Please check fields.';
+        },
+      });
 
-      // 2. If successful, update the original enquiry to "converted"
-      // This PATCHes /api/v1/enquiries/{id}/
-      if (studentResponse.status === 201) {
-        await api.patch(`/enquiries/${enquiry.id}/`, { status: 'converted' });
+      if (onSuccess) {
+        onSuccess(newStudent.data);
       }
-
-      // 3. Close the modal and navigate to the new student's detail page
-      onClose();
-      navigate(`/admin/student/${studentResponse.data.id}`); // Go to new student
 
     } catch (err) {
-      let errorMsg = 'Failed to create student. Please try again.';
-      // Try to parse detailed error messages from Django
-      if (err.response && err.response.data) {
-         const errors = err.response.data;
-         if (errors.user_payload && errors.user_payload.username) {
-            errorMsg = `Username: ${errors.user_payload.username[0]}`;
-         } else if (errors.user_payload && errors.user_payload.password) {
-            errorMsg = `Password: ${errors.user_payload.password[0]}`;
-         } else if (errors.reg_no) {
-            errorMsg = `Reg No: ${errors.reg_no[0]}`;
-         } else if (Array.isArray(errors)) {
-           errorMsg = errors[0];
-         } else if (typeof errors === 'object') {
-            const firstKey = Object.keys(errors)[0];
-            errorMsg = `${firstKey}: ${errors[firstKey][0]}`;
-         }
-      }
-      setError(errorMsg);
-      console.error("Conversion failed:", err.response?.data || err.message);
+      // Error is already toasted
+      console.error(err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Error Message */}
-      {error && (
-        <div className="form-error">
-          <p className="text-sm font-medium text-destructive">{error}</p>
-        </div>
-      )}
-
-      {/* Pre-filled Enquiry Info */}
-      <div className="p-4 bg-muted rounded-lg border border-border">
-        <h4 className="font-semibold text-foreground mb-3">Enquiry Information</h4>
-        <div className="space-y-2">
-          <InfoRow icon={User} label="Name" value={enquiry.name} />
-          <InfoRow icon={Phone} label="Phone" value={enquiry.phone} />
-          {enquiry.email && (
-            <InfoRow icon={Mail} label="Email" value={enquiry.email} />
-          )}
-        </div>
-      </div>
-
-      <div>
-        <h4 className="font-semibold text-foreground">New Student Details</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label htmlFor="guardian_name" className="form-label">
-              Guardian's Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="guardian_name"
-              id="guardian_name"
-              value={formData.guardian_name}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="guardian_phone" className="form-label">
-              Guardian's Phone <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="tel"
-              name="guardian_phone"
-              id="guardian_phone"
-              value={formData.guardian_phone}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label htmlFor="address" className="form-label">Full Address</label>
-          <textarea
-            name="address"
-            id="address"
-            value={formData.address}
-            onChange={handleChange}
-            className="form-input"
-            rows="3"
-          />
-        </div>
-      </div>
-
-      <div className="border-t border-border pt-6">
-        <h4 className="font-semibold text-foreground">
-          Student Account
-        </h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label htmlFor="username" className="form-label">
-              Username <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              name="username"
-              id="username"
-              value={formData.username}
-              onChange={handleChange}
-              className="form-input"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="form-label">
-              Temporary Password <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="password"
-              name="password"
-              id="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="form-input"
-              placeholder="Create a password for the student"
-              required
-            />
-          </div>
-        </div>
-      </div>
+    <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto p-1">
+      <p className="text-sm text-muted-foreground">
+        Create a new student profile and user account for <span className="font-semibold text-foreground">{enquiry.name}</span>.
+      </p>
       
-      {/* Submit Button */}
-      <div className="pt-2">
+      {/* Student Fields */}
+      <h4 className="font-semibold text-foreground border-b border-border pb-1">Student Details</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormInput label="First Name" name="first_name" value={formData.user_payload.first_name} onChange={handleUserPayloadChange} required />
+        <FormInput label="Last Name" name="last_name" value={formData.user_payload.last_name} onChange={handleUserPayloadChange} />
+        <FormInput label="Phone" name="phone" value={formData.user_payload.phone} onChange={handleUserPayloadChange} required />
+        <FormInput label="Email" name="email" type="email" value={formData.user_payload.email} onChange={handleUserPayloadChange} />
+        <FormInput label="Admission Date" name="admission_date" type="date" value={formData.admission_date} onChange={handleChange} required />
+      </div>
+      <FormInput label="Address" name="address" value={formData.address} onChange={handleChange} />
+
+      {/* Guardian Fields */}
+      <h4 className="font-semibold text-foreground border-b border-border pb-1 pt-2">Guardian Details</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormInput label="Guardian Name" name="guardian_name" value={formData.guardian_name} onChange={handleChange} required />
+        <FormInput label="Guardian Phone" name="guardian_phone" value={formData.guardian_phone} onChange={handleChange} required />
+      </div>
+
+      {/* Account Fields */}
+      <h4 className="font-semibold text-foreground border-b border-border pb-1 pt-2">Account Login</h4>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormInput label="Username" name="username" value={formData.user_payload.username} onChange={handleUserPayloadChange} required />
+        <FormInput label="Password" name="password" type="password" value={formData.user_payload.password} onChange={handleUserPayloadChange} required />
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
         <button
           type="submit"
-          className="btn-primary w-full justify-center"
-          disabled={loading}
+          className="btn-primary w-full"
+          disabled={isLoading}
         >
-          {loading ? <Loader2 className="animate-spin" /> : 'Create Student & Mark as Converted'}
+          {isLoading ? <Loader2 className="animate-spin" /> : `Create Student & Mark as Converted`}
         </button>
       </div>
     </form>
   );
 }
 
-const InfoRow = ({ icon: Icon, label, value }) => (
-  <div className="flex items-center">
-    <Icon className="w-4 h-4 text-muted-foreground mr-3" />
-    <div className="flex-1">
-      <span className="text-sm font-medium text-muted-foreground">{label}: </span>
-      <span className="text-sm text-foreground font-semibold">{value}</span>
-    </div>
+// Helper sub-component
+const FormInput = ({ label, name, ...props }) => (
+  <div>
+    <label htmlFor={name} className="form-label">{label}</label>
+    <input id={name} name={name} className="form-input" {...props} />
   </div>
 );
 

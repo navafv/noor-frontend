@@ -1,152 +1,212 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2, Plus, Users, Save, Shield } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
-import Modal from '@/components/Modal.jsx';
+import api from '../services/api.js';
+import { Loader2, Plus, Users, Search, Edit, Shield } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import Modal from '../components/Modal.jsx';
+import { toast } from 'react-hot-toast';
 
+// --- User Modal (Add/Edit) ---
+const UserModal = ({ isOpen, onClose, onSuccess, item, roles }) => {
+  const [formData, setFormData] = useState({
+    username: '', first_name: '', last_name: '', email: '', phone: '',
+    role_id: '', password: '', is_staff: false
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const isEditing = !!item;
+
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        username: item.username,
+        first_name: item.first_name,
+        last_name: item.last_name,
+        email: item.email,
+        phone: item.phone,
+        role_id: item.role?.id || '',
+        is_staff: item.is_staff,
+        password: '', // Password is write-only
+      });
+    } else {
+      setFormData({
+        username: '', first_name: '', last_name: '', email: '', phone: '',
+        role_id: roles[0]?.id || '', password: '', is_staff: false
+      });
+    }
+  }, [item, roles]);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    // Prepare payload
+    const payload = { ...formData, role_id: parseInt(formData.role_id) };
+    if (!isEditing && !payload.password) {
+      toast.error('Password is required for new users.');
+      setIsLoading(false);
+      return;
+    }
+    if (isEditing) delete payload.password; // Don't send empty password on edit
+
+    const promise = isEditing
+      ? api.patch(`/users/${item.id}/`, payload)
+      : api.post('/users/', payload); // Uses UserCreateSerializer
+    
+    try {
+      await toast.promise(promise, {
+        loading: `${isEditing ? 'Updating' : 'Creating'} user...`,
+        success: `User ${isEditing ? 'updated' : 'created'}!`,
+        error: (err) => err.response?.data?.username?.[0] || 'An error occurred.'
+      });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={isEditing ? 'Edit User' : 'Add New User'}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <FormInput label="Username" name="username" value={formData.username} onChange={handleChange} required />
+        <FormInput label="Password" name="password" type="password" onChange={handleChange} required={!isEditing} placeholder={isEditing ? 'Leave blank to keep unchanged' : ''} />
+        <div className="grid grid-cols-2 gap-4">
+          <FormInput label="First Name" name="first_name" value={formData.first_name} onChange={handleChange} />
+          <FormInput label="Last Name" name="last_name" value={formData.last_name} onChange={handleChange} />
+        </div>
+        <FormInput label="Email" name="email" type="email" value={formData.email} onChange={handleChange} />
+        <FormInput label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
+        <div>
+          <label className="form-label">Role</label>
+          <select name="role_id" value={formData.role_id} onChange={handleChange} className="form-input">
+            <option value="">-- No Role --</option>
+            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <input type="checkbox" id="is_staff" name="is_staff" checked={formData.is_staff} onChange={handleChange} className="h-4 w-4 rounded" />
+          <label htmlFor="is_staff" className="form-label mb-0">Is Staff (Teacher/Admin)</label>
+        </div>
+        <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+          {isLoading ? <Loader2 className="animate-spin" /> : 'Save User'}
+        </button>
+      </form>
+    </Modal>
+  );
+};
+
+// Helper component
+const FormInput = ({ label, ...props }) => (
+  <div>
+    <label htmlFor={props.name} className="form-label">{label}</label>
+    <input id={props.name} {...props} className="form-input" />
+  </div>
+);
+
+// --- Main Page Component ---
 function UserManagementPage() {
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modal, setModal] = useState({ isOpen: false, item: null });
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchUsers = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
+      const params = new URLSearchParams({ page, search: searchTerm });
       const [usersRes, rolesRes] = await Promise.all([
-        api.get('/users/'),
+        api.get(`/users/?${params.toString()}`),
         api.get('/roles/')
       ]);
       setUsers(usersRes.data.results || []);
+      setTotalPages(Math.ceil((usersRes.data.count || 0) / 20));
       setRoles(rolesRes.data.results || []);
     } catch (err) {
-      setError('Could not fetch users.');
+      toast.error('Failed to load data.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchData();
+    }, 500); // Debounce search
+    return () => clearTimeout(timer);
+  }, [page, searchTerm]);
 
-  const handleSaved = () => {
-    fetchUsers();
-    setIsModalOpen(false);
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(1);
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader title="User Management" />
+    <>
+      <PageHeader title="User Management">
+        <button className="btn-primary flex items-center gap-2" onClick={() => setModal({ isOpen: true, item: null })}>
+          <Plus size={18} />
+          Add User
+        </button>
+      </PageHeader>
 
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-4xl">
-          
-          <div className="flex justify-end mb-4">
-            <button onClick={() => setIsModalOpen(true)} className="btn-primary flex items-center gap-2">
-              <Plus size={18} /> New User
-            </button>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-6 relative">
+            <input
+              type="text"
+              placeholder="Search by username, name, or email..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="form-input pl-10"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
           </div>
 
-          {loading && <div className="flex justify-center"><Loader2 className="animate-spin text-primary" size={32} /></div>}
-          {error && <p className="form-error mx-4">{error}</p>}
-          
-          {!loading && !error && (
-            <div className="card overflow-hidden">
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : users.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No users found.</p>
+            ) : (
               <ul role="list" className="divide-y divide-border">
-                {users.map(user => (
-                  <li key={user.id} className="p-4 flex justify-between items-center">
+                {users.map((user) => (
+                  <li key={user.id} className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-foreground">{user.first_name} {user.last_name} ({user.username})</p>
+                      <p className="font-semibold text-foreground">{user.first_name} {user.last_name}</p>
+                      <p className="text-sm text-primary">{user.username}</p>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {user.is_staff && <span className="status-badge status-active">Staff</span>}
-                      {user.role && <span className="status-badge status-follow_up">{user.role.name}</span>}
+                      <span className="status-badge status-pending">{user.role?.name || 'No Role'}</span>
+                      <button onClick={() => setModal({ isOpen: true, item: user })} className="btn-outline btn-sm">
+                        <Edit size={16} />
+                      </button>
                     </div>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+            {/* TODO: Add Pagination controls */}
+          </div>
         </div>
       </main>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Create New User">
-        <UserForm roles={roles} onSaved={handleSaved} />
-      </Modal>
-    </div>
-  );
-}
-
-function UserForm({ roles, onSaved }) {
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    username: '',
-    password: '',
-    email: '',
-    phone: '',
-    is_staff: false,
-    role_id: null,
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    
-    const payload = { ...formData, role_id: formData.role_id || null };
-
-    try {
-      // This hits the new UserCreateSerializer
-      await api.post('/users/', payload);
-      onSaved();
-    } catch (err) {
-      const errors = err.response?.data;
-      if (errors?.username) setError(`Username: ${errors.username[0]}`);
-      else if (errors?.password) setError(`Password: ${errors.password[0]}`);
-      else setError('Failed to create user. That username may already be taken.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="form-error text-center">{error}</p>}
-      <div className="grid grid-cols-2 gap-4">
-        <div><label className="form-label">First Name</label><input type="text" name="first_name" value={formData.first_name} onChange={handleChange} className="form-input" required /></div>
-        <div><label className="form-label">Last Name</label><input type="text" name="last_name" value={formData.last_name} onChange={handleChange} className="form-input" /></div>
-      </div>
-      <div><label className="form-label">Username</label><input type="text" name="username" value={formData.username} onChange={handleChange} className="form-input" required /></div>
-      <div><label className="form-label">Password</label><input type="password" name="password" value={formData.password} onChange={handleChange} className="form-input" required /></div>
-      <div><label className="form-label">Email</label><input type="email" name="email" value={formData.email} onChange={handleChange} className="form-input" /></div>
-      <div><label className="form-label">Phone</label><input type="tel" name="phone" value={formData.phone} onChange={handleChange} className="form-input" /></div>
-      <div><label className="form-label">Role</label><select name="role_id" value={formData.role_id || ''} onChange={handleChange} className="form-input"><option value="">-- No Role --</option>{roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
-      
-      {/* THIS IS THE KEY CHECKBOX */}
-      <div className="flex items-center gap-2">
-        <input type="checkbox" name="is_staff" id="is_staff" checked={formData.is_staff} onChange={handleChange} className="h-4 w-4 rounded border-border" />
-        <label htmlFor="is_staff" className="form-label mb-0 select-none">
-          Mark as Staff (Teacher)
-        </label>
-      </div>
-      
-      <button type="submit" className="btn-primary w-full justify-center" disabled={loading}>{loading ? <Loader2 className="animate-spin" /> : 'Create User'}</button>
-    </form>
+      <UserModal
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ isOpen: false, item: null })}
+        onSuccess={fetchData}
+        item={modal.item}
+        roles={roles}
+      />
+    </>
   );
 }
 

@@ -1,169 +1,199 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Award, XCircle, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
-import Modal from '@/components/Modal.jsx'; // We'll use this for confirmation
+import React, { useState, useEffect } from 'react';
+import api from '../services/api.js';
+import { Loader2, Plus, Award, Search, RefreshCcw, Check, X } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import Modal from '../components/Modal.jsx';
+import { toast } from 'react-hot-toast';
 
-/**
- * Page for viewing, searching, and managing all issued certificates.
- * Admin-only feature.
- */
-function CertificateManagementPage() {
-  const [certificates, setCertificates] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // State for confirmation modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCert, setSelectedCert] = useState(null);
-  const [modalAction, setModalAction] = useState('revoke'); // 'revoke' or 'un-revoke'
-  const [processing, setProcessing] = useState(false);
+// Format date
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
 
-  const fetchCertificates = useCallback(async () => {
+// --- Issue Certificate Modal ---
+const IssueCertificateModal = ({ isOpen, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({ student: '', course: '', remarks: '' });
+  const [isLoading, setIsLoading] = useState(false);
+  // TODO: Fetch students and courses to populate dropdowns
+  // For now, we use simple number inputs for IDs
+
+  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const payload = {
+      ...formData,
+      student: parseInt(formData.student),
+      course: parseInt(formData.course)
+    };
+
+    const promise = api.post('/certificates/', payload);
+
     try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get('/certificates/');
-      setCertificates(response.data.results || []);
-    } catch (err) {
-      setError('Could not fetch certificates. Please try again later.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCertificates();
-  }, [fetchCertificates]);
-
-  const openRevokeModal = (cert) => {
-    setSelectedCert(cert);
-    setModalAction(cert.revoked ? 'un-revoke' : 'revoke');
-    setIsModalOpen(true);
-  };
-
-  const handleRevoke = async () => {
-    if (!selectedCert) return;
-    
-    setProcessing(true);
-    setError(null);
-    try {
-      // Call the new backend action
-      await api.post(`/certificates/${selectedCert.id}/revoke/`);
-      
-      // Update state optimistically
-      setCertificates(prev => 
-        prev.map(c => c.id === selectedCert.id ? { ...c, revoked: !c.revoked } : c)
-      );
-      
-      setIsModalOpen(false);
-      setSelectedCert(null);
-    } catch (err) {
-      setError(`Failed to ${modalAction} certificate.`);
-    } finally {
-      setProcessing(false);
+      await toast.promise(promise, {
+        loading: 'Issuing certificate...',
+        success: 'Certificate issued successfully! PDF is generating.',
+        error: (err) => err.response?.data?.detail || 'Failed to issue certificate. Has the student completed the course?',
+      });
+      setFormData({ student: '', course: '', remarks: '' });
+      onSuccess();
+      onClose();
+    } catch (err) { /* handled by toast */ } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader title="Certificate Management" />
+    <Modal isOpen={isOpen} onClose={onClose} title="Issue New Certificate" size="lg">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          The system will validate that the student has completed the course before issuing.
+        </p>
+        {/* TODO: Replace with async search selects */}
+        <FormInput label="Student ID" name="student" value={formData.student} onChange={handleChange} type="number" required />
+        <FormInput label="Course ID" name="course" value={formData.course} onChange={handleChange} type="number" required />
+        <FormInput label="Remarks (Optional)" name="remarks" value={formData.remarks} onChange={handleChange} />
+        
+        <div className="flex justify-end pt-4">
+          <button type="submit" className="btn-primary w-full" disabled={isLoading}>
+            {isLoading ? <Loader2 className="animate-spin" /> : 'Issue Certificate'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
 
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-4xl">
-          {loading && (
-            <div className="flex justify-center items-center min-h-[300px]">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          )}
-          {error && <p className="form-error mx-4">{error}</p>}
-          
-          {!loading && !error && certificates.length === 0 && (
-            <div className="text-center p-10 card">
-              <Award size={40} className="mx-auto text-muted-foreground" />
-              <h3 className="mt-4 font-semibold text-foreground">No Certificates Found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Issue certificates from a student's detail page.
-              </p>
-            </div>
-          )}
+// Helper component
+const FormInput = ({ label, ...props }) => (
+  <div>
+    <label htmlFor={props.name} className="form-label">{label}</label>
+    <input id={props.name} {...props} className="form-input" />
+  </div>
+);
 
-          {/* Certificates List */}
-          {!loading && !error && certificates.length > 0 && (
-            <div className="card overflow-hidden">
+// --- Main Page Component ---
+function CertificateManagementPage() {
+  const [certificates, setCertificates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const fetchCertificates = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ page, search: searchTerm });
+      const res = await api.get(`/certificates/?${params.toString()}`);
+      setCertificates(res.data.results || []);
+      setTotalPages(Math.ceil((res.data.count || 0) / 20));
+    } catch (err) {
+      toast.error('Failed to load certificates.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCertificates();
+    }, 500); // Debounce search
+    return () => clearTimeout(timer);
+  }, [page, searchTerm]);
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(1);
+  };
+  
+  const handleRevoke = async (certId, isRevoked) => {
+    const action = isRevoked ? 'un-revoke' : 'revoke';
+    if (!window.confirm(`Are you sure you want to ${action} this certificate?`)) return;
+
+    const promise = api.post(`/certificates/${certId}/revoke/`);
+
+    try {
+      await toast.promise(promise, {
+        loading: `${action.charAt(0).toUpperCase() + action.slice(1)}ing certificate...`,
+        success: `Certificate ${action}d successfully.`,
+        error: `Failed to ${action} certificate.`
+      });
+      fetchCertificates(); // Refetch
+    } catch (err) { /* handled by toast */ }
+  };
+
+  return (
+    <>
+      <PageHeader title="Certificate Management">
+        <button className="btn-primary flex items-center gap-2" onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} />
+          Issue Certificate
+        </button>
+      </PageHeader>
+
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-6 relative">
+            <input
+              type="text"
+              placeholder="Search by certificate no, student name, or course..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              className="form-input pl-10"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          </div>
+
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : certificates.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No certificates found.</p>
+            ) : (
               <ul role="list" className="divide-y divide-border">
                 {certificates.map((cert) => (
-                  <li key={cert.id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <div className="grow">
-                      <div className="flex items-center gap-3">
-                        {cert.revoked ? (
-                          <XCircle size={16} className="text-red-500 shrink-0" />
-                        ) : (
-                          <CheckCircle size={16} className="text-green-500 shrink-0" />
-                        )}
-                        <span className="font-semibold text-foreground">{cert.certificate_no}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground pl-7">
-                        {cert.student_name}
-                      </p>
-                       <p className="text-sm text-muted-foreground pl-7">
-                        Course: {cert.course_title}
-                      </p>
+                  <li key={cert.id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-primary">{cert.certificate_no}</p>
+                      <p className="text-sm font-medium text-foreground">{cert.student_name}</p>
+                      <p className="text-sm text-muted-foreground">{cert.course_title}</p>
+                      <p className="text-xs text-muted-foreground">Issued: {formatDate(cert.issue_date)}</p>
                     </div>
-                    
-                    <div className="flex items-center justify-end gap-4">
+                    <div className="flex items-center gap-2">
                       {cert.revoked ? (
-                        <button 
-                          onClick={() => openRevokeModal(cert)}
-                          className="btn-secondary"
-                          title="Re-validate this certificate"
-                        >
-                          <RefreshCw size={16} className="mr-2" />
-                          Un-Revoke
-                        </button>
+                        <span className="status-badge status-closed">Revoked</span>
                       ) : (
-                        <button 
-                          onClick={() => openRevokeModal(cert)}
-                          className="btn-destructive"
-                          title="Revoke this certificate"
-                        >
-                          <XCircle size={16} className="mr-2" />
-                          Revoke
-                        </button>
+                        <span className="status-badge status-completed">Valid</span>
                       )}
+                      <button
+                        onClick={() => handleRevoke(cert.id, cert.revoked)}
+                        className={`btn-outline btn-sm ${cert.revoked ? 'text-green-600' : 'text-red-600'}`}
+                        title={cert.revoked ? 'Un-Revoke' : 'Revoke'}
+                      >
+                        {cert.revoked ? <Check size={16} /> : <X size={16} />}
+                      </button>
                     </div>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+            {/* TODO: Add Pagination controls */}
+          </div>
         </div>
       </main>
 
-      {/* Confirmation Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Confirm Action">
-        {selectedCert && (
-          <div className="space-y-4">
-            <div className="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <AlertTriangle className="text-yellow-600 mr-3 shrink-0" size={24} />
-              <p className="text-yellow-700 dark:text-yellow-300">
-                Are you sure you want to <strong>{modalAction}</strong> certificate 
-                <strong> {selectedCert.certificate_no}</strong> for <strong>{selectedCert.student_name}</strong>?
-              </p>
-            </div>
-            {error && <p className="form-error text-center">{error}</p>}
-            <button
-              onClick={handleRevoke}
-              disabled={processing}
-              className={`btn w-full justify-center ${modalAction === 'revoke' ? 'btn-destructive' : 'btn-secondary'}`}
-            >
-              {processing ? <Loader2 className="animate-spin" /> : `Yes, ${modalAction.charAt(0).toUpperCase() + modalAction.slice(1)}`}
-            </button>
-          </div>
-        )}
-      </Modal>
-    </div>
+      <IssueCertificateModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchCertificates}
+      />
+    </>
   );
 }
 

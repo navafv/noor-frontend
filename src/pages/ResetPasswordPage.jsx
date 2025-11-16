@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '@/services/api.js';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 function ResetPasswordPage() {
   const { uid, token } = useParams();
@@ -12,8 +13,7 @@ function ResetPasswordPage() {
     confirm_password: ''
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -22,13 +22,12 @@ function ResetPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.new_password !== formData.confirm_password) {
-      setError('Passwords do not match.');
+      toast.error('Passwords do not match.');
       return;
     }
 
     setLoading(true);
-    setError(null);
-    setSuccess(null);
+    setSuccess(false);
 
     try {
       // This hits /api/v1/auth/password-reset-confirm/
@@ -38,10 +37,12 @@ function ResetPasswordPage() {
         new_password: formData.new_password,
       };
       const response = await api.post('/auth/password-reset-confirm/', payload);
-      setSuccess(response.data.detail);
+      setSuccess(true);
+      toast.success(response.data.detail);
       setTimeout(() => navigate('/login'), 3000); // Redirect to login after 3s
     } catch (err) {
-      setError(err.response?.data?.detail || err.response?.data?.[0] || 'Invalid or expired link. Please request a new one.');
+      const errorMsg = err.response?.data?.detail || err.response?.data?.[0] || 'Invalid or expired link. Please request a new one.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -63,13 +64,7 @@ function ResetPasswordPage() {
           onSubmit={handleSubmit}
           className="mt-8 space-y-6 rounded-lg bg-card p-8 shadow-md border border-border"
         >
-          {error && <div className="form-error">{error}</div>}
-          {success && (
-            <div className="rounded-md bg-green-50 p-4 text-center text-sm font-medium text-green-700 flex items-center gap-2">
-              <CheckCircle size={20} />
-              {success} Redirecting...
-            </div>
-          )}
+          {/* Error/Success is now handled by toast */}
           
           {!success && (
             <>
@@ -110,6 +105,12 @@ function ResetPasswordPage() {
                 {loading ? <Loader2 className="animate-spin" /> : 'Set New Password'}
               </button>
             </>
+          )}
+
+          {success && (
+            <p className="text-center text-muted-foreground">
+              Your password has been reset. Redirecting you to login...
+            </p>
           )}
         </form>
       </div>

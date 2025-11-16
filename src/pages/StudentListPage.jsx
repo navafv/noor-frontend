@@ -1,162 +1,173 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Users, UserPlus, Phone, Mail, ChevronRight, Loader2 } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, UserPlus, Search, User, ChevronRight } from 'lucide-react';
+import api from '../services/api.js';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
 
-/**
- * Page for viewing all registered students.
- */
+// Helper to format date string
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 function StudentListPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [count, setCount] = useState(0);
-  const studentsPerPage = 10;
+  const [filterActive, setFilterActive] = useState('true'); // 'true', 'false', ''
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStudents = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
-        const params = {
-          page: currentPage,
-          page_size: studentsPerPage,
-          search: searchQuery,
-        };
-        const response = await api.get('/students/', { params });
-        setStudents(response.data.results);
-        setCount(response.data.count);
-        setTotalPages(Math.ceil(response.data.count / studentsPerPage));
+        const params = new URLSearchParams({
+          page: page,
+          active: filterActive,
+          search: searchTerm,
+        });
+
+        const res = await api.get(`/students/?${params.toString()}`);
+        setStudents(res.data.results || []);
+        setTotalPages(Math.ceil((res.data.count || 0) / 20)); // Assuming page size is 20
       } catch (err) {
-        setError('Could not fetch students. Please try again later.');
-        console.error(err);
+        console.error("Failed to fetch students:", err);
+        toast.error('Failed to load students.');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchStudents();
-  }, [currentPage, searchQuery]);
-
+    
+    // Debounce search
+    const timer = setTimeout(() => {
+      fetchStudents();
+    }, 500); // Wait 500ms after user stops typing
+    
+    return () => clearTimeout(timer);
+    
+  }, [page, filterActive, searchTerm]);
+  
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
+    setSearchTerm(e.target.value);
+    setPage(1); // Reset to first page on new search
   };
-
-  const getInitials = (firstName, lastName) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  
+  const handleFilterChange = (e) => {
+    setFilterActive(e.target.value);
+    setPage(1); // Reset to first page on new filter
   };
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <PageHeader title="Manage Students" />
+    <>
+      <PageHeader title="Students">
+        {/* "Add Student" button is handled by converting an enquiry */}
+      </PageHeader>
       
-      {/* Page Header */}
-      <div className="flex justify-between items-center mb-6 px-4">
-        <h1 className="text-2xl font-bold text-foreground flex items-center">
-          <Users size={28} className="mr-3 text-primary" />
-          Students ({count})
-        </h1>
-        <Link
-          to="/admin/enquiries" // Go to enquiries to add a new student
-          className="btn-primary flex items-center gap-2"
-        >
-          <UserPlus size={18} />
-          Add Student
-        </Link>
-      </div>
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          {/* Search and Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="md:col-span-2 relative">
+              <input
+                type="text"
+                placeholder="Search by name, reg no, or phone..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                className="form-input pl-10"
+              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <select
+                value={filterActive}
+                onChange={handleFilterChange}
+                className="form-input"
+              >
+                <option value="true">Active Students</option>
+                <option value="false">Inactive Students</option>
+                <option value="">All Students</option>
+              </select>
+            </div>
+          </div>
 
-      {/* Search Bar */}
-      <div className="mb-6 px-4">
-        <input
-          type="text"
-          placeholder="Search students by name or reg no..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          className="form-input"
-        />
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex justify-center items-center min-h-[300px]">
-          <Loader2 className="animate-spin text-primary" size={32} />
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && <p className="form-error mx-4">{error}</p>}
-
-      {/* Empty State */}
-      {!loading && !error && students.length === 0 && (
-        <div className="text-center p-10 card mx-4">
-          <Users size={40} className="mx-auto text-muted-foreground" />
-          <h3 className="mt-4 font-semibold text-foreground">No Students Found</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {searchQuery ? 'Try a different search term.' : 'Convert an enquiry to a student to see them here.'}
-          </p>
-        </div>
-      )}
-
-      {/* Student List */}
-      {!loading && !error && students.length > 0 && (
-        <div className="card overflow-hidden mx-4">
-          <ul role="list" className="divide-y divide-border">
-            {students.map((student) => (
-              <li key={student.id}>
-                <Link
-                  to={`/admin/student/${student.id}`}
-                  className="block hover:bg-accent"
-                >
-                  <div className="flex items-center px-4 py-4 sm:px-6">
-                    <div className="shrink-0">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                        <span className="font-medium text-primary">
-                          {getInitials(student.user.first_name, student.user.last_name)}
-                        </span>
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1 px-4 md:grid md:grid-cols-2 md:gap-4">
-                      <div>
+          {/* Student List */}
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-primary" size={40} />
+              </div>
+            ) : students.length === 0 ? (
+              <div className="text-center p-12 text-muted-foreground">
+                <User size={48} className="mx-auto mb-4" />
+                <p>No students found.</p>
+              </div>
+            ) : (
+              <ul role="list" className="divide-y divide-border">
+                {students.map((student) => (
+                  <li 
+                    key={student.id}
+                    onClick={() => navigate(`/admin/student/${student.id}`)}
+                    className="block hover:bg-accent cursor-pointer"
+                  >
+                    <div className="flex items-center p-4 sm:px-6">
+                      <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-primary">
                           {student.user.first_name} {student.user.last_name}
                         </p>
                         <p className="mt-1 flex items-center text-sm text-muted-foreground">
-                          <span className="truncate">Reg No: {student.reg_no}</span>
+                          {student.reg_no}
                         </p>
                       </div>
-                      <div className="hidden md:block">
-                        <div>
-                          <p className="mt-1 flex items-center text-sm text-muted-foreground">
-                            <Phone size={16} className="mr-2 text-muted-foreground" />
-                            {student.user.phone}
-                          </p>
-                          {student.user.email && (
-                            <p className="mt-1 flex items-center text-sm text-muted-foreground">
-                              <Mail size={16} className="mr-2 text-muted-foreground" />
-                              {student.user.email}
-                            </p>
-                          )}
-                        </div>
+                      <div className="ml-4 shrink-0 flex flex-col items-end gap-1">
+                        <span className={`status-badge ${student.active ? 'status-completed' : 'status-closed'}`}>
+                          {student.active ? 'Active' : 'Inactive'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Joined: {formatDate(student.admission_date)}
+                        </span>
+                      </div>
+                      <div className="ml-4 shrink-0">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </div>
                     </div>
-                    <div className="shrink-0">
-                      <ChevronRight size={20} className="text-muted-foreground" />
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-4 border-t border-border">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="btn-outline btn-sm"
+                >
+                  Previous
+                </button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="btn-outline btn-sm"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-    </div>
+      </main>
+    </>
   );
 }
 

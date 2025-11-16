@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, Library, Menu } from 'lucide-react';
+import { LayoutDashboard, User, CheckSquare, Book } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => {
   return (
@@ -19,17 +19,17 @@ const NavItem = ({ to, icon: Icon, label }) => {
   );
 };
 
-function BottomNav() {
+function TeacherBottomNav() {
   return (
     <nav className="fixed bottom-0 z-10 w-full border-t border-border bg-card shadow-inner lg:hidden">
       <div className="mx-auto flex h-16 max-w-lg items-stretch">
-        <NavItem to="/student/dashboard" icon={LayoutDashboard} label="Home" />
-        <NavItem to="/student/attendance" icon={CheckSquare} label="Attendance" />
-        <NavItem to="/student/materials" icon={Library} label="Materials" />
-        <NavItem to="/student/menu" icon={Menu} label="Menu" />
+        <NavItem to="/teacher/dashboard" icon={LayoutDashboard} label="Home" />
+        <NavItem to="/teacher/attendance" icon={CheckSquare} label="Attendance" />
+        <NavItem to="/teacher/my-batches" icon={Book} label="Batches" />
+        <NavItem to="/teacher/account" icon={User} label="Account" />
       </div>
     </nav>
   );
 }
 
-export default BottomNav;
+export default TeacherBottomNav;

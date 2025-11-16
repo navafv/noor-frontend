@@ -1,166 +1,148 @@
 import React, { useState, useEffect } from 'react';
+import { Loader2, Download, CheckCircle, XCircle } from 'lucide-react';
+import api from '../services/api.js';
+import PageHeader from '../components/PageHeader.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
-import api from '@/services/api.js';
-import { Loader2, DollarSign, Download, AlertCircle, ReceiptText } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
-import { useResponsive } from '../hooks/useResponsive.js'; // <-- IMPORT
+import { toast } from 'react-hot-toast';
+
+// Helper to format date string
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
 
 function StudentFinancePage() {
   const { user } = useAuth();
-  const [outstandingData, setOutstandingData] = useState(null);
+  const [summary, setSummary] = useState(null);
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [downloadingId, setDownloadingId] = useState(null);
-  const { isMobile } = useResponsive(); // <-- USE HOOK
 
   useEffect(() => {
-    if (!user?.student_id) {
-      setLoading(false);
-      setError("No student profile found.");
-      return;
-    }
+    if (!user?.student?.id) return;
 
     const fetchFinanceData = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
-        
-        const [outstandingRes, receiptsRes] = await Promise.all([
-          api.get(`/finance/outstanding/student/${user.student_id}/`),
-          api.get('/finance/my-receipts/')
+        // Fetch outstanding summary and receipts list in parallel
+        const [summaryRes, receiptsRes] = await Promise.all([
+          api.get(`/finance/outstanding/student/${user.student.id}/`),
+          api.get('/my-receipts/')
         ]);
-
-        setOutstandingData(outstandingRes.data);
+        setSummary(summaryRes.data);
         setReceipts(receiptsRes.data.results || []);
       } catch (err) {
-        setError('Failed to load finance data.');
-        console.error(err);
+        console.error("Failed to fetch finance data:", err);
+        toast.error('Failed to load financial data.');
       } finally {
         setLoading(false);
       }
     };
-
     fetchFinanceData();
   }, [user]);
 
-  const handleDownloadReceipt = async (receipt) => {
-    // ... (no change)
-    if (downloadingId === receipt.id) return;
-    setDownloadingId(receipt.id);
+  const handleDownload = async (receiptId, receiptNo) => {
+    const toastId = toast.loading('Downloading receipt...');
     try {
-      const response = await api.get(`/finance/receipts/${receipt.id}/download/`, {
-        responseType: 'blob',
+      // This endpoint is protected by the backend
+      const res = await api.get(`/finance/receipts/${receiptId}/download/`, {
+        responseType: 'blob', // Tell axios to expect a file
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${receipt.receipt_no}.pdf`);
+      link.setAttribute('download', `${receiptNo}.pdf`); // Set filename
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      // Clean up
+      link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      toast.success('Download complete!', { id: toastId });
     } catch (err) {
-      console.error("Failed to download receipt", err);
-      setError("Could not download receipt.");
-    } finally {
-      setDownloadingId(null);
+      console.error("Failed to download receipt:", err);
+      toast.error('Download failed. Please try again.', { id: toastId });
     }
   };
 
-  if (loading) {
-    return (
-      <>
-        {isMobile && <PageHeader title="My Finance" />}
-        <div className="flex justify-center items-center min-h-[400px]">
-          <Loader2 className="animate-spin text-primary" size={32} />
-        </div>
-      </>
-    );
-  }
-  
   return (
     <>
-      {/* --- UPDATED: Only show on mobile --- */}
-      {isMobile && <PageHeader title="My Finance" />}
-      
-      <div className="p-4 lg:p-8 max-w-lg mx-auto pb-20">
-        {error && <p className="form-error mb-4">{error}</p>}
-        
-        {/* 1. Outstanding Summary Card */}
-        {outstandingData && (
-          <div className={`card p-6 mb-6 ${outstandingData.total_due > 0 ? 'bg-red-50 dark:bg-red-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
-            <div className="flex items-center mb-4">
-              <AlertCircle className={`mr-3 shrink-0 ${outstandingData.total_due > 0 ? 'text-red-600' : 'text-green-600'}`} size={24} />
-              <h2 className={`text-lg font-semibold ${outstandingData.total_due > 0 ? 'text-red-700' : 'text-green-700'}`}>
-                Fee Status
-              </h2>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Course Fees</p>
-                <p className="text-2xl font-bold text-foreground">
-                  ₹{(outstandingData.total_paid + outstandingData.total_due).toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Paid</p>
-                <p className="text-2xl font-bold text-green-600">
-                  ₹{outstandingData.total_paid.toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div className="col-span-2 border-t border-border pt-4">
-                <p className="text-sm text-muted-foreground">Outstanding Dues</p>
-                <p className={`text-3xl font-bold ${outstandingData.total_due > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  ₹{outstandingData.total_due.toLocaleString('en-IN')}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      <PageHeader title="My Finance" />
 
-        {/* 2. Payment History */}
-        <div className="card">
-          <h2 className="text-lg font-semibold text-foreground p-6 border-b border-border flex items-center">
-            <ReceiptText size={20} className="mr-3 text-primary" />
-            Payment History
-          </h2>
-          {receipts.length === 0 ? (
-            <div className="text-center p-10 text-muted-foreground">
-              <p className="mt-4 font-semibold">No payments recorded yet.</p>
+      <main className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin text-primary" size={40} />
             </div>
           ) : (
-            <ul className="divide-y divide-border">
-              {receipts.map(receipt => (
-                <li key={receipt.id} className="p-4 flex justify-between items-center">
-                  <div>
-                    <p className="font-semibold text-foreground">₹{parseFloat(receipt.amount).toLocaleString('en-IN')}</p>
-                    <p className="text-sm text-muted-foreground">{receipt.receipt_no} ({receipt.mode})</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(receipt.date).toLocaleDateString('en-IN', { timeZone: 'UTC' })}
-                    </p>
+            <>
+              {/* Summary */}
+              {summary && (
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold text-foreground mb-4">Balance Overview</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="card p-4">
+                      <p className="text-sm text-muted-foreground">Total Fees Due</p>
+                      <p className="text-2xl font-bold text-destructive">
+                        ₹{summary.total_due.toLocaleString('en-IN')}
+                      </p>
+                    </div>
+                    <div className="card p-4">
+                      <p className="text-sm text-muted-foreground">Total Paid</p>
+                      <p className="text-2xl font-bold text-green-600">
+                        ₹{summary.total_paid.toLocaleString('en-IN')}
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleDownloadReceipt(receipt)}
-                    disabled={downloadingId === receipt.id}
-                    className="btn-secondary btn-sm flex items-center gap-2"
-                  >
-                    {downloadingId === receipt.id ? (
-                      <Loader2 size={16} className="animate-spin" />
+                </div>
+              )}
+
+              {/* Receipt History */}
+              <div>
+                <h2 className="text-xl font-semibold text-foreground mb-4">Payment History</h2>
+                <div className="card overflow-hidden">
+                  <ul role="list" className="divide-y divide-border">
+                    {receipts.length > 0 ? (
+                      receipts.map((receipt) => (
+                        <li key={receipt.id} className="flex items-center justify-between p-4">
+                          <div>
+                            <p className="font-semibold text-foreground">
+                              ₹{Number(receipt.amount).toLocaleString('en-IN')}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {receipt.receipt_no} on {formatDate(receipt.date)}
+                            </p>
+                            <p className="text-xs text-muted-foreground capitalize">
+                              via {receipt.mode}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleDownload(receipt.id, receipt.receipt_no)}
+                            className="btn-outline btn-sm"
+                          >
+                            <Download size={16} className="mr-2" />
+                            Download
+                          </button>
+                        </li>
+                      ))
                     ) : (
-                      <Download size={16} />
+                      <p className="text-center p-8 text-muted-foreground">
+                        No payment receipts found.
+                      </p>
                     )}
-                    PDF
-                  </button>
-                </li>
-              ))}
-            </ul>
+                  </ul>
+                </div>
+              </div>
+            </>
           )}
         </div>
-      </div>
+      </main>
     </>
   );
 }

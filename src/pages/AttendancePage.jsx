@@ -1,314 +1,251 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { ChevronLeft, Loader2, Check, X, Minus } from 'lucide-react';
-import api from '@/services/api.js';
-import { useAuth } from '@/context/AuthContext.jsx';
-import PageHeader from '@/components/PageHeader.jsx';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api.js';
+import { Loader2, Check, X, Minus, Save } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
 
-// Get today's date in YYYY-MM-DD format for the date picker
-const getTodayDate = () => {
-  return new Date().toISOString().split('T')[0];
-};
+// Get today's date in YYYY-MM-DD format
+const getTodayDate = () => new Date().toISOString().split('T')[0];
 
 function AttendancePage() {
-  const { user } = useAuth();
   const [batches, setBatches] = useState([]);
-  const [selectedBatch, setSelectedBatch] = useState('');
-  const [attendanceDate, setAttendanceDate] = useState(getTodayDate());
-  
-  // This list will be populated either from enrollments (for new) or entries (for existing)
-  const [studentList, setStudentList] = useState([]); 
-  
-  // This state holds the { studentId: 'P' } mapping
-  const [attendance, setAttendance] = useState({});
-  // This holds the full record from the DB if it exists
-  const [existingRecord, setExistingRecord] = useState(null);
-
+  const [students, setStudents] = useState([]);
+  const [attendance, setAttendance] = useState({}); // { studentId: 'P', ... }
   const [loadingBatches, setLoadingBatches] = useState(true);
-  const [isFetchingRecord, setIsFetchingRecord] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [selectedBatch, setSelectedBatch] = useState('');
+  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [existingRecordId, setExistingRecordId] = useState(null);
 
-  // 1. Fetch all available batches for the dropdown
+  // 1. Fetch all batches for the dropdown
   useEffect(() => {
     const fetchBatches = async () => {
       try {
-        setLoadingBatches(true);
-        let res;
-        if (user.is_superuser) {
-          // Admins get all batches
-          res = await api.get('/batches/');
-        } else if (user.is_staff) {
-          // Teachers get only their batches
-          res = await api.get('/teacher/my-batches/');
+        const res = await api.get('/batches/');
+        setBatches(res.data.results || []);
+        if (res.data.results?.length > 0) {
+          setSelectedBatch(res.data.results[0].id);
         }
-        setBatches(res.data.results || res.data || []);
       } catch (err) {
-        setError('Failed to load batches.');
+        toast.error('Failed to load batches.');
       } finally {
         setLoadingBatches(false);
       }
     };
     fetchBatches();
-  }, [user]); // Re-run if user changes
+  }, []);
 
-  // 2. Fetch attendance data OR enrollment data when batch or date changes
-  const fetchAttendanceData = useCallback(async () => {
-    if (!selectedBatch || !attendanceDate) {
-      setStudentList([]);
+  // 2. Fetch students and any existing attendance when batch or date changes
+  useEffect(() => {
+    if (!selectedBatch || !selectedDate) {
+      setStudents([]);
+      setAttendance({});
       return;
     }
 
-    setIsFetchingRecord(true);
-    setError(null);
-    setSuccess(null);
-    setExistingRecord(null);
-    setStudentList([]);
-    setAttendance({});
-
-    try {
-      // --- FETCH-OR-CREATE LOGIC ---
-      // 2a. Check if a record already exists
-      const recordRes = await api.get('/attendance/records/', {
-        params: { batch: selectedBatch, date: attendanceDate }
-      });
+    const fetchAttendanceData = async () => {
+      setLoadingStudents(true);
+      setExistingRecordId(null);
       
-      const existing = recordRes.data.results?.[0];
-
-      if (existing) {
-        // --- RECORD FOUND (EDIT MODE) ---
-        setExistingRecord(existing);
-        
-        // Populate studentList from the saved entries
-        const students = existing.entries.map(entry => ({
-          id: entry.id, // Use entry ID as key
-          student: entry.student,
-          student_name: entry.student_name,
-        }));
-        setStudentList(students);
-        
-        // Populate attendance map from saved entries
-        const attendanceMap = {};
-        existing.entries.forEach(entry => {
-          attendanceMap[entry.student] = entry.status;
+      try {
+        // First, check if an attendance record *already exists*
+        const existingRes = await api.get('/attendance/records/', {
+          params: { batch: selectedBatch, date: selectedDate }
         });
-        setAttendance(attendanceMap);
-        setSuccess('Loaded existing attendance record.');
 
-      } else {
-        // --- NO RECORD FOUND (CREATE MODE) ---
-        setExistingRecord(null);
-        
-        // Fetch active enrollments for this batch
-        const enrollRes = await api.get(`/enrollments/?batch=${selectedBatch}&status=active`);
-        const activeEnrollments = enrollRes.data.results || [];
-        
-        const students = activeEnrollments.map(e => ({
-          id: e.id, // Use enrollment ID as key
-          student: e.student,
-          student_name: e.student_name,
-        }));
-        setStudentList(students);
-        
-        // Set default attendance for all students to 'P' (Present)
-        const defaultAttendance = {};
-        for (const student of students) {
-          defaultAttendance[student.student] = 'P';
+        let studentList = [];
+        if (existingRes.data.results?.length > 0) {
+          // --- A. RECORD EXISTS: Load it ---
+          const record = existingRes.data.results[0];
+          setExistingRecordId(record.id);
+          
+          // Use student data from the record's entries
+          studentList = record.entries.map(e => ({
+            id: e.student, // student ID
+            name: e.student_name,
+            reg_no: 'N/A' // Reg no isn't in this serializer, but that's ok
+          }));
+          
+          const existingAttendance = record.entries.reduce((acc, entry) => {
+            acc[entry.student] = entry.status;
+            return acc;
+          }, {});
+          setAttendance(existingAttendance);
+          
+        } else {
+          // --- B. NO RECORD: Fetch all students enrolled in the batch ---
+          const enrollRes = await api.get('/enrollments/', {
+            params: { batch: selectedBatch, page_size: 100 } // Get all students
+          });
+          
+          studentList = enrollRes.data.results.map(en => ({
+            id: en.student, // student ID
+            name: en.student_name,
+            reg_no: 'N/A' // Not needed for the form
+          }));
+          
+          // Set default attendance to 'P' (Present)
+          const defaultAttendance = studentList.reduce((acc, student) => {
+            acc[student.id] = 'P';
+            return acc;
+          }, {});
+          setAttendance(defaultAttendance);
         }
-        setAttendance(defaultAttendance);
+        
+        setStudents(studentList);
+        if (studentList.length === 0) {
+          toast.error("No students are enrolled in this batch.");
+        }
+
+      } catch (err) {
+        toast.error('Failed to load student data for this batch.');
+        console.error(err);
+      } finally {
+        setLoadingStudents(false);
       }
-      
-    } catch (err) {
-      setError('Failed to load attendance data.');
-    } finally {
-      setIsFetchingRecord(false);
-    }
-  }, [selectedBatch, attendanceDate]);
-
-  // Trigger fetch when batch or date changes
-  useEffect(() => {
-    fetchAttendanceData();
-  }, [fetchAttendanceData]);
-
-
-  // 3. Handle changing a student's status
-  const setStudentStatus = (studentId, status) => {
-    setAttendance(prev => ({
-      ...prev,
-      [studentId]: status,
-    }));
-  };
-
-  // 4. Submit or Update the attendance
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    setSuccess(null);
-
-    // Build the 'entries' payload from the student list and attendance map
-    const entries = studentList.map(student => ({
-      student: student.student,
-      status: attendance[student.student],
-    }));
-
-    const attendanceData = {
-      batch: selectedBatch,
-      date: attendanceDate,
-      taken_by: user.id, // Serializer will use request.user
-      entries: entries,
     };
 
+    fetchAttendanceData();
+  }, [selectedBatch, selectedDate]);
+  
+  // 3. Handle setting attendance
+  const setStudentStatus = (studentId, status) => {
+    setAttendance(prev => ({ ...prev, [studentId]: status }));
+  };
+
+  // 4. Handle submitting the whole sheet
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    
+    const entries = Object.keys(attendance).map(studentId => ({
+      student: parseInt(studentId, 10),
+      status: attendance[studentId]
+    }));
+    
+    const payload = {
+      batch: parseInt(selectedBatch, 10),
+      date: selectedDate,
+      entries: entries
+    };
+
+    const promise = existingRecordId
+      ? api.put(`/attendance/records/${existingRecordId}/`, payload) // UPDATE
+      : api.post('/attendance/records/', payload); // CREATE
+
     try {
-      if (existingRecord) {
-        // --- UPDATE (PUT) ---
-        const res = await api.put(`/attendance/records/${existingRecord.id}/`, attendanceData);
-        setSuccess('Attendance updated successfully!');
-        setExistingRecord(res.data); // Store updated record
-      } else {
-        // --- CREATE (POST) ---
-        const res = await api.post('/attendance/records/', attendanceData);
-        setSuccess('Attendance submitted successfully!');
-        setExistingRecord(res.data); // Store newly created record
+      const res = await toast.promise(promise, {
+        loading: 'Submitting attendance...',
+        success: `Attendance ${existingRecordId ? 'updated' : 'saved'}!`,
+        error: (err) => err.response?.data?.entries?.[0] || 'Failed to submit.'
+      });
+      
+      // On create, set the new record ID
+      if (!existingRecordId) {
+        setExistingRecordId(res.data.id);
       }
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to submit attendance. It may already be taken for this date.');
-    } finally {
-      setSubmitting(false);
+    } catch (err) { /* handled by toast */ } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex h-full flex-col">
+    <>
       <PageHeader title="Take Attendance" />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-2xl">
-
-          {error && <p className="form-error mb-4">{error}</p>}
-          {success && <p className="rounded-md bg-green-50 p-3 text-center text-sm font-medium text-green-700 mb-4">{success}</p>}
-
-          <form onSubmit={handleSubmit} className="card p-6 space-y-6">
-            {/* Batch and Date Selection */}
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-4xl">
+          {/* Filters */}
+          <div className="card p-4 mb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="batch" className="form-label">Select Batch</label>
-                <select
-                  id="batch"
-                  value={selectedBatch}
-                  onChange={(e) => setSelectedBatch(e.target.value)}
-                  className="form-input"
-                  required
-                >
-                  <option value="" disabled>-- Select a batch --</option>
-                  {loadingBatches ? (
-                    <option disabled>Loading batches...</option>
-                  ) : (
-                    batches.map(b => (
-                      <option key={b.id} value={b.id}>
-                        {b.code} ({b.course_title})
+                <label className="form-label">Select Batch</label>
+                {loadingBatches ? <Loader2 className="animate-spin" /> : (
+                  <select
+                    value={selectedBatch}
+                    onChange={(e) => setSelectedBatch(e.target.value)}
+                    className="form-input"
+                  >
+                    {batches.map(batch => (
+                      <option key={batch.id} value={batch.id}>
+                        {batch.code} ({batch.course_title})
                       </option>
-                    ))
-                  )}
-                </select>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
-                <label htmlFor="date" className="form-label">Attendance Date</label>
+                <label className="form-label">Select Date</label>
                 <input
                   type="date"
-                  id="date"
-                  value={attendanceDate}
-                  onChange={(e) => setAttendanceDate(e.target.value)}
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
                   className="form-input"
-                  required
                 />
               </div>
             </div>
-
-            {/* Student List */}
-            <div className="border-t border-border pt-6">
-              <h3 className="text-lg font-semibold text-foreground mb-4">Students</h3>
-              {isFetchingRecord && (
-                <div className="flex justify-center items-center min-h-[100px]">
-                  <Loader2 className="animate-spin text-primary" size={32} />
-                </div>
-              )}
-              
-              {!isFetchingRecord && studentList.length === 0 && (
-                <p className="text-center text-muted-foreground">
-                  {selectedBatch ? 'No active students found in this batch.' : 'Please select a batch and date.'}
-                </p>
-              )}
-
-              {studentList.length > 0 && (
-                <div className="space-y-4">
-                  {studentList.map(student => (
-                    <div key={student.id} className="flex items-center justify-between p-4 bg-background rounded-lg">
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {student.student_name}
-                        </p>
-                      </div>
-                      <div className="flex space-x-2">
-                        <StatusButton 
-                          label="P" 
-                          isActive={attendance[student.student] === 'P'} 
-                          onClick={() => setStudentStatus(student.student, 'P')}
-                          colorClass="bg-green-600 hover:bg-green-700"
-                          icon={Check}
-                        />
-                        <StatusButton 
-                          label="A" 
-                          isActive={attendance[student.student] === 'A'} 
-                          onClick={() => setStudentStatus(student.student, 'A')}
-                          colorClass="bg-red-600 hover:bg-red-700"
-                          icon={X}
-                        />
-                        <StatusButton 
-                          label="L" 
-                          isActive={attendance[student.student] === 'L'} 
-                          onClick={() => setStudentStatus(student.student, 'L')}
-                          colorClass="bg-yellow-500 hover:bg-yellow-600"
-                          icon={Minus}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            {studentList.length > 0 && (
-              <div className="border-t border-border pt-6">
-                <button
-                  type="submit"
-                  className="btn-primary w-full justify-center"
-                  disabled={submitting || isFetchingRecord}
-                >
-                  {submitting ? <Loader2 className="animate-spin" /> : (
-                    existingRecord ? 'Update Attendance' : 'Submit Attendance'
-                  )}
-                </button>
+          </div>
+          
+          {/* Student List */}
+          <div className="card overflow-hidden">
+            {loadingStudents ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="animate-spin text-primary" size={40} />
               </div>
+            ) : students.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">
+                No students found for this batch.
+              </p>
+            ) : (
+              <ul role="list" className="divide-y divide-border">
+                {students.map((student) => {
+                  const status = attendance[student.id] || 'P';
+                  return (
+                    <li key={student.id} className="p-4 flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-foreground">{student.name}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <StatusButton icon={Check} label="P" isActive={status === 'P'} onClick={() => setStudentStatus(student.id, 'P')} color="green" />
+                        <StatusButton icon={X} label="A" isActive={status === 'A'} onClick={() => setStudentStatus(student.id, 'A')} color="red" />
+                        <StatusButton icon={Minus} label="L" isActive={status === 'L'} onClick={() => setStudentStatus(student.id, 'L')} color="yellow" />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
-
-          </form>
+          </div>
+          
+          {/* Submit Button */}
+          {students.length > 0 && (
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || loadingStudents}
+                className="btn-primary flex items-center gap-2"
+              >
+                {isSubmitting ? <Loader2 className="animate-spin" /> : <Save size={18} />}
+                {existingRecordId ? 'Update Attendance' : 'Submit Attendance'}
+              </button>
+            </div>
+          )}
         </div>
       </main>
-    </div>
+    </>
   );
 }
 
-// Helper component for the P/A/L buttons
-const StatusButton = ({ label, isActive, onClick, colorClass, icon: Icon }) => (
+const StatusButton = ({ icon: Icon, label, isActive, onClick, color }) => (
   <button
-    type="button"
     onClick={onClick}
-    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold text-white transition-all 
-      ${isActive ? colorClass : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'}`}
+    className={`p-2 rounded-full ${
+      isActive 
+        ? `bg-${color}-600 text-white` 
+        : `bg-muted text-muted-foreground hover:bg-${color}-100`
+    }`}
+    aria-label={label}
   >
     <Icon size={20} />
   </button>

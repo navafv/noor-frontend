@@ -1,8 +1,29 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CheckSquare, DollarSign, Award, Settings, LifeBuoy, LogOut, Library, User, X, MessageSquare, Calendar } from 'lucide-react'; // <-- IMPORT ICON
-import { useAuth } from '@/context/AuthContext.jsx';
-import PageHeader from '@/components/PageHeader.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+import {
+  User,
+  Settings,
+  Bell,
+  LogOut,
+  ChevronRight,
+  Calendar,
+  MessageSquare
+} from 'lucide-react';
+
+const MenuItem = ({ to, icon: Icon, label, onClick }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className="flex items-center justify-between p-4 bg-card rounded-lg shadow-sm border border-border"
+  >
+    <div className="flex items-center gap-4">
+      <Icon className="w-5 h-5 text-primary" />
+      <span className="text-base font-medium text-foreground">{label}</span>
+    </div>
+    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+  </Link>
+);
 
 function StudentMenuPage() {
   const { user, logoutUser } = useAuth();
@@ -13,56 +34,49 @@ function StudentMenuPage() {
     navigate('/login');
   };
 
-  const settingsPath = "/student/account/settings";
+  const getInitials = (firstName, lastName) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || user?.username[0].toUpperCase() || '?';
+  };
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="lg:hidden">
-        <PageHeader title="Menu" />
-      </div>
-      
-      <main className="flex-1 overflow-y-auto bg-background p-4 max-w-lg mx-auto pb-20">
-        <nav>
-          <ul className="space-y-2">
-            <MenuLink to="/student/dashboard" icon={Home} label="Home" /> {/* Added Home for consistency */}
-            <MenuLink to="/student/calendar" icon={Calendar} label="Institute Calendar" /> {/* <-- NEW LINK */}
-            <MenuLink to="/student/attendance" icon={CheckSquare} label="My Attendance" />
-            <MenuLink to="/student/finance" icon={DollarSign} label="My Finance" />
-            <MenuLink to="/student/certificates" icon={Award} label="My Certificates" />
-            <MenuLink to="/student/materials" icon={Library} label="My Course Materials" />
-            <MenuLink to="/student/messages" icon={MessageSquare} label="Support Chat" />
-            <MenuLink to={settingsPath} icon={Settings} label="Account Settings" />
-            <MenuLink to="/account" icon={User} label="My Account Profile" />
-            <MenuLink to="/contact" icon={LifeBuoy} label="Help & Contact" />
-          </ul>
-
-          <button
+    <main className="p-4">
+      <div className="max-w-lg mx-auto">
+        {/* Profile Card */}
+        <Link to="/account">
+          <div className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm border border-border mb-6">
+            <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <span className="text-2xl font-medium text-primary">
+                {getInitials(user?.first_name, user?.last_name)}
+              </span>
+            </span>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">
+                {user?.first_name} {user?.last_name}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Reg No: {user?.student?.reg_no || '...'}
+              </p>
+            </div>
+          </div>
+        </Link>
+        
+        {/* Menu Items */}
+        <div className="space-y-3">
+          <MenuItem to="/account" icon={User} label="My Profile" />
+          <MenuItem to="/student/calendar" icon={Calendar} label="Institute Calendar" />
+          <MenuItem to="/student/messages" icon={MessageSquare} label="Support Chat" />
+          <MenuItem to="/notifications" icon={Bell} label="Notifications" />
+          <MenuItem to="/student/account/settings" icon={Settings} label="Settings" />
+          <MenuItem
+            to="#"
+            icon={LogOut}
+            label="Log Out"
             onClick={handleLogout}
-            className="w-full btn btn-destructive mt-8 flex items-center justify-center gap-2"
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
-        </nav>
-      </main>
-    </div>
+          />
+        </div>
+      </div>
+    </main>
   );
 }
-
-// Re-added Home icon to MenuLink's imports
-import { Home } from 'lucide-react';
-
-const MenuLink = ({ to, icon: Icon, label, onClick }) => (
-  <li>
-    <Link
-      to={to}
-      onClick={onClick}
-      className="flex items-center gap-4 p-4 rounded-lg hover:bg-accent text-foreground card"
-    >
-      <Icon size={24} className="text-primary" />
-      <span className="font-medium text-lg">{label}</span>
-    </Link>
-  </li>
-);
 
 export default StudentMenuPage;

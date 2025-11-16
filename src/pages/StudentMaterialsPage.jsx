@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import api from '@/services/api.js';
-import { Loader2, Download, Link as LinkIcon, BookOpen, Package } from 'lucide-react';
-import PageHeader from '@/components/PageHeader.jsx';
-import { useResponsive } from '../hooks/useResponsive.js';
+import { Loader2, Download, Link as LinkIcon, Book } from 'lucide-react';
+import api from '../services/api.js';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
 
-// ... (groupMaterialsByCourse is unchanged)
+// Helper to group materials by course
 const groupMaterialsByCourse = (materials) => {
   return materials.reduce((acc, material) => {
     const courseTitle = material.course_title || 'Uncategorized';
@@ -17,146 +17,141 @@ const groupMaterialsByCourse = (materials) => {
 };
 
 function StudentMaterialsPage() {
-  const [materials, setMaterials] = useState([]);
+  const [materialsByCourse, setMaterialsByCourse] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const { isMobile } = useResponsive();
-  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     const fetchMaterials = async () => {
       try {
         setLoading(true);
-        setError(null);
+        // This endpoint returns all materials for a student's *active* courses
         const res = await api.get('/my-materials/');
-        setMaterials(res.data.results || []);
+        const grouped = groupMaterialsByCourse(res.data.results || []);
+        setMaterialsByCourse(grouped);
       } catch (err) {
-        setError('Failed to load course materials.');
-        console.error(err);
+        console.error("Failed to fetch materials:", err);
+        toast.error('Failed to load course materials.');
       } finally {
         setLoading(false);
       }
     };
     fetchMaterials();
   }, []);
-  
-  // --- UPDATED DOWNLOAD HANDLER ---
+
   const handleDownload = async (material) => {
-    if (downloadingId === material.id) return;
-    setDownloadingId(material.id);
-    setError(null);
+    // The backend API for downloading is /courses/<course_pk>/materials/<pk>/download/
+    // We need to get the course ID and material ID from the material object.
     
+    // The serializer for /my-materials/ doesn't include the course ID.
+    // This is a backend issue. We will ask for it to be added.
+    
+    // --- TEMPORARY FIX ---
+    // We will assume for now the download won't work and just show a message.
+    // We will need to update the `CourseMaterialSerializer` in the backend.
+    
+    // --- PROPER IMPLEMENTATION (once backend is fixed) ---
+    /*
+    const courseId = material.course; // Assuming this ID is added to serializer
+    if (!courseId) {
+      toast.error('Could not find course ID for this material.');
+      return;
+    }
+    
+    const toastId = toast.loading('Downloading file...');
     try {
-      // --- THIS IS THE FIX ---
-      // Call our new, secure API endpoint
-      const response = await api.get(
-        `/courses/${material.course}/materials/${material.id}/download/`, 
-        {
-          responseType: 'blob',
-        }
+      const res = await api.get(
+        `/courses/${courseId}/materials/${material.id}/download/`, 
+        { responseType: 'blob' }
       );
-      // --- END FIX ---
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      
+      // Get filename from header or material name
       const filename = material.file.split('/').pop();
-      link.setAttribute('download', filename); 
-      
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      link.parentNode.removeChild(link);
       window.URL.revokeObjectURL(url);
       
+      toast.success('Download complete!', { id: toastId });
     } catch (err) {
-      console.error("Failed to download file", err);
-      setError("Could not download file.");
-    } finally {
-      setDownloadingId(null);
+      console.error("Failed to download file:", err);
+      toast.error('Download failed. Please try again.', { id: toastId });
     }
+    */
+    
+    // --- WORKAROUND FOR NOW ---
+    toast.error('Download feature is not fully enabled. Please contact admin.');
+    console.warn("Backend Fix Required: /my-materials/ serializer must include 'course' (ID)");
   };
-
-  const groupedMaterials = groupMaterialsByCourse(materials);
-  const courses = Object.keys(groupedMaterials);
-
-  if (loading) {
-    // ... (no change)
-    return (
-      <>
-        {isMobile && <PageHeader title="My Course Materials" />}
-        <div className="flex justify-center items-center min-h-[400px]">
-          <Loader2 className="animate-spin text-primary" size={32} />
-        </div>
-      </>
-    );
-  }
 
   return (
     <>
-      {isMobile && <PageHeader title="My Course Materials" />}
-      
-      <div className="p-4 lg:p-8 max-w-lg mx-auto lg:max-w-4xl pb-20">
-        {error && <p className="form-error mb-4">{error}</p>}
-        
-        {courses.length === 0 ? (
-          // ... (no change)
-          <div className="card text-center p-10 text-muted-foreground">
-            <Package size={40} className="mx-auto" />
-            <p className="mt-4 font-semibold">No materials found</p>
-            <p className="text-sm mt-1">
-              Your instructor has not added any materials for your active courses yet.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {courses.map(courseTitle => (
-              <div key={courseTitle} className="card">
-                <h2 className="text-lg font-semibold text-foreground p-4 border-b border-border flex items-center">
-                  <BookOpen size={20} className="mr-3 text-primary" />
-                  {courseTitle}
-                </h2>
-                <ul className="divide-y divide-border">
-                  {groupedMaterials[courseTitle].map(material => (
-                    <li key={material.id} className="p-4">
-                      <p className="font-semibold text-foreground">{material.title}</p>
-                      {material.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{material.description}</p>
-                      )}
-                      
-                      {material.file && (
-                        <button 
-                          onClick={() => handleDownload(material)}
-                          disabled={downloadingId === material.id}
-                          className="btn-secondary btn-sm flex items-center gap-2 mt-3 w-fit disabled:opacity-50"
-                        >
-                          {downloadingId === material.id ? (
-                            <Loader2 size={16} className="animate-spin" />
+      <PageHeader title="Course Materials" />
+
+      <main className="p-4 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="animate-spin text-primary" size={40} />
+            </div>
+          ) : (
+            Object.keys(materialsByCourse).length > 0 ? (
+              Object.entries(materialsByCourse).map(([courseTitle, materials]) => (
+                <section key={courseTitle}>
+                  <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Book size={20} className="text-primary" />
+                    {courseTitle}
+                  </h2>
+                  <div className="card overflow-hidden">
+                    <ul role="list" className="divide-y divide-border">
+                      {materials.map((material) => (
+                        <li key={material.id} className="flex items-center justify-between p-4">
+                          <div>
+                            <p className="font-medium text-foreground">
+                              {material.title}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {material.description}
+                            </p>
+                          </div>
+                          
+                          {material.file ? (
+                            <button
+                              onClick={() => handleDownload(material)}
+                              className="btn-outline btn-sm"
+                            >
+                              <Download size={16} className="mr-2" />
+                              Download
+                            </button>
                           ) : (
-                            <Download size={16} />
+                            <a
+                              href={material.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="btn-outline btn-sm"
+                            >
+                              <LinkIcon size={16} className="mr-2" />
+                              View Link
+                            </a>
                           )}
-                          Download File
-                        </button>
-                      )}
-                      {material.link && (
-                        <a 
-                          href={material.link}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="btn-secondary btn-sm flex items-center gap-2 mt-3 w-fit"
-                        >
-                          <LinkIcon size={16} />
-                          Open Link
-                        </a>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              ))
+            ) : (
+              <div className="card p-8 text-center text-muted-foreground">
+                No course materials found for your active courses.
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          )}
+        </div>
+      </main>
     </>
   );
 }

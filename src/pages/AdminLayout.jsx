@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from '@/components/admin/Sidebar.jsx';
-import AdminHeader from '@/components/admin/AdminHeader.jsx';
+import Sidebar from '../components/admin/Sidebar.jsx';
+import AdminHeader from '../components/admin/AdminHeader.jsx';
 import { X, Menu } from 'lucide-react';
 
 function AdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    // --- UPDATED: Added responsive classes ---
     <div className="hidden lg:flex h-screen bg-background text-foreground">
       {/* Mobile Sidebar Backdrop (remains for tablet-size pop-out) */}
       {isSidebarOpen && (
@@ -33,7 +32,8 @@ function AdminLayout() {
         <AdminHeader
           onMenuClick={() => setIsSidebarOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-y-auto">
+          {/* Pages will now provide their own header */}
           <Outlet />
         </main>
       </div>

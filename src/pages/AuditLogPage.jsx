@@ -1,113 +1,98 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, History, PlusCircle, Edit2, Trash2 } from 'lucide-react';
-import api from '@/services/api.js';
-import PageHeader from '@/components/PageHeader.jsx';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api.js';
+import { Loader2, History } from 'lucide-react';
+import PageHeader from '../components/PageHeader.jsx';
+import { toast } from 'react-hot-toast';
 
-/**
- * A reusable page to display the history log for any model.
- * Props:
- * - modelName: (string) The display name (e.g., "Student")
- * - endpoint: (string) The API endpoint (e.g., "/history/students/")
- */
+// Format date
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+};
+
+const getHistoryTypeClass = (type) => {
+  if (type === '+') return 'status-completed'; // Create
+  if (type === '~') return 'status-active';   // Update
+  if (type === '-') return 'status-closed';   // Delete
+  return 'status-pending';
+};
+const getHistoryTypeLabel = (type) => {
+  if (type === '+') return 'Created';
+  if (type === '~') return 'Updated';
+  if (type === '-') return 'Deleted';
+  return type;
+};
+
 function AuditLogPage({ modelName, endpoint }) {
-  const [items, setItems] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const fetchHistory = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get(endpoint);
-      setItems(response.data.results || []);
-    } catch (err) {
-      setError(`Could not fetch ${modelName} history.`);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [endpoint, modelName]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  const getHistoryIcon = (type) => {
-    switch (type) {
-      case '+': return <PlusCircle size={16} className="text-green-500 shrink-0" />;
-      case '~': return <Edit2 size={16} className="text-yellow-500 shrink-0" />;
-      case '-': return <Trash2 size={16} className="text-red-500 shrink-0" />;
-      default: return <History size={16} className="text-muted-foreground shrink-0" />;
-    }
-  };
-  
-  const getHistoryAction = (type) => {
-    switch (type) {
-      case '+': return "Created";
-      case '~': return "Changed";
-      case '-': return "Deleted";
-      default: return "N/A";
-    }
-  };
+    const fetchLogs = async () => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ page });
+        const res = await api.get(`${endpoint}?${params.toString()}`);
+        setLogs(res.data.results || []);
+        setTotalPages(Math.ceil((res.data.count || 0) / 20));
+      } catch (err) {
+        toast.error(`Failed to load ${modelName} history.`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLogs();
+  }, [page, endpoint, modelName]);
 
   return (
-    <div className="flex h-full flex-col">
+    <>
       <PageHeader title={`${modelName} Audit Log`} />
 
-      <main className="flex-1 overflow-y-auto bg-background p-4">
-        <div className="mx-auto max-w-4xl">
-          {loading && (
-            <div className="flex justify-center items-center min-h-[300px]">
-              <Loader2 className="animate-spin text-primary" size={32} />
-            </div>
-          )}
-          {error && <p className="form-error mx-4">{error}</p>}
-          
-          {!loading && !error && items.length === 0 && (
-            <div className="text-center p-10 card">
-              <History size={40} className="mx-auto text-muted-foreground" />
-              <h3 className="mt-4 font-semibold text-foreground">No History Found</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
-                No changes have been logged for this model yet.
-              </p>
-            </div>
-          )}
-
-          {/* History List */}
-          {!loading && !error && items.length > 0 && (
-            <div className="card overflow-hidden">
+      <main className="p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="card overflow-hidden">
+            {loading ? (
+              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
+            ) : logs.length === 0 ? (
+              <p className="text-center p-8 text-muted-foreground">No audit logs found.</p>
+            ) : (
               <ul role="list" className="divide-y divide-border">
-                {items.map((item) => (
-                  <li key={item.history_id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      {getHistoryIcon(item.history_type)}
-                      <div className="grow">
-                        <div className="flex justify-between items-center">
-                          <span className="font-semibold text-foreground">
-                            {getHistoryAction(item.history_type)}: {item.username || item.reg_no || 'Record'}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(item.history_date).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Changed by: <strong>{item.history_user_name || 'System'}</strong>
-                        </p>
-                        {item.history_change_reason && (
-                          <p className="text-sm text-foreground mt-2 italic">
-                            Reason: "{item.history_change_reason}"
-                          </p>
-                        )}
-                      </div>
+                {logs.map((log) => (
+                  <li key={log.history_id} className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {/* Dynamically show relevant field */}
+                        {modelName} {log.reg_no || log.username || `ID ${log.id}`}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Changed by: {log.history_user_name || 'System'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {log.history_change_reason || 'No reason provided'}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`status-badge ${getHistoryTypeClass(log.history_type)}`}>
+                        {getHistoryTypeLabel(log.history_type)}
+                      </span>
+                      <p className="text-xs text-muted-foreground mt-1">{formatDate(log.history_date)}</p>
                     </div>
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+            {/* TODO: Add Pagination controls */}
+          </div>
         </div>
       </main>
-    </div>
+    </>
   );
 }
 

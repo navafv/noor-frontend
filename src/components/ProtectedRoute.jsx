@@ -1,12 +1,6 @@
-/*
- * UPDATED FILE: src/components/ProtectedRoute.jsx
- *
- * CRITICAL FIX: Simplified the logic to be clearer and fix
- * role-hopping bugs.
- */
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext.jsx'; // <-- FIX: Use alias path
+import { useAuth } from '@/context/AuthContext.jsx'; 
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children, studentOnly = false, teacherOnly = false, adminOnly = false, staffOnly = false }) => {
@@ -15,7 +9,7 @@ const ProtectedRoute = ({ children, studentOnly = false, teacherOnly = false, ad
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
          <Loader2 className="animate-spin text-primary" size={48} />
       </div>
     );
@@ -26,7 +20,7 @@ const ProtectedRoute = ({ children, studentOnly = false, teacherOnly = false, ad
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Define user roles
+  // 2. Define user roles from backend fields
   const isStudent = !user.is_staff;
   const isTeacher = user.is_staff && !user.is_superuser;
   const isAdmin = user.is_superuser;
@@ -50,6 +44,7 @@ const ProtectedRoute = ({ children, studentOnly = false, teacherOnly = false, ad
   }
   
   // 6. General staff route (for shared pages like Attendance)
+  // This allows *both* Teachers and Admins
   if (staffOnly && !user.is_staff) {
      // A student is trying to access a staff-only route
      return <Navigate to="/student/dashboard" replace />;

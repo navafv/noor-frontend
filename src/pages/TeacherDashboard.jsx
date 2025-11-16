@@ -1,20 +1,14 @@
-/*
- * UPDATED FILE: src/pages/TeacherDashboard.jsx
- *
- * FIX: Replaced alias imports (@/) with relative imports (../)
- * to resolve the build/compilation error.
- */
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Loader2, Users, CheckSquare, Book } from 'lucide-react';
-import api from '../services/api.js'; // <-- FIX: Relative path
-import PageHeader from '../components/PageHeader.jsx'; // <-- FIX: Relative path
-import { useAuth } from '../context/AuthContext.jsx'; // <-- FIX: Relative path
+import api from '../services/api.js';
+import PageHeader from '../components/PageHeader.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 // StatCard Component
 const StatCard = ({ title, value, icon: Icon, colorClass = 'text-primary' }) => (
   <div className="card p-4 flex items-center space-x-4">
-    <div className={`p-3 rounded-full ${colorClass.replace('text-', 'bg-')}10 ${colorClass}`}>
+    <div className={`p-3 rounded-full ${colorClass.replace('text-', 'bg-')} bg-opacity-10 ${colorClass}`}>
       <Icon size={24} />
     </div>
     <div>
@@ -48,7 +42,7 @@ function TeacherDashboard() {
       try {
         setLoading(true);
         setError(null);
-        // Use the new teacher-specific endpoint
+        // We will assume it returns: { "active_batch_count": 2, "active_student_count": 25 }
         const summaryRes = await api.get('/teacher/my-dashboard/');
         setStats(summaryRes.data);
       } catch (err) {
