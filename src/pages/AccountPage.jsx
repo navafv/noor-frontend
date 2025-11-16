@@ -1,11 +1,14 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import PageHeader from '../components/PageHeader.jsx';
-import { User, Mail, Phone, Shield, UserCheck, Award, Edit } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User, Mail, Phone, Shield, UserCheck, Award, Edit, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useResponsive } from '../hooks/useResponsive.js';
 
 function AccountPage() {
-  const { user } = useAuth();
+  const { user, logoutUser } = useAuth();
+  const navigate = useNavigate();
+  const { isMobile } = useResponsive();
 
   if (!user) {
     return null; // or a loader
@@ -20,6 +23,11 @@ function AccountPage() {
   if (isStudent) settingsPath = '/student/account/settings';
   else if (isTeacher) settingsPath = '/teacher/account/settings';
   else if (isAdmin) settingsPath = '/admin/account/settings';
+
+  const handleLogout = () => {
+    logoutUser();
+    navigate('/login');
+  };
 
   return (
     <>
@@ -60,7 +68,17 @@ function AccountPage() {
             </div>
           )}
           
-          {/* TODO: Add a similar card for Teacher details if needed */}
+          {isTeacher && isMobile && (
+            <div className="card p-4 mt-8">
+              <button
+                onClick={handleLogout}
+                className="btn-destructive w-full flex items-center justify-center gap-2"
+              >
+                <LogOut size={18} />
+                Log Out
+              </button>
+            </div>
+          )}
         </div>
       </main>
     </>

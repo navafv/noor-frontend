@@ -4,6 +4,7 @@ import { Loader2, UserPlus, Search, User, ChevronRight } from 'lucide-react';
 import api from '../services/api.js';
 import PageHeader from '../components/PageHeader.jsx';
 import { toast } from 'react-hot-toast';
+import Pagination from '../components/Pagination.jsx'; // <-- NEW
 
 // Helper to format date string
 const formatDate = (dateString) => {
@@ -17,8 +18,8 @@ const formatDate = (dateString) => {
 function StudentListPage() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1); // <-- Page state
+  const [totalPages, setTotalPages] = useState(1); // <-- Total pages state
   const [filterActive, setFilterActive] = useState('true'); // 'true', 'false', ''
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -142,28 +143,12 @@ function StudentListPage() {
               </ul>
             )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between p-4 border-t border-border">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="btn-outline btn-sm"
-                >
-                  Previous
-                </button>
-                <span className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
-                </span>
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="btn-outline btn-sm"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+            {/* --- NEW: Pagination --- */}
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </div>
       </main>

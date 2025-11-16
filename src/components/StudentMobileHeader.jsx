@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
-import { useAuth } from '../context/AuthContext.jsx'; // <-- FIX
+import { useAuth } from '../context/AuthContext.jsx';
+import ThemeToggle from './ThemeToggle.jsx';
 
 /**
  * A new header component specifically for the mobile student view.
@@ -27,14 +28,17 @@ function StudentMobileHeader() {
           </p>
         </div>
         
-        {/* Notification Bell */}
-        <Link
-          to="/notifications"
-          className="p-2 text-muted-foreground hover:bg-accent rounded-full"
-          aria-label="View notifications"
-        >
-          <Bell size={24} />
-        </Link>
+        {/* Icons */}
+        <div className="flex items-center gap-1"> 
+          <ThemeToggle /> 
+          <Link
+            to="/notifications"
+            className="p-2 text-muted-foreground hover:bg-accent rounded-full"
+            aria-label="View notifications"
+          >
+            <Bell size={24} />
+          </Link>
+        </div>
       </div>
     </header>
   );

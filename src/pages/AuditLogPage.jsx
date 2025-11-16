@@ -3,6 +3,7 @@ import api from '../services/api.js';
 import { Loader2, History } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
 import { toast } from 'react-hot-toast';
+import Pagination from '../components/Pagination.jsx'; // <-- NEW
 
 // Format date
 const formatDate = (dateString) => {
@@ -31,8 +32,8 @@ const getHistoryTypeLabel = (type) => {
 function AuditLogPage({ modelName, endpoint }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1); // <-- Page state
+  const [totalPages, setTotalPages] = useState(1); // <-- Total pages state
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -88,7 +89,12 @@ function AuditLogPage({ modelName, endpoint }) {
                 ))}
               </ul>
             )}
-            {/* TODO: Add Pagination controls */}
+            {/* --- NEW: Pagination --- */}
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </div>
       </main>

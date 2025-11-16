@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import api from '../services/api.js';
 import PageHeader from '../components/PageHeader.jsx';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, User } from 'lucide-react'; // <-- NEW
 import { toast } from 'react-hot-toast';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000'; // <-- NEW
 
 // --- Profile Update Form ---
 const ProfileForm = () => {
@@ -51,6 +53,78 @@ const ProfileForm = () => {
           {isLoading ? <Loader2 className="animate-spin" /> : 'Save Changes'}
         </button>
       </div>
+    </form>
+  );
+};
+
+// --- NEW: Profile Photo Form (Students Only) ---
+const ProfilePhotoForm = () => {
+  const { user, setUser } = useAuth();
+  const [file, setFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!file) {
+      toast.error('Please select a file to upload.');
+      return;
+    }
+
+    setIsLoading(true);
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    // This PATCHs the /api/v1/students/me/ endpoint
+    const promise = api.patch('/students/me/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    try {
+      const res = await toast.promise(promise, {
+        loading: 'Uploading photo...',
+        success: 'Profile photo updated!',
+        error: 'Failed to upload photo.',
+      });
+
+      // Update student photo in auth context
+      setUser(prevUser => ({
+        ...prevUser,
+        student: { ...prevUser.student, photo: res.data.photo },
+      }));
+      setFile(null); // Clear file input
+    } catch (err) {
+      /* handled by toast */
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const photoUrl = user.student?.photo ? `${BACKEND_URL}${user.student.photo}` : null;
+
+  return (
+    <form onSubmit={handleSubmit} className="card p-6">
+      <h3 className="text-xl font-semibold text-foreground mb-4">Update Profile Photo</h3>
+      <div className="flex items-center gap-4">
+        {photoUrl ? (
+          <img src={photoUrl} alt="Profile" className="w-20 h-20 rounded-full object-cover" />
+        ) : (
+          <span className="w-20 h-20 rounded-full bg-muted flex items-center justify-center">
+            <User className="w-10 h-10 text-muted-foreground" />
+          </span>
+        )}
+        <div className="flex-1">
+          <FormInput label="Upload new photo" name="photo" type="file" onChange={handleFileChange} accept="image/*" />
+        </div>
+      </div>
+      <button type="submit" className="btn-primary mt-4" disabled={isLoading || !file}>
+        {isLoading ? <Loader2 className="animate-spin" /> : 'Save Photo'}
+      </button>
     </form>
   );
 };
@@ -104,12 +178,16 @@ const FormInput = ({ label, ...props }) => (
 
 // --- Main Page Component ---
 function AccountSettings() {
+  const { user } = useAuth(); // <-- NEW
+  const isStudent = !user.is_staff; // <-- NEW
+
   return (
     <>
       <PageHeader title="Account Settings" />
       <main className="p-4 md:p-8">
         <div className="max-w-4xl mx-auto space-y-8">
           <ProfileForm />
+          {isStudent && <ProfilePhotoForm />} {/* <-- NEW: Conditionally render for students */}
           <PasswordForm />
         </div>
       </main>

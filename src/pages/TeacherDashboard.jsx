@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Loader2, Users, CheckSquare, Book } from 'lucide-react';
+import { Loader2, Users, CheckSquare, Book, Calendar, UserX } from 'lucide-react'; // <-- NEW
 import api from '../services/api.js';
 import PageHeader from '../components/PageHeader.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -31,6 +31,15 @@ const NavCard = ({ title, description, to, icon: Icon }) => (
   </Link>
 );
 
+// --- NEW: Helper to format date ---
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 function TeacherDashboard() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
@@ -42,7 +51,7 @@ function TeacherDashboard() {
       try {
         setLoading(true);
         setError(null);
-        // We will assume it returns: { "active_batch_count": 2, "active_student_count": 25 }
+        // This endpoint now returns: { active_batch_count, active_student_count, todays_classes, recent_absences }
         const summaryRes = await api.get('/teacher/my-dashboard/');
         setStats(summaryRes.data);
       } catch (err) {
@@ -84,6 +93,54 @@ function TeacherDashboard() {
                   icon={Users} 
                   colorClass="text-green-600" 
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                {/* Today's Classes */}
+                <div className="card p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Calendar size={20} className="text-primary" />
+                    Today's Classes
+                  </h3>
+                  {stats.todays_classes.length > 0 ? (
+                    <ul className="space-y-3">
+                      {stats.todays_classes.map(cls => (
+                        <li key={cls.batch_code} className="flex justify-between items-center text-sm">
+                          <div>
+                            <p className="font-medium text-foreground">{cls.batch_code}</p>
+                            <p className="text-xs text-muted-foreground">{cls.course_title}</p>
+                          </div>
+                          <span className="font-medium text-primary">{cls.schedule}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No classes scheduled for today.</p>
+                  )}
+                </div>
+
+                {/* Recent Absences */}
+                <div className="card p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <UserX size={20} className="text-destructive" />
+                    Recent Absences
+                  </h3>
+                  {stats.recent_absences.length > 0 ? (
+                    <ul className="space-y-3">
+                      {stats.recent_absences.map((abs, i) => (
+                        <li key={i} className="flex justify-between items-center text-sm">
+                          <div>
+                            <p className="font-medium text-foreground">{abs.student_name}</p>
+                            <p className="text-xs text-muted-foreground">{abs.batch_code}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">{formatDate(abs.date)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No recent absences in your batches.</p>
+                  )}
+                </div>
               </div>
 
               {/* Navigation Cards */}

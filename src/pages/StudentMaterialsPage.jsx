@@ -40,18 +40,9 @@ function StudentMaterialsPage() {
 
   const handleDownload = async (material) => {
     // The backend API for downloading is /courses/<course_pk>/materials/<pk>/download/
-    // We need to get the course ID and material ID from the material object.
     
-    // The serializer for /my-materials/ doesn't include the course ID.
-    // This is a backend issue. We will ask for it to be added.
-    
-    // --- TEMPORARY FIX ---
-    // We will assume for now the download won't work and just show a message.
-    // We will need to update the `CourseMaterialSerializer` in the backend.
-    
-    // --- PROPER IMPLEMENTATION (once backend is fixed) ---
-    /*
-    const courseId = material.course; // Assuming this ID is added to serializer
+    // --- THIS IS NOW FIXED --- //
+    const courseId = material.course; // This ID is now in the serializer
     if (!courseId) {
       toast.error('Could not find course ID for this material.');
       return;
@@ -67,7 +58,8 @@ function StudentMaterialsPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement('a');
       link.href = url;
-      // Get filename from header or material name
+      
+      // Get filename from the 'file' field URL
       const filename = material.file.split('/').pop();
       link.setAttribute('download', filename);
       document.body.appendChild(link);
@@ -81,11 +73,6 @@ function StudentMaterialsPage() {
       console.error("Failed to download file:", err);
       toast.error('Download failed. Please try again.', { id: toastId });
     }
-    */
-    
-    // --- WORKAROUND FOR NOW ---
-    toast.error('Download feature is not fully enabled. Please contact admin.');
-    console.warn("Backend Fix Required: /my-materials/ serializer must include 'course' (ID)");
   };
 
   return (

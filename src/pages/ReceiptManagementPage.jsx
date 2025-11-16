@@ -4,6 +4,7 @@ import { Loader2, Plus, ReceiptText, Search, Download } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { toast } from 'react-hot-toast';
+import Pagination from '../components/Pagination.jsx'; // <-- NEW
 
 // Format date
 const formatDate = (dateString) => {
@@ -123,8 +124,8 @@ function ReceiptManagementPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Pagination and filter state
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1); // <-- Page state
+  const [totalPages, setTotalPages] = useState(1); // <-- Total pages state
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchReceipts = async () => {
@@ -210,7 +211,7 @@ function ReceiptManagementPage() {
             ) : (
               <ul role="list" className="divide-y divide-border">
                 {receipts.map((receipt) => (
-                  <li key={receipt.id} className="flex items-center justify-between p-4">
+                  <li key={receipt.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-primary">{receipt.receipt_no}</p>
                       <p className="text-sm font-medium text-foreground">
@@ -233,7 +234,12 @@ function ReceiptManagementPage() {
                 ))}
               </ul>
             )}
-            {/* TODO: Add Pagination controls here */}
+            {/* --- NEW: Pagination --- */}
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </div>
       </main>

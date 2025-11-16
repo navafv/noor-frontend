@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api.js';
-import { Loader2, Plus, Award, Search, RefreshCcw, Check, X } from 'lucide-react';
+import { Loader2, Plus, Award, Search, RefreshCcw, Check, X, Download } from 'lucide-react'; // <-- NEW
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { toast } from 'react-hot-toast';
@@ -128,6 +128,32 @@ function CertificateManagementPage() {
     } catch (err) { /* handled by toast */ }
   };
 
+  // --- NEW: Download Handler ---
+  const handleDownload = async (certId, certNo) => {
+    const toastId = toast.loading('Downloading certificate...');
+    try {
+      // This endpoint is protected by the backend (for Admin or Owner)
+      const res = await api.get(`/certificates/${certId}/download/`, {
+        responseType: 'blob', // Tell axios to expect a file
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${certNo}.pdf`); // Set filename
+      document.body.appendChild(link);
+      link.click();
+      
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Download complete!', { id: toastId });
+    } catch (err) {
+      console.error("Failed to download certificate:", err);
+      toast.error('Download failed. Please try again.', { id: toastId });
+    }
+  };
+
   return (
     <>
       <PageHeader title="Certificate Management">
@@ -171,6 +197,14 @@ function CertificateManagementPage() {
                       ) : (
                         <span className="status-badge status-completed">Valid</span>
                       )}
+                      {/* --- NEW: Download Button --- */}
+                      <button
+                        onClick={() => handleDownload(cert.id, cert.certificate_no)}
+                        className="btn-outline btn-sm"
+                        title="Download PDF"
+                      >
+                        <Download size={16} />
+                      </button>
                       <button
                         onClick={() => handleRevoke(cert.id, cert.revoked)}
                         className={`btn-outline btn-sm ${cert.revoked ? 'text-green-600' : 'text-red-600'}`}

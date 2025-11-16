@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext.jsx'; // <-- FIX
 import {
   LayoutDashboard, Inbox, Users, CheckSquare, Book, DollarSign, Package,
   LogOut, X, Settings, Briefcase, ReceiptText, BarChart2, Bell, PieChart,
-  Award, Shield, Send, History, Library, MessageSquare, Calendar
+  Award, Shield, Send, History, Library, MessageSquare, Calendar,
+  Star, Banknote // <-- NEW
 } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label }) => (
@@ -55,13 +56,15 @@ function Sidebar({ onClose }) {
         <nav className="grid items-start gap-1 p-4 text-sm font-medium">
           <NavItem to="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem to="/admin/messages" icon={MessageSquare} label="Inbox" />
-          <NavItem to="/admin/calendar" icon={Calendar} label="Calendar" /> {/* <-- NEW LINK */}
+          <NavItem to="/admin/calendar" icon={Calendar} label="Calendar" /> 
           <NavItem to="/admin/attendance" icon={CheckSquare} label="Attendance" />
-          <NavItem to="/admin/analytics" icon={BarChart2} label="Financial Analytics" />
+          <NavItem to="/admin/analytics" icon={BarChart2} label="Financial Chart" />
+          <NavItem to="/admin/reports/finance" icon={Banknote} label="Financial Reports" /> {/* <-- NEW */}
           <NavItem to="/admin/attendance-analytics" icon={PieChart} label="Attendance Analytics" />
           <NavItem to="/admin/notifications" icon={Bell} label="Notifications" />
           <NavItem to="/admin/enquiries" icon={Inbox} label="Enquiries" />
           <NavItem to="/admin/students" icon={Users} label="Students" />
+          <NavItem to="/admin/feedback" icon={Star} label="Feedback" />
           <NavItem to="/admin/courses" icon={Book} label="Courses" />
           <NavItem to="/admin/materials" icon={Library} label="Course Materials" />
           <NavItem to="/admin/certificates" icon={Award} label="Certificates" />

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Bell } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext.jsx';
+import ThemeToggle from '../ThemeToggle.jsx';
 
 function TeacherMobileHeader() {
   const { user } = useAuth();
@@ -22,14 +23,17 @@ function TeacherMobileHeader() {
           </p>
         </div>
         
-        {/* Notification Bell */}
-        <Link
-          to="/teacher/notifications" // Teacher-specific notifications
-          className="p-2 text-muted-foreground hover:bg-accent rounded-full"
-          aria-label="View notifications"
-        >
-          <Bell size={24} />
-        </Link>
+        {/* Icons */}
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <Link
+            to="/teacher/notifications" // Teacher-specific notifications
+            className="p-2 text-muted-foreground hover:bg-accent rounded-full"
+            aria-label="View notifications"
+          >
+            <Bell size={24} />
+          </Link>
+        </div>
       </div>
     </header>
   );

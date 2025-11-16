@@ -63,6 +63,8 @@ import AdminMenuPage from './pages/AdminMenuPage.jsx';
 import AdminInboxPage from './pages/AdminInboxPage.jsx';
 import AdminConversationPage from './pages/AdminConversationPage.jsx';
 import AdminCalendarPage from './pages/AdminCalendarPage.jsx';
+import AdminFeedbackPage from './pages/AdminFeedbackPage.jsx';
+import FinanceReportsPage from './pages/FinanceReportsPage.jsx'; // <-- NEW
 
 import './index.css';
 
@@ -147,6 +149,7 @@ function App() {
         <Route path="/admin/payroll" element={<PayrollManagementPage />} /> 
         <Route path="/admin/receipts" element={<ReceiptManagementPage />} /> 
         <Route path="/admin/analytics" element={<AnalyticsPage />} /> 
+        <Route path="/admin/reports/finance" element={<FinanceReportsPage />} /> {/* <-- NEW */}
         <Route path="/admin/attendance-analytics" element={<AttendanceAnalyticsPage />} /> 
         <Route path="/admin/certificates" element={<CertificateManagementPage />} />
         <Route path="/admin/roles" element={<RoleManagementPage />} />
@@ -158,6 +161,7 @@ function App() {
         <Route path="/admin/messages" element={<AdminInboxPage />} />
         <Route path="/admin/messages/:conversationId" element={<AdminConversationPage />} />
         <Route path="/admin/calendar" element={<AdminCalendarPage />} />
+        <Route path="/admin/feedback" element={<AdminFeedbackPage />} />
 
         <Route 
           path="/admin/history/students" 

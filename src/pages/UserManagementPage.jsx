@@ -4,6 +4,7 @@ import { Loader2, Plus, Users, Search, Edit, Shield } from 'lucide-react';
 import PageHeader from '../components/PageHeader.jsx';
 import Modal from '../components/Modal.jsx';
 import { toast } from 'react-hot-toast';
+import Pagination from '../components/Pagination.jsx'; // <-- NEW
 
 // --- User Modal (Add/Edit) ---
 const UserModal = ({ isOpen, onClose, onSuccess, item, roles }) => {
@@ -114,8 +115,8 @@ function UserManagementPage() {
   const [roles, setRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState({ isOpen: false, item: null });
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1); // <-- Page state
+  const [totalPages, setTotalPages] = useState(1); // <-- Total pages state
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchData = async () => {
@@ -194,7 +195,12 @@ function UserManagementPage() {
                 ))}
               </ul>
             )}
-            {/* TODO: Add Pagination controls */}
+            {/* --- NEW: Pagination --- */}
+            <Pagination 
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
           </div>
         </div>
       </main>
