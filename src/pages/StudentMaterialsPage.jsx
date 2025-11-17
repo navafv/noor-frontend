@@ -13,7 +13,6 @@ const StudentMaterialsPage = () => {
         const res = await api.get('/my-materials/');
         setMaterials(res.data.results || []);
       } catch (error) {
-        console.error(error);
         toast.error("Could not load materials");
       } finally {
         setLoading(false);
@@ -73,7 +72,7 @@ const StudentMaterialsPage = () => {
                  ) : (
                     <button 
                       onClick={() => handleDownload(item.course, item.id, item.title)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg cursor-pointer"
                     >
                       <Download size={14} /> Download File
                     </button>

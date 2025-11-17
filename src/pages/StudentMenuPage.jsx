@@ -4,11 +4,10 @@ import { LogOut, Phone, User, MapPin } from 'lucide-react';
 
 const StudentMenuPage = () => {
   const { user, logout } = useAuth();
-  const student = user?.student_details || {}; // Assumes loaded in AuthContext or separate fetch
+  const student = user?.student_details || {}; 
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Profile Header */}
       <div className="flex flex-col items-center text-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
         <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-4xl font-bold mb-4">
           {user?.first_name?.[0]}
@@ -17,7 +16,6 @@ const StudentMenuPage = () => {
         <p className="text-gray-500 font-mono text-sm">{student.reg_no || user?.username}</p>
       </div>
 
-      {/* Info Cards */}
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1">Personal Info</h3>
         
@@ -46,10 +44,9 @@ const StudentMenuPage = () => {
         </div>
       </div>
 
-      {/* Logout */}
       <button 
         onClick={logout}
-        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors"
+        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors cursor-pointer"
       >
         <LogOut size={20} />
         Sign Out

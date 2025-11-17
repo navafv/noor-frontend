@@ -40,7 +40,7 @@ const CourseManagementPage = () => {
     <div className="space-y-4 pb-20">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold text-gray-900">Courses</h2>
-        <button onClick={() => setIsModalOpen(true)} className="bg-primary-600 text-white p-2.5 rounded-full shadow-lg">
+        <button onClick={() => setIsModalOpen(true)} className="bg-primary-600 text-white p-2.5 rounded-full shadow-lg cursor-pointer hover:bg-primary-700">
             <Plus size={24} />
         </button>
       </div>
@@ -62,13 +62,13 @@ const CourseManagementPage = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add New Course">
         <form onSubmit={handleSubmit} className="space-y-4">
-            <input required placeholder="Course Code (e.g. D3)" className="form-input" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
-            <input required placeholder="Course Title" className="form-input" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+            <input required placeholder="Course Code (e.g. D3)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} />
+            <input required placeholder="Course Title" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
             <div className="grid grid-cols-2 gap-4">
-                <input required type="number" placeholder="Duration (Weeks)" className="form-input" value={formData.duration_weeks} onChange={e => setFormData({...formData, duration_weeks: e.target.value})} />
-                <input required type="number" placeholder="Total Fees (₹)" className="form-input" value={formData.total_fees} onChange={e => setFormData({...formData, total_fees: e.target.value})} />
+                <input required type="number" placeholder="Weeks" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.duration_weeks} onChange={e => setFormData({...formData, duration_weeks: e.target.value})} />
+                <input required type="number" placeholder="Fees (₹)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.total_fees} onChange={e => setFormData({...formData, total_fees: e.target.value})} />
             </div>
-            <button type="submit" className="w-full btn-primary mt-2">Save Course</button>
+            <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer hover:bg-primary-700">Save Course</button>
         </form>
       </Modal>
     </div>

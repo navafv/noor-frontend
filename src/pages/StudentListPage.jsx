@@ -11,7 +11,6 @@ const StudentListPage = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Form State
   const [formData, setFormData] = useState({
     first_name: '', last_name: '', username: '', password: '',
     email: '', phone: '', guardian_name: '', guardian_phone: '', address: ''
@@ -28,9 +27,7 @@ const StudentListPage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+  useEffect(() => { fetchStudents(); }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -55,10 +52,7 @@ const StudentListPage = () => {
       toast.success('Student created successfully');
       setIsModalOpen(false);
       fetchStudents();
-      setFormData({
-        first_name: '', last_name: '', username: '', password: '',
-        email: '', phone: '', guardian_name: '', guardian_phone: '', address: ''
-      });
+      setFormData({ first_name: '', last_name: '', username: '', password: '', email: '', phone: '', guardian_name: '', guardian_phone: '', address: '' });
     } catch (error) {
       toast.error('Failed to create student. Check inputs.');
     }
@@ -71,11 +65,10 @@ const StudentListPage = () => {
 
   return (
     <div className="space-y-4">
-      {/* Header & Search */}
       <div className="sticky top-0 bg-gray-50 pt-2 pb-4 z-10 space-y-3">
         <div className="flex justify-between items-center">
            <h2 className="text-2xl font-bold text-gray-900">Students</h2>
-           <button onClick={() => setIsModalOpen(true)} className="bg-primary-600 text-white p-2.5 rounded-full shadow-lg">
+           <button onClick={() => setIsModalOpen(true)} className="bg-primary-600 text-white p-2.5 rounded-full shadow-lg cursor-pointer hover:bg-primary-700">
              <Plus size={24} />
            </button>
         </div>
@@ -91,7 +84,6 @@ const StudentListPage = () => {
         </div>
       </div>
 
-      {/* List */}
       <div className="space-y-3 pb-20">
         {loading ? <div className="text-center text-gray-400 py-10">Loading...</div> : 
          filteredStudents.length === 0 ? <div className="text-center text-gray-400 py-10">No students found</div> :
@@ -113,23 +105,21 @@ const StudentListPage = () => {
         ))}
       </div>
 
-      {/* Add Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Student">
         <form onSubmit={handleCreate} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <input required placeholder="First Name" className="form-input" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
-            <input required placeholder="Last Name" className="form-input" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
+            <input required placeholder="First Name" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.first_name} onChange={e => setFormData({...formData, first_name: e.target.value})} />
+            <input required placeholder="Last Name" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.last_name} onChange={e => setFormData({...formData, last_name: e.target.value})} />
           </div>
-          <input required placeholder="Username (Login ID)" className="form-input" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
-          <input required type="password" placeholder="Password" className="form-input" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-          <input type="email" placeholder="Email (Optional)" className="form-input" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-          <input required placeholder="Phone" className="form-input" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+          <input required placeholder="Username" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
+          <input required type="password" placeholder="Password" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
+          <input required placeholder="Phone" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
           <div className="border-t border-gray-100 pt-2 mt-2">
             <p className="text-xs text-gray-400 uppercase mb-2 font-semibold">Guardian Info</p>
-            <input required placeholder="Guardian Name" className="form-input mb-3" value={formData.guardian_name} onChange={e => setFormData({...formData, guardian_name: e.target.value})} />
-            <input required placeholder="Guardian Phone" className="form-input" value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
+            <input required placeholder="Guardian Name" className="w-full p-3 rounded-xl border border-gray-200 outline-none mb-3" value={formData.guardian_name} onChange={e => setFormData({...formData, guardian_name: e.target.value})} />
+            <input required placeholder="Guardian Phone" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.guardian_phone} onChange={e => setFormData({...formData, guardian_phone: e.target.value})} />
           </div>
-          <button type="submit" className="w-full btn-primary mt-4">Create Student</button>
+          <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-primary-700 transition-colors mt-4 cursor-pointer">Create Student</button>
         </form>
       </Modal>
     </div>

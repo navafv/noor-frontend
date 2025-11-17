@@ -15,24 +15,22 @@ const ProtectedRoute = ({ children, studentOnly = false, staffOnly = false }) =>
     );
   }
 
-  // 1. Not Logged In -> Redirect to Login
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   const isAdmin = user.is_staff;
 
-  // 2. Admin trying to access Student pages
+  // Staff trying to access Student Route
   if (studentOnly && isAdmin) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  // 3. Student trying to access Admin pages
+  // Student trying to access Staff Route
   if (staffOnly && !isAdmin) {
     return <Navigate to="/student/home" replace />;
   }
 
-  // 4. Authorized
   return children;
 };
 

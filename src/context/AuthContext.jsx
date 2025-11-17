@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
 
@@ -9,16 +9,13 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Check for existing token on mount
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
-          // Verify token by fetching user profile
-          await fetchUserProfile(); 
+          await fetchUserProfile();
         } catch (error) {
           console.error("Session expired");
           logout();
@@ -33,15 +30,15 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await api.get('/users/me/');
       const userData = res.data;
-      
-      // If student, try to fetch student details too
+
+      // If student, fetch their specific profile details for ID, etc.
       if (userData.student_id && !userData.is_staff) {
-         try {
-             const studentRes = await api.get(`/students/${userData.student_id}/`);
-             userData.student_details = studentRes.data;
-         } catch (e) {
-             console.log("Could not fetch student specific details");
-         }
+        try {
+           const studentRes = await api.get(`/students/${userData.student_id}/`);
+           userData.student_details = studentRes.data;
+        } catch(e) {
+           console.warn("Could not load student details");
+        }
       }
       setUser(userData);
       return userData;
@@ -58,9 +55,8 @@ export const AuthProvider = ({ children }) => {
       
       const userData = await fetchUserProfile();
       
-      toast.success(`Welcome back, ${userData.first_name || userData.username}!`);
+      toast.success(`Welcome, ${userData.first_name || userData.username}!`);
       
-      // Redirect based on role
       if (userData.is_staff) {
         navigate('/admin/dashboard');
       } else {

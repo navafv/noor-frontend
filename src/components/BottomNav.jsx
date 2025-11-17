@@ -1,19 +1,18 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, BookOpen, Wallet, Calendar, User, Scissors } from 'lucide-react';
+import { Home, Users, BookOpen, Wallet, User, Scissors } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const BottomNav = () => {
   const { user } = useAuth();
   const isAdmin = user?.is_staff;
 
-  // --- Navigation Items Configuration ---
   const adminLinks = [
     { to: "/admin/dashboard", icon: Home, label: "Home" },
     { to: "/admin/students", icon: Users, label: "Students" },
-    { to: "/admin/courses", icon: Scissors, label: "Courses" }, // Stitching Icon substitute
+    { to: "/admin/courses", icon: Scissors, label: "Courses" },
     { to: "/admin/finance", icon: Wallet, label: "Fees" },
-    { to: "/admin/menu", icon: User, label: "Menu" }, // More options
+    { to: "/admin/menu", icon: User, label: "Menu" },
   ];
 
   const studentLinks = [
@@ -26,8 +25,8 @@ const BottomNav = () => {
   const links = isAdmin ? adminLinks : studentLinks;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe z-50 h-(--bottom-nav-height)">
-      <div className="flex justify-around items-center h-full px-2">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 h-(--bottom-nav-height) pb-safe">
+      <div className="flex justify-around items-center h-full px-2 max-w-md mx-auto">
         {links.map((link) => (
           <NavLink
             key={link.to}
@@ -40,17 +39,13 @@ const BottomNav = () => {
           >
             {({ isActive }) => (
               <>
-                <link.icon 
-                  size={24} 
-                  strokeWidth={isActive ? 2.5 : 2} 
-                  fill={isActive ? "currentColor" : "none"} 
-                  className={isActive ? "opacity-20" : ""}
-                />
-                {/* Overlay Outline Icon for crispness */}
-                <div className="absolute">
-                     <link.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
+                <div className="relative">
+                  <link.icon 
+                    size={24} 
+                    strokeWidth={isActive ? 2.5 : 2} 
+                    className="transition-all duration-200"
+                  />
                 </div>
-                
                 <span className="text-[10px] font-medium">{link.label}</span>
               </>
             )}

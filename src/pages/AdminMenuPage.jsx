@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, FileText, ChevronRight } from 'lucide-react';
+import { LogOut, FileText, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AdminMenuPage = () => {
@@ -20,7 +20,6 @@ const AdminMenuPage = () => {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Profile Summary */}
       <div className="flex items-center gap-4 p-4 bg-white rounded-3xl border border-gray-100 shadow-sm">
         <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-2xl font-bold">
           {user?.first_name?.[0] || 'A'}
@@ -31,20 +30,15 @@ const AdminMenuPage = () => {
         </div>
       </div>
 
-      {/* Menu Options */}
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1">Management</h3>
-        {/* You need to add this route to App.jsx */}
         <MenuLink icon={FileText} label="Course Materials" to="/admin/materials" color="text-purple-600" />
-        
-        {/* Placeholder for Profile Settings if needed */}
-        <MenuLink icon={User} label="Account Settings" to="/admin/profile" color="text-blue-600" />
+        <MenuLink icon={FileText} label="Certificates" to="/admin/certificates" color="text-yellow-600" />
       </div>
 
-      {/* Logout */}
       <button 
         onClick={logout}
-        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors mt-8"
+        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors mt-8 cursor-pointer"
       >
         <LogOut size={20} />
         Sign Out

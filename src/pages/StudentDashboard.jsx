@@ -12,11 +12,9 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Get Enrollments
         const enrollRes = await api.get('/enrollments/');
         setEnrollments(enrollRes.data.results || []);
         
-        // 2. Get Attendance Summary (Last 30 days)
         const attRes = await api.get('/attendance/analytics/summary/', { params: { days: 30 } });
         setAttendanceStats(attRes.data.stats);
       } catch (e) {
@@ -34,7 +32,6 @@ const StudentDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
       <div className="bg-primary-600 text-white p-6 rounded-3xl shadow-lg shadow-primary-200">
         <p className="text-primary-100 text-sm mb-1">Welcome back,</p>
         <h1 className="text-2xl font-bold">{user?.first_name || user?.username}</h1>
@@ -50,7 +47,6 @@ const StudentDashboard = () => {
         )}
       </div>
 
-      {/* Attendance Stats */}
       {attendanceStats && (
         <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
@@ -63,33 +59,12 @@ const StudentDashboard = () => {
             <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
                 <div className="flex items-center gap-2 mb-2 text-orange-500">
                     <Clock size={18} />
-                    <span className="text-xs font-bold uppercase">Attendance Rate</span>
+                    <span className="text-xs font-bold uppercase">Attendance</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{attendanceStats.rate}%</p>
             </div>
         </div>
       )}
-      
-      {/* Quick Access Grid */}
-      <div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Your Learning</h3>
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
-             <div className="p-4 flex items-center gap-4">
-                 <div className="bg-purple-100 p-3 rounded-xl text-purple-600"><Book size={20}/></div>
-                 <div className="flex-1">
-                     <h4 className="font-medium text-gray-900">Course Materials</h4>
-                     <p className="text-xs text-gray-500">Access patterns and guides</p>
-                 </div>
-             </div>
-             <div className="p-4 flex items-center gap-4">
-                 <div className="bg-yellow-100 p-3 rounded-xl text-yellow-600"><Award size={20}/></div>
-                 <div className="flex-1">
-                     <h4 className="font-medium text-gray-900">Certificates</h4>
-                     <p className="text-xs text-gray-500">View your achievements</p>
-                 </div>
-             </div>
-        </div>
-      </div>
     </div>
   );
 };

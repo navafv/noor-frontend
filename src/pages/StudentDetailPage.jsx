@@ -9,7 +9,7 @@ const StudentDetailPage = () => {
   const { id } = useParams();
   const [student, setStudent] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
-  const [courses, setCourses] = useState([]); // Available courses for dropdown
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState('');
@@ -29,37 +29,31 @@ const StudentDetailPage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  useEffect(() => { fetchData(); }, [id]);
 
   const handleEnroll = async () => {
     try {
       await api.post('/enrollments/', { student: id, course: selectedCourse });
       toast.success('Enrolled successfully');
       setIsEnrollModalOpen(false);
-      fetchData(); // Refresh
+      fetchData();
     } catch (error) {
       toast.error('Enrollment failed. Already enrolled?');
     }
   };
 
   const openEnrollModal = async () => {
-    // Fetch courses only when needed
     try {
         const res = await api.get('/courses/?active=true');
         setCourses(res.data.results || []);
         setIsEnrollModalOpen(true);
-    } catch (e) {
-        toast.error("Could not load courses");
-    }
+    } catch (e) { toast.error("Could not load courses"); }
   };
 
   if (loading || !student) return <div className="p-8 text-center">Loading...</div>;
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Profile Header */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-3xl font-bold mb-3">
           {student.user.first_name[0]}
@@ -71,7 +65,6 @@ const StudentDetailPage = () => {
         </span>
       </div>
 
-      {/* Contact Info */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Details</h3>
         <div className="flex items-center gap-3">
@@ -80,7 +73,7 @@ const StudentDetailPage = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><User size={18} /></div>
-          <div><p className="text-xs text-gray-400">Guardian</p><p className="font-medium">{student.guardian_name} ({student.guardian_phone})</p></div>
+          <div><p className="text-xs text-gray-400">Guardian</p><p className="font-medium">{student.guardian_name}</p></div>
         </div>
         <div className="flex items-center gap-3">
             <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><MapPin size={18} /></div>
@@ -88,15 +81,13 @@ const StudentDetailPage = () => {
         </div>
       </div>
 
-      {/* Enrollments */}
       <div className="space-y-3">
         <div className="flex justify-between items-center px-1">
             <h3 className="text-lg font-bold text-gray-900">Courses</h3>
-            <button onClick={openEnrollModal} className="text-primary-600 text-sm font-medium flex items-center gap-1">
+            <button onClick={openEnrollModal} className="text-primary-600 text-sm font-medium flex items-center gap-1 cursor-pointer">
                 <Plus size={16}/> Enroll
             </button>
         </div>
-        
         {enrollments.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-4">Not enrolled in any courses yet.</p>
         ) : (
@@ -117,12 +108,11 @@ const StudentDetailPage = () => {
         )}
       </div>
 
-      {/* Enroll Modal */}
       <Modal isOpen={isEnrollModalOpen} onClose={() => setIsEnrollModalOpen(false)} title="Enroll Student">
         <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">Select Course</label>
             <select 
-                className="form-input"
+                className="w-full p-3 rounded-xl border border-gray-200 outline-none bg-white"
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
             >
@@ -131,7 +121,7 @@ const StudentDetailPage = () => {
                     <option key={c.id} value={c.id}>{c.title} ({c.duration_weeks} weeks)</option>
                 ))}
             </select>
-            <button onClick={handleEnroll} className="w-full btn-primary mt-2">Confirm Enrollment</button>
+            <button onClick={handleEnroll} className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer">Confirm Enrollment</button>
         </div>
       </Modal>
     </div>

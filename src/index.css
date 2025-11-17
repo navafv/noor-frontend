@@ -1,37 +1,55 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @import "tailwindcss";
 
-:root {
+@theme {
+  /* Define your brand colors here */
+  --color-primary-50: #fff1f2;
+  --color-primary-100: #ffe4e6;
+  --color-primary-200: #fecdd3;
+  --color-primary-300: #fda4af;
+  --color-primary-400: #fb7185;
+  --color-primary-500: #f43f5e; /* Main Brand Color (Rose) */
+  --color-primary-600: #e11d48;
+  --color-primary-700: #be123c;
+  --color-primary-800: #9f1239;
+  --color-primary-900: #881337;
+
+  /* Font Family */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  
+  /* Layout Variables */
   --header-height: 60px;
   --bottom-nav-height: 65px;
 }
 
+/* Custom Utility Classes */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  /* Mobile safe area padding */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Global Resets */
 body {
   @apply bg-gray-50 text-gray-900 font-sans antialiased;
-  /* Prevent pull-to-refresh on mobile to feel more like an app */
-  overscroll-behavior-y: none; 
+  overscroll-behavior-y: none; /* Prevent pull-to-refresh feel */
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Hide scrollbar for cleaner mobile lists */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Smooth page transitions */
+/* Page Animations */
 .page-transition {
-  @apply animate-fade-in;
+  animation: fade-in 0.3s ease-out forwards;
 }
 
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(5px); }
   to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
 }

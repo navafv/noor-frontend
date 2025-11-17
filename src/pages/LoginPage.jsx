@@ -19,7 +19,6 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen bg-primary-50 flex items-center justify-center p-6">
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-xl p-8">
-        
         <div className="flex flex-col items-center mb-8">
           <div className="bg-primary-100 p-4 rounded-full mb-4">
             <Scissors className="w-10 h-10 text-primary-600" />
@@ -36,7 +35,7 @@ const LoginPage = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all bg-gray-50"
-              placeholder="Enter your username"
+              placeholder="Enter username"
             />
           </div>
 
@@ -54,15 +53,11 @@ const LoginPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 active:scale-[0.98] transition-all flex justify-center items-center"
+            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-primary-200 hover:bg-primary-700 active:scale-[0.98] transition-all flex justify-center items-center cursor-pointer disabled:opacity-70"
           >
             {isSubmitting ? <Loader2 className="animate-spin" /> : 'Sign In'}
           </button>
         </form>
-        
-        <div className="mt-8 text-center">
-          <a href="#" className="text-xs text-gray-400 hover:text-primary-600">Forgot Password?</a>
-        </div>
       </div>
     </div>
   );

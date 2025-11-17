@@ -11,7 +11,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Fetching basic counts. You can optimize this in backend later.
         const [studentsRes, coursesRes, financeRes] = await Promise.all([
           api.get('/students/?active=true'),
           api.get('/courses/?active=true'),
@@ -38,42 +37,24 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
           <p className="text-sm text-gray-500">Welcome back, Teacher</p>
         </div>
-        <Link to="/admin/students/new" className="bg-primary-600 text-white p-3 rounded-full shadow-lg hover:bg-primary-700 transition-colors">
+        <Link to="/admin/students" className="bg-primary-600 text-white p-3 rounded-full shadow-lg hover:bg-primary-700 transition-colors">
           <Plus size={24} />
         </Link>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
-        <DashboardCard 
-          title="Active Students" 
-          value={loading ? "-" : stats.students} 
-          icon={Users} 
-          to="/admin/students"
-        />
-        <DashboardCard 
-          title="Active Courses" 
-          value={loading ? "-" : stats.courses} 
-          icon={BookOpen} 
-          to="/admin/courses"
-        />
+        <DashboardCard title="Active Students" value={loading ? "-" : stats.students} icon={Users} to="/admin/students" />
+        <DashboardCard title="Active Courses" value={loading ? "-" : stats.courses} icon={BookOpen} to="/admin/courses" />
         <div className="col-span-2">
-          <DashboardCard 
-            title="This Month's Revenue" 
-            value={loading ? "-" : formatCurrency(stats.revenue)} 
-            icon={Wallet} 
-            to="/admin/finance"
-          />
+          <DashboardCard title="Month's Revenue" value={loading ? "-" : formatCurrency(stats.revenue)} icon={Wallet} to="/admin/finance" />
         </div>
       </div>
 
-      {/* Quick Links Section */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h3>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -81,7 +62,7 @@ const AdminDashboard = () => {
                 <div className="bg-green-100 p-2 rounded-lg mr-3 text-green-600"><Wallet size={20}/></div>
                 <span className="font-medium text-gray-700">Collect Fees</span>
             </Link>
-            <Link to="/admin/students" className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50">
+            <Link to="/admin/attendance" className="flex items-center p-4 hover:bg-gray-50">
                 <div className="bg-blue-100 p-2 rounded-lg mr-3 text-blue-600"><Users size={20}/></div>
                 <span className="font-medium text-gray-700">Take Attendance</span>
             </Link>

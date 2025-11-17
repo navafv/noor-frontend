@@ -1,86 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import Modal from './Modal.jsx';
-import api from '../services/api.js';
-import { toast } from 'react-hot-toast';
-import { Loader2, Scale } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import api from '../services/api';
+import Modal from './Modal';
 
-// Helper to format date string
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
-function MeasurementHistoryModal({ isOpen, onClose, studentId }) {
+const MeasurementHistoryModal = ({ studentId, isOpen, onClose }) => {
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (isOpen && studentId) {
-      const fetchHistory = async () => {
-        setLoading(true);
-        try {
-          const res = await api.get(`/students/${studentId}/measurements/`);
-          setHistory(res.data.results || []);
-        } catch (err) {
-          toast.error('Failed to load measurement history.');
-          console.error(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchHistory();
+      setLoading(true);
+      api.get(`/students/${studentId}/measurements/`)
+        .then(res => setHistory(res.data.results || []))
+        .finally(() => setLoading(false));
     }
   }, [isOpen, studentId]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Measurement History" size="lg">
-      <div className="max-h-[60vh] overflow-y-auto -mx-6 px-6">
-        {loading ? (
-          <div className="flex justify-center items-center h-48">
-            <Loader2 className="animate-spin text-primary" size={32} />
-          </div>
-        ) : history.length === 0 ? (
-          <div className="text-center p-8 text-muted-foreground">
-            <Scale size={40} className="mx-auto mb-4" />
-            <p>No measurement history found for this student.</p>
-          </div>
-        ) : (
-          <ul className="space-y-4">
-            {history.map((entry) => (
-              <li key={entry.id} className="p-4 rounded-lg bg-accent/50 border border-border">
-                <p className="font-semibold text-foreground">
-                  {formatDate(entry.date_taken)}
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 text-sm">
-                  {entry.neck && <DetailItem label="Neck" value={entry.neck} />}
-                  {entry.chest && <DetailItem label="Chest" value={entry.chest} />}
-                  {entry.waist && <DetailItem label="Waist" value={entry.waist} />}
-                  {entry.hips && <DetailItem label="Hips" value={entry.hips} />}
-                  {entry.sleeve_length && <DetailItem label="Sleeve" value={entry.sleeve_length} />}
-                  {entry.inseam && <DetailItem label="Inseam" value={entry.inseam} />}
-                </div>
-                {entry.notes && (
-                  <p className="text-sm text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                    <strong>Notes:</strong> {entry.notes}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Measurement History">
+      {loading ? <p className="text-center text-gray-400">Loading...</p> : 
+       history.length === 0 ? <p className="text-center text-gray-400">No history found.</p> : (
+        <div className="space-y-4">
+          {history.map((m) => (
+            <div key={m.id} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <p className="text-xs text-primary-600 font-bold mb-2">{m.date_taken}</p>
+              <div className="grid grid-cols-3 gap-2 text-sm text-gray-600">
+                {m.neck && <p>Neck: {m.neck}"</p>}
+                {m.chest && <p>Chest: {m.chest}"</p>}
+                {m.waist && <p>Waist: {m.waist}"</p>}
+                {m.hips && <p>Hips: {m.hips}"</p>}
+                {m.sleeve_length && <p>Sleeve: {m.sleeve_length}"</p>}
+              </div>
+              {m.notes && <p className="text-xs text-gray-500 mt-2 italic">"{m.notes}"</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </Modal>
   );
-}
-
-const DetailItem = ({ label, value }) => (
-  <div>
-    <span className="text-muted-foreground">{label}: </span>
-    <span className="font-medium text-foreground">{value} cm</span>
-  </div>
-);
+};
 
 export default MeasurementHistoryModal;
