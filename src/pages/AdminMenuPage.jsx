@@ -1,82 +1,56 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom'; 
-import { useAuth } from '../context/AuthContext.jsx'; 
-import {
-  Inbox, Users, CheckSquare, Book, DollarSign,
-  Package, Settings, Briefcase, ReceiptText, BarChart2, Bell, PieChart,
-  Award, Shield, Send, History, Library, MessageSquare,
-  Calendar, LogOut, Star,
-  Banknote // <-- NEW
-} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { LogOut, User, FileText, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const MenuItem = ({ to, icon: Icon, label, onClick }) => ( 
-  <Link
-    to={to}
-    onClick={onClick} 
-    className="flex flex-col items-center justify-center p-4 bg-card rounded-lg shadow-sm border border-border gap-2 text-center"
-  >
-    <Icon className="w-6 h-6 text-primary" />
-    <span className="text-xs font-medium text-foreground">{label}</span>
-  </Link>
-);
+const AdminMenuPage = () => {
+  const { user, logout } = useAuth();
 
-function AdminMenuPage() {
-  const { logoutUser } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = (e) => {
-    e.preventDefault();
-    logoutUser();
-    navigate('/login');
-  };
+  const MenuLink = ({ icon: Icon, label, to, color = "text-gray-600" }) => (
+    <Link to={to} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 bg-gray-50 rounded-xl ${color}`}>
+          <Icon size={20} />
+        </div>
+        <span className="font-medium text-gray-900">{label}</span>
+      </div>
+      <ChevronRight size={20} className="text-gray-300" />
+    </Link>
+  );
 
   return (
-    <main className="p-4">
-      <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold text-foreground mb-6">Menu</h1>
-        
-        {/* Main Grid */}
-        <div className="grid grid-cols-3 gap-3">
-          <MenuItem to="/admin/messages" icon={MessageSquare} label="Inbox" />
-          <MenuItem to="/admin/calendar" icon={Calendar} label="Calendar" />
-          <MenuItem to="/admin/attendance" icon={CheckSquare} label="Attendance" />
-          <MenuItem to="/admin/enquiries" icon={Inbox} label="Enquiries" />
-          <MenuItem to="/admin/students" icon={Users} label="Students" />
-          <MenuItem to="/admin/feedback" icon={Star} label="Feedback" /> 
-          <MenuItem to="/admin/courses" icon={Book} label="Courses" />
-          <MenuItem to="/admin/materials" icon={Library} label="Materials" />
-          <MenuItem to="/admin/certificates" icon={Award} label="Certificates" />
-          <MenuItem to="/admin/receipts" icon={ReceiptText} label="Receipts" />
-          <MenuItem to="/admin/expenses" icon={DollarSign} label="Expenses" />
-          <MenuItem to="/admin/stock" icon={Package} label="Stock" />
-          <MenuItem to="/admin/payroll" icon={Briefcase} label="Payroll" />
-          <MenuItem to="/admin/users" icon={Users} label="Users" />
-          <MenuItem to="/admin/roles" icon={Shield} label="Roles" />
-          <MenuItem to="/admin/notifications" icon={Bell} label="Notify" />
+    <div className="space-y-6 pb-20">
+      {/* Profile Summary */}
+      <div className="flex items-center gap-4 p-4 bg-white rounded-3xl border border-gray-100 shadow-sm">
+        <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-2xl font-bold">
+          {user?.first_name?.[0] || 'A'}
         </div>
-
-        {/* Analytics Section */}
-        <h2 className="text-lg font-semibold text-foreground mt-8 mb-4">Analytics & Logs</h2>
-        <div className="grid grid-cols-3 gap-3"> {/* <-- Updated grid-cols-3 */}
-          <MenuItem to="/admin/analytics" icon={BarChart2} label="Finance Chart" />
-          <MenuItem to="/admin/reports/finance" icon={Banknote} label="Finance Reports" /> {/* <-- NEW */}
-          <MenuItem to="/admin/attendance-analytics" icon={PieChart} label="Attendance" />
-          <MenuItem to="/admin/reminders" icon={Send} label="Fee Reminders" />
-          <MenuItem to="/admin/history/students" icon={History} label="Student History" />
-        </div>
-
-        {/* --- NEW: Logout Section --- */}
-        <div className="mt-8">
-          <MenuItem
-            to="#"
-            icon={LogOut}
-            label="Log Out"
-            onClick={handleLogout}
-          />
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">{user?.first_name} {user?.last_name}</h2>
+          <p className="text-sm text-gray-500">Administrator</p>
         </div>
       </div>
-    </main>
+
+      {/* Menu Options */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1">Management</h3>
+        {/* You need to add this route to App.jsx */}
+        <MenuLink icon={FileText} label="Course Materials" to="/admin/materials" color="text-purple-600" />
+        
+        {/* Placeholder for Profile Settings if needed */}
+        <MenuLink icon={User} label="Account Settings" to="/admin/profile" color="text-blue-600" />
+      </div>
+
+      {/* Logout */}
+      <button 
+        onClick={logout}
+        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors mt-8"
+      >
+        <LogOut size={20} />
+        Sign Out
+      </button>
+    </div>
   );
-}
+};
 
 export default AdminMenuPage;

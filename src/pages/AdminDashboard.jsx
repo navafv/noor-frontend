@@ -1,113 +1,94 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import api from '../services/api';
+import DashboardCard from '../components/DashboardCard';
+import { Users, BookOpen, Wallet, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Loader2, DollarSign, Users, UserPlus, Inbox } from 'lucide-react';
-import api from '../services/api.js';
-import PageHeader from '../components/PageHeader.jsx';
-import { toast } from 'react-hot-toast';
 
-// Reusable Stat Card Component
-const StatCard = ({ title, value, icon: Icon, colorClass = 'text-primary' }) => (
-  <div className="card p-4 flex items-center space-x-4">
-    <div className={`p-3 rounded-full ${colorClass.replace('text-', 'bg-')} bg-opacity-10 ${colorClass}`}>
-      <Icon size={24} />
-    </div>
-    <div>
-      <p className="text-sm text-muted-foreground">{title}</p>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-    </div>
-  </div>
-);
-
-function AdminDashboard() {
-  const [stats, setStats] = useState(null);
+const AdminDashboard = () => {
+  const [stats, setStats] = useState({ students: 0, courses: 0, revenue: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchSummary = async () => {
-      setLoading(true);
+    const fetchStats = async () => {
       try {
-        // This is the admin-only summary endpoint
-        const res = await api.get('/finance/analytics/summary');
-        setStats(res.data);
-      } catch (err) {
-        console.error("Failed to fetch dashboard summary:", err);
-        toast.error('Could not load dashboard data.');
+        // Fetching basic counts. You can optimize this in backend later.
+        const [studentsRes, coursesRes, financeRes] = await Promise.all([
+          api.get('/students/?active=true'),
+          api.get('/courses/?active=true'),
+          api.get('/finance/dashboard/summary/')
+        ]);
+
+        setStats({
+          students: studentsRes.data.count,
+          courses: coursesRes.data.count,
+          revenue: financeRes.data.summary.month_revenue 
+        });
+      } catch (error) {
+        console.error("Failed to load stats", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchSummary();
+    fetchStats();
   }, []);
 
-  // Helper to format currency
   const formatCurrency = (amount) => {
-    if (typeof amount !== 'number') return '₹0';
-    return `₹${amount.toLocaleString('en-IN')}`;
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
   };
 
   return (
-    <>
-      <PageHeader title="Admin Dashboard" showBackButton={false} />
-      
-      <main className="flex-1 overflow-y-auto bg-background p-4 md:p-8">
-        <div className="mx-auto max-w-7xl">
-          {loading ? (
-            <div className="flex justify-center items-center min-h-[300px]">
-              <Loader2 className="animate-spin text-primary" size={40} />
-            </div>
-          ) : !stats ? (
-            <p className="form-error">Could not load dashboard data.</p>
-          ) : (
-            <>
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-                <StatCard 
-                  title="Total Income" 
-                  value={formatCurrency(stats.total_income)} 
-                  icon={DollarSign} 
-                  colorClass="text-green-600" 
-                />
-                <StatCard 
-                  title="Total Expense" 
-                  value={formatCurrency(stats.total_expense)} 
-                  icon={DollarSign} 
-                  colorClass="text-red-600" 
-                />
-                <StatCard 
-                  title="Active Students" 
-                  value={stats.total_active_students} 
-                  icon={Users} 
-                  colorClass="text-blue-600" 
-                />
-                <StatCard 
-                  title="New Enquiries" 
-                  value={stats.new_pending_enquiries}
-                  icon={UserPlus} 
-                  colorClass="text-yellow-600" 
-                />
-              </div>
-
-              {/* Recent Enquiries */}
-              <div className="card p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                    <Inbox size={22} className="text-primary" />
-                    Recent Enquiries
-                  </h2>
-                  <Link to="/admin/enquiries" className="btn-outline btn-sm">
-                    View All
-                  </Link>
-                </div>
-                {/* This component now fetches its own data.
-                  We are showing only 5 "new" enquiries on the dashboard.
-                */}
-              </div>
-            </>
-          )}
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+          <p className="text-sm text-gray-500">Welcome back, Teacher</p>
         </div>
-      </main>
-    </>
+        <Link to="/admin/students/new" className="bg-primary-600 text-white p-3 rounded-full shadow-lg hover:bg-primary-700 transition-colors">
+          <Plus size={24} />
+        </Link>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        <DashboardCard 
+          title="Active Students" 
+          value={loading ? "-" : stats.students} 
+          icon={Users} 
+          to="/admin/students"
+        />
+        <DashboardCard 
+          title="Active Courses" 
+          value={loading ? "-" : stats.courses} 
+          icon={BookOpen} 
+          to="/admin/courses"
+        />
+        <div className="col-span-2">
+          <DashboardCard 
+            title="This Month's Revenue" 
+            value={loading ? "-" : formatCurrency(stats.revenue)} 
+            icon={Wallet} 
+            to="/admin/finance"
+          />
+        </div>
+      </div>
+
+      {/* Quick Links Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <Link to="/admin/finance" className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50">
+                <div className="bg-green-100 p-2 rounded-lg mr-3 text-green-600"><Wallet size={20}/></div>
+                <span className="font-medium text-gray-700">Collect Fees</span>
+            </Link>
+            <Link to="/admin/students" className="flex items-center p-4 border-b border-gray-100 hover:bg-gray-50">
+                <div className="bg-blue-100 p-2 rounded-lg mr-3 text-blue-600"><Users size={20}/></div>
+                <span className="font-medium text-gray-700">Take Attendance</span>
+            </Link>
+        </div>
+      </div>
+    </div>
   );
-}
+};
 
 export default AdminDashboard;

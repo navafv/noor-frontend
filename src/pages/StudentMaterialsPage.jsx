@@ -1,36 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Download, Link as LinkIcon, Book } from 'lucide-react';
-import api from '../services/api.js';
-import PageHeader from '../components/PageHeader.jsx';
+import React, { useEffect, useState } from 'react';
+import api from '../services/api';
+import { FileText, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Helper to group materials by course
-const groupMaterialsByCourse = (materials) => {
-  return materials.reduce((acc, material) => {
-    const courseTitle = material.course_title || 'Uncategorized';
-    if (!acc[courseTitle]) {
-      acc[courseTitle] = [];
-    }
-    acc[courseTitle].push(material);
-    return acc;
-  }, {});
-};
-
-function StudentMaterialsPage() {
-  const [materialsByCourse, setMaterialsByCourse] = useState({});
+const StudentMaterialsPage = () => {
+  const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMaterials = async () => {
       try {
-        setLoading(true);
-        // This endpoint returns all materials for a student's *active* courses
         const res = await api.get('/my-materials/');
-        const grouped = groupMaterialsByCourse(res.data.results || []);
-        setMaterialsByCourse(grouped);
-      } catch (err) {
-        console.error("Failed to fetch materials:", err);
-        toast.error('Failed to load course materials.');
+        setMaterials(res.data.results || []);
+      } catch (error) {
+        console.error(error);
+        toast.error("Could not load materials");
       } finally {
         setLoading(false);
       }
@@ -38,109 +22,69 @@ function StudentMaterialsPage() {
     fetchMaterials();
   }, []);
 
-  const handleDownload = async (material) => {
-    // The backend API for downloading is /courses/<course_pk>/materials/<pk>/download/
-    
-    // --- THIS IS NOW FIXED --- //
-    const courseId = material.course; // This ID is now in the serializer
-    if (!courseId) {
-      toast.error('Could not find course ID for this material.');
-      return;
-    }
-    
-    const toastId = toast.loading('Downloading file...');
+  const handleDownload = async (courseId, materialId, fileName) => {
     try {
-      const res = await api.get(
-        `/courses/${courseId}/materials/${material.id}/download/`, 
-        { responseType: 'blob' }
-      );
-      
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const response = await api.get(`/courses/${courseId}/materials/${materialId}/download/`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      
-      // Get filename from the 'file' field URL
-      const filename = material.file.split('/').pop();
-      link.setAttribute('download', filename);
+      link.setAttribute('download', fileName || 'download');
       document.body.appendChild(link);
       link.click();
-      
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Download complete!', { id: toastId });
-    } catch (err) {
-      console.error("Failed to download file:", err);
-      toast.error('Download failed. Please try again.', { id: toastId });
+      document.body.removeChild(link);
+    } catch (error) {
+      toast.error("Download failed");
     }
   };
 
   return (
-    <>
-      <PageHeader title="Course Materials" />
+    <div className="space-y-4 pb-20">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Learning Materials</h2>
 
-      <main className="p-4 md:p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="animate-spin text-primary" size={40} />
-            </div>
-          ) : (
-            Object.keys(materialsByCourse).length > 0 ? (
-              Object.entries(materialsByCourse).map(([courseTitle, materials]) => (
-                <section key={courseTitle}>
-                  <h2 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
-                    <Book size={20} className="text-primary" />
-                    {courseTitle}
-                  </h2>
-                  <div className="card overflow-hidden">
-                    <ul role="list" className="divide-y divide-border">
-                      {materials.map((material) => (
-                        <li key={material.id} className="flex items-center justify-between p-4">
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {material.title}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {material.description}
-                            </p>
-                          </div>
-                          
-                          {material.file ? (
-                            <button
-                              onClick={() => handleDownload(material)}
-                              className="btn-outline btn-sm"
-                            >
-                              <Download size={16} className="mr-2" />
-                              Download
-                            </button>
-                          ) : (
-                            <a
-                              href={material.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="btn-outline btn-sm"
-                            >
-                              <LinkIcon size={16} className="mr-2" />
-                              View Link
-                            </a>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </section>
-              ))
-            ) : (
-              <div className="card p-8 text-center text-muted-foreground">
-                No course materials found for your active courses.
-              </div>
-            )
-          )}
-        </div>
-      </main>
-    </>
+      {loading ? <p className="text-center text-gray-400">Loading...</p> : 
+       materials.length === 0 ? (
+         <div className="text-center py-10 bg-white rounded-3xl border border-gray-100">
+            <FileText className="mx-auto text-gray-300 mb-3" size={48} />
+            <p className="text-gray-500">No materials uploaded yet.</p>
+         </div>
+       ) : (
+         <div className="space-y-3">
+           {materials.map((item) => (
+             <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
+               <div className="bg-primary-50 p-3 rounded-xl text-primary-600 mt-1">
+                 <FileText size={24} />
+               </div>
+               <div className="flex-1">
+                 <h3 className="font-bold text-gray-900">{item.title}</h3>
+                 <p className="text-xs text-primary-600 font-medium mb-1">{item.course_title}</p>
+                 {item.description && <p className="text-sm text-gray-500 mb-3">{item.description}</p>}
+                 
+                 {item.link ? (
+                    <a 
+                      href={item.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg"
+                    >
+                      <ExternalLink size={14} /> Open Link
+                    </a>
+                 ) : (
+                    <button 
+                      onClick={() => handleDownload(item.course, item.id, item.title)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg"
+                    >
+                      <Download size={14} /> Download File
+                    </button>
+                 )}
+               </div>
+             </div>
+           ))}
+         </div>
+       )}
+    </div>
   );
-}
+};
 
 export default StudentMaterialsPage;

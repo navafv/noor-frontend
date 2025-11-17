@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext.jsx'; 
+import { useAuth } from '../context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 const ProtectedRoute = ({ children, studentOnly = false, staffOnly = false }) => {
@@ -9,29 +9,30 @@ const ProtectedRoute = ({ children, studentOnly = false, staffOnly = false }) =>
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-background">
-         <Loader2 className="animate-spin text-primary" size={48} />
+      <div className="min-h-screen flex items-center justify-center text-primary-600">
+        <Loader2 className="animate-spin" size={40} />
       </div>
     );
   }
 
+  // 1. Not Logged In -> Redirect to Login
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const isStudent = !user.is_staff;
-  const isStaff = user.is_staff;
+  const isAdmin = user.is_staff;
 
-  if (studentOnly && !isStudent) {
-    // A staff member is trying to access a student-only route
+  // 2. Admin trying to access Student pages
+  if (studentOnly && isAdmin) {
     return <Navigate to="/admin/dashboard" replace />;
   }
-  
-  if (staffOnly && !isStaff) {
-     // A student is trying to access a staff-only route
-     return <Navigate to="/student/dashboard" replace />;
+
+  // 3. Student trying to access Admin pages
+  if (staffOnly && !isAdmin) {
+    return <Navigate to="/student/home" replace />;
   }
 
+  // 4. Authorized
   return children;
 };
 

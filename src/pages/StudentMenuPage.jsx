@@ -1,82 +1,61 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext.jsx';
-import {
-  User,
-  Settings,
-  Bell,
-  LogOut,
-  ChevronRight,
-  Calendar,
-  MessageSquare
-} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { LogOut, Phone, User, MapPin } from 'lucide-react';
 
-const MenuItem = ({ to, icon: Icon, label, onClick }) => (
-  <Link
-    to={to}
-    onClick={onClick}
-    className="flex items-center justify-between p-4 bg-card rounded-lg shadow-sm border border-border"
-  >
-    <div className="flex items-center gap-4">
-      <Icon className="w-5 h-5 text-primary" />
-      <span className="text-base font-medium text-foreground">{label}</span>
-    </div>
-    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-  </Link>
-);
-
-function StudentMenuPage() {
-  const { user, logoutUser } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logoutUser();
-    navigate('/login');
-  };
-
-  const getInitials = (firstName, lastName) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase() || user?.username[0].toUpperCase() || '?';
-  };
+const StudentMenuPage = () => {
+  const { user, logout } = useAuth();
+  const student = user?.student_details || {}; // Assumes loaded in AuthContext or separate fetch
 
   return (
-    <main className="p-4">
-      <div className="max-w-lg mx-auto">
-        {/* Profile Card */}
-        <Link to="/account">
-          <div className="flex items-center gap-4 p-4 bg-card rounded-lg shadow-sm border border-border mb-6">
-            <span className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <span className="text-2xl font-medium text-primary">
-                {getInitials(user?.first_name, user?.last_name)}
-              </span>
-            </span>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">
-                {user?.first_name} {user?.last_name}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Reg No: {user?.student?.reg_no || '...'}
-              </p>
-            </div>
-          </div>
-        </Link>
+    <div className="space-y-6 pb-20">
+      {/* Profile Header */}
+      <div className="flex flex-col items-center text-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
+        <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-4xl font-bold mb-4">
+          {user?.first_name?.[0]}
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">{user?.first_name} {user?.last_name}</h2>
+        <p className="text-gray-500 font-mono text-sm">{student.reg_no || user?.username}</p>
+      </div>
+
+      {/* Info Cards */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1">Personal Info</h3>
         
-        {/* Menu Items */}
-        <div className="space-y-3">
-          <MenuItem to="/account" icon={User} label="My Profile" />
-          <MenuItem to="/student/calendar" icon={Calendar} label="Institute Calendar" />
-          <MenuItem to="/student/messages" icon={MessageSquare} label="Support Chat" />
-          <MenuItem to="/notifications" icon={Bell} label="Notifications" />
-          <MenuItem to="/student/account/settings" icon={Settings} label="Settings" />
-          <MenuItem
-            to="#"
-            icon={LogOut}
-            label="Log Out"
-            onClick={handleLogout}
-          />
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div className="bg-blue-50 text-blue-600 p-2 rounded-xl"><Phone size={20}/></div>
+            <div>
+                <p className="text-xs text-gray-400">Phone</p>
+                <p className="font-medium text-gray-900">{user?.phone || 'N/A'}</p>
+            </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div className="bg-purple-50 text-purple-600 p-2 rounded-xl"><User size={20}/></div>
+            <div>
+                <p className="text-xs text-gray-400">Guardian</p>
+                <p className="font-medium text-gray-900">{student.guardian_name || 'N/A'}</p>
+            </div>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+            <div className="bg-green-50 text-green-600 p-2 rounded-xl"><MapPin size={20}/></div>
+            <div>
+                <p className="text-xs text-gray-400">Address</p>
+                <p className="font-medium text-gray-900">{student.address || 'N/A'}</p>
+            </div>
         </div>
       </div>
-    </main>
+
+      {/* Logout */}
+      <button 
+        onClick={logout}
+        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors"
+      >
+        <LogOut size={20} />
+        Sign Out
+      </button>
+    </div>
   );
-}
+};
 
 export default StudentMenuPage;

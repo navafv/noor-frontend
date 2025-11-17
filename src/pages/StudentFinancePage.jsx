@@ -1,150 +1,83 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, Download, CheckCircle, XCircle } from 'lucide-react';
-import api from '../services/api.js';
-import PageHeader from '../components/PageHeader.jsx';
-import { useAuth } from '../context/AuthContext.jsx';
+import React, { useEffect, useState } from 'react';
+import api from '../services/api';
+import { Receipt, Download, Calendar } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Helper to format date string
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
-function StudentFinancePage() {
-  const { user } = useAuth();
-  const [summary, setSummary] = useState(null);
+const StudentFinancePage = () => {
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.student?.id) return;
-
-    const fetchFinanceData = async () => {
-      setLoading(true);
+    const fetchReceipts = async () => {
       try {
-        // Fetch outstanding summary and receipts list in parallel
-        const [summaryRes, receiptsRes] = await Promise.all([
-          api.get(`/finance/outstanding/student/${user.student.id}/`),
-          api.get('/my-receipts/')
-        ]);
-        setSummary(summaryRes.data);
-        setReceipts(receiptsRes.data.results || []);
-      } catch (err) {
-        console.error("Failed to fetch finance data:", err);
-        toast.error('Failed to load financial data.');
+        const res = await api.get('/finance/receipts/');
+        setReceipts(res.data.results || []);
+      } catch (error) {
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
-    fetchFinanceData();
-  }, [user]);
+    fetchReceipts();
+  }, []);
 
-  const handleDownload = async (receiptId, receiptNo) => {
-    const toastId = toast.loading('Downloading receipt...');
+  const downloadReceipt = async (id) => {
     try {
-      // This endpoint is protected by the backend
-      const res = await api.get(`/finance/receipts/${receiptId}/download/`, {
-        responseType: 'blob', // Tell axios to expect a file
-      });
-      
-      // Create a URL for the blob
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const response = await api.get(`/finance/receipts/${id}/download/`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `${receiptNo}.pdf`); // Set filename
+      link.setAttribute('download', `Receipt_${id}.pdf`);
       document.body.appendChild(link);
       link.click();
-      
-      // Clean up
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Download complete!', { id: toastId });
-    } catch (err) {
-      console.error("Failed to download receipt:", err);
-      toast.error('Download failed. Please try again.', { id: toastId });
+    } catch (e) {
+      toast.error("Download failed");
     }
   };
 
   return (
-    <>
-      <PageHeader title="My Finance" />
+    <div className="space-y-4 pb-20">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Fee History</h2>
 
-      <main className="p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="animate-spin text-primary" size={40} />
-            </div>
-          ) : (
-            <>
-              {/* Summary */}
-              {summary && (
-                <div className="mb-8">
-                  <h2 className="text-xl font-semibold text-foreground mb-4">Balance Overview</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="card p-4">
-                      <p className="text-sm text-muted-foreground">Total Fees Due</p>
-                      <p className="text-2xl font-bold text-destructive">
-                        ₹{summary.total_due.toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                    <div className="card p-4">
-                      <p className="text-sm text-muted-foreground">Total Paid</p>
-                      <p className="text-2xl font-bold text-green-600">
-                        ₹{summary.total_paid.toLocaleString('en-IN')}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+      {loading ? <p className="text-center text-gray-400">Loading...</p> : 
+       receipts.length === 0 ? (
+         <div className="text-center py-10 text-gray-400">No fee receipts found.</div>
+       ) : (
+         <div className="space-y-3">
+           {receipts.map((receipt) => (
+             <div key={receipt.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+               {/* Decorative Circle */}
+               <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-50 rounded-full" />
+               
+               <div className="flex justify-between items-start relative z-10">
+                 <div>
+                   <p className="text-xs text-gray-400 mb-1">Receipt #{receipt.receipt_no}</p>
+                   <h3 className="text-xl font-bold text-gray-900">₹{receipt.amount}</h3>
+                   <p className="text-sm text-gray-600 mt-1">{receipt.course_title}</p>
+                 </div>
+                 <div className="bg-green-100 text-green-700 p-2 rounded-xl">
+                   <Receipt size={20} />
+                 </div>
+               </div>
 
-              {/* Receipt History */}
-              <div>
-                <h2 className="text-xl font-semibold text-foreground mb-4">Payment History</h2>
-                <div className="card overflow-hidden">
-                  <ul role="list" className="divide-y divide-border">
-                    {receipts.length > 0 ? (
-                      receipts.map((receipt) => (
-                        <li key={receipt.id} className="flex items-center justify-between p-4">
-                          <div>
-                            <p className="font-semibold text-foreground">
-                              ₹{Number(receipt.amount).toLocaleString('en-IN')}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {receipt.receipt_no} on {formatDate(receipt.date)}
-                            </p>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              via {receipt.mode}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleDownload(receipt.id, receipt.receipt_no)}
-                            className="btn-outline btn-sm"
-                          >
-                            <Download size={16} className="mr-2" />
-                            Download
-                          </button>
-                        </li>
-                      ))
-                    ) : (
-                      <p className="text-center p-8 text-muted-foreground">
-                        No payment receipts found.
-                      </p>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </main>
-    </>
+               <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
+                 <div className="flex items-center gap-1 text-xs text-gray-400">
+                   <Calendar size={12} />
+                   {receipt.date}
+                 </div>
+                 <button 
+                   onClick={() => downloadReceipt(receipt.id)}
+                   className="flex items-center gap-1 text-xs font-bold text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100 transition-colors"
+                 >
+                   <Download size={14} /> PDF
+                 </button>
+               </div>
+             </div>
+           ))}
+         </div>
+       )}
+    </div>
   );
-}
+};
 
 export default StudentFinancePage;

@@ -1,173 +1,141 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, User, Phone, Mail, Home, Shield, Calendar, Edit, Plus, Scale } from 'lucide-react';
-import api from '../services/api.js';
-import PageHeader from '../components/PageHeader.jsx';
-import Modal from '../components/Modal.jsx';
-import MeasurementForm from '../components/MeasurementForm.jsx';
-import MeasurementHistoryModal from '../components/MeasurementHistoryModal.jsx';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import api from '../services/api';
+import { Phone, MapPin, User, BookOpen, Plus } from 'lucide-react';
+import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
-// Helper to format date string
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
-function StudentDetailPage() {
+const StudentDetailPage = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [student, setStudent] = useState(null);
+  const [enrollments, setEnrollments] = useState([]);
+  const [courses, setCourses] = useState([]); // Available courses for dropdown
   const [loading, setLoading] = useState(true);
-  
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
-  const [isMeasureModalOpen, setIsMeasureModalOpen] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  
-  const fetchStudent = async () => {
-    setLoading(true);
+  const [selectedCourse, setSelectedCourse] = useState('');
+
+  const fetchData = async () => {
     try {
-      const res = await api.get(`/students/${id}/`);
-      setStudent(res.data);
-    } catch (err) {
-      toast.error('Failed to load student details.');
-      navigate('/admin/students');
+      const [stuRes, enrollRes] = await Promise.all([
+        api.get(`/students/${id}/`),
+        api.get(`/enrollments/?student=${id}`)
+      ]);
+      setStudent(stuRes.data);
+      setEnrollments(enrollRes.data.results || []);
+    } catch (error) {
+      toast.error("Failed to load student data");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchStudent();
+    fetchData();
   }, [id]);
 
-  if (loading || !student) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={48} />
-      </div>
-    );
-  }
+  const handleEnroll = async () => {
+    try {
+      await api.post('/enrollments/', { student: id, course: selectedCourse });
+      toast.success('Enrolled successfully');
+      setIsEnrollModalOpen(false);
+      fetchData(); // Refresh
+    } catch (error) {
+      toast.error('Enrollment failed. Already enrolled?');
+    }
+  };
+
+  const openEnrollModal = async () => {
+    // Fetch courses only when needed
+    try {
+        const res = await api.get('/courses/?active=true');
+        setCourses(res.data.results || []);
+        setIsEnrollModalOpen(true);
+    } catch (e) {
+        toast.error("Could not load courses");
+    }
+  };
+
+  if (loading || !student) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <>
-      <PageHeader title={`${student.user.first_name} ${student.user.last_name}`}>
-        <button 
-          className="btn-secondary flex items-center gap-2"
-          onClick={() => setIsEnrollModalOpen(true)}
-        >
-          <Plus size={18} />
-          Enroll in Batch
-        </button>
-      </PageHeader>
-      
-      <main className="p-4 md:p-8">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Left Column: Details */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="card p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold text-foreground">
-                  Student Details
-                </h3>
-                <span className={`status-badge ${student.active ? 'status-completed' : 'status-closed'}`}>
-                  {student.active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              
-              <dl className="space-y-4">
-                <DetailItem icon={User} label="Full Name" value={`${student.user.first_name} ${student.user.last_name}`} />
-                <DetailItem icon={Phone} label="Phone" value={student.user.phone} />
-                <DetailItem icon={Mail} label="Email" value={student.user.email || 'N/A'} />
-                <DetailItem icon={Home} label="Address" value={student.address || 'N/A'} />
-                <DetailItem icon={Calendar} label="Admission Date" value={formatDate(student.admission_date)} />
-                <DetailItem icon={Shield} label="Guardian Name" value={student.guardian_name} />
-                <DetailItem icon={Phone} label="Guardian Phone" value={student.guardian_phone} />
-              </dl>
-            </div>
-            
-          </div>
-          
-          {/* Right Column: Actions */}
-          <div className="lg:col-span-1">
-            <div className="card p-6 sticky top-28 space-y-4">
-              <h3 className="text-xl font-semibold text-foreground mb-2">
-                Actions
-              </h3>
-              <button 
-                onClick={() => setIsMeasureModalOpen(true)}
-                className="btn-primary w-full"
-              >
-                <Plus size={18} className="mr-2" />
-                Add Measurements
-              </button>
-              <button 
-                onClick={() => setIsHistoryModalOpen(true)}
-                className="btn-outline w-full"
-              >
-                <Scale size={18} className="mr-2" />
-                View Measurements
-              </button>
-              <button 
-                onClick={() => navigate(`/admin/users/${student.user.id}`)} // Assumes a user edit page
-                className="btn-outline w-full"
-              >
-                <Edit size={18} className="mr-2" />
-                Edit Profile/Login
-              </button>
-            </div>
-          </div>
+    <div className="space-y-6 pb-20">
+      {/* Profile Header */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
+        <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-3xl font-bold mb-3">
+          {student.user.first_name[0]}
         </div>
-      </main>
+        <h2 className="text-xl font-bold text-gray-900">{student.user.first_name} {student.user.last_name}</h2>
+        <p className="text-sm text-gray-500 mb-1">{student.reg_no}</p>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium ${student.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {student.active ? 'Active' : 'Inactive'}
+        </span>
+      </div>
 
-      {/* Enroll Student Modal (TODO) */}
-      <Modal 
-        isOpen={isEnrollModalOpen} 
-        onClose={() => setIsEnrollModalOpen(false)} 
-        title="Enroll Student in Batch"
-      >
-        <p className="text-muted-foreground">The enrollment form will go here.</p>
-        {/* <EnrollmentForm studentId={student.id} /> */}
+      {/* Contact Info */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
+        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Details</h3>
+        <div className="flex items-center gap-3">
+          <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><Phone size={18} /></div>
+          <div><p className="text-xs text-gray-400">Phone</p><p className="font-medium">{student.user.phone}</p></div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><User size={18} /></div>
+          <div><p className="text-xs text-gray-400">Guardian</p><p className="font-medium">{student.guardian_name} ({student.guardian_phone})</p></div>
+        </div>
+        <div className="flex items-center gap-3">
+            <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><MapPin size={18} /></div>
+            <div><p className="text-xs text-gray-400">Address</p><p className="font-medium text-sm">{student.address}</p></div>
+        </div>
+      </div>
+
+      {/* Enrollments */}
+      <div className="space-y-3">
+        <div className="flex justify-between items-center px-1">
+            <h3 className="text-lg font-bold text-gray-900">Courses</h3>
+            <button onClick={openEnrollModal} className="text-primary-600 text-sm font-medium flex items-center gap-1">
+                <Plus size={16}/> Enroll
+            </button>
+        </div>
+        
+        {enrollments.length === 0 ? (
+            <p className="text-center text-gray-400 text-sm py-4">Not enrolled in any courses yet.</p>
+        ) : (
+            enrollments.map(enroll => (
+                <div key={enroll.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-blue-50 text-blue-600 p-2 rounded-lg"><BookOpen size={20}/></div>
+                        <div>
+                            <p className="font-bold text-gray-800">{enroll.course_title}</p>
+                            <p className="text-xs text-gray-500">Joined: {enroll.enrolled_on}</p>
+                        </div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-lg font-medium capitalize ${enroll.status === 'active' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {enroll.status}
+                    </span>
+                </div>
+            ))
+        )}
+      </div>
+
+      {/* Enroll Modal */}
+      <Modal isOpen={isEnrollModalOpen} onClose={() => setIsEnrollModalOpen(false)} title="Enroll Student">
+        <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">Select Course</label>
+            <select 
+                className="form-input"
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+            >
+                <option value="">-- Choose a Course --</option>
+                {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.title} ({c.duration_weeks} weeks)</option>
+                ))}
+            </select>
+            <button onClick={handleEnroll} className="w-full btn-primary mt-2">Confirm Enrollment</button>
+        </div>
       </Modal>
-
-      {/* Add Measurement Modal */}
-      <Modal 
-        isOpen={isMeasureModalOpen} 
-        onClose={() => setIsMeasureModalOpen(false)} 
-        title="Add New Measurements"
-      >
-        <MeasurementForm 
-          studentId={student.id} 
-          onSuccess={() => {
-            setIsMeasureModalOpen(false);
-            toast.success('Measurements saved!');
-          }} 
-        />
-      </Modal>
-
-      {/* View Measurements Modal */}
-      <MeasurementHistoryModal 
-        isOpen={isHistoryModalOpen} 
-        onClose={() => setIsHistoryModalOpen(false)} 
-        studentId={student.id}
-      />
-    </>
-  );
-}
-
-// Helper component
-const DetailItem = ({ icon: Icon, label, value }) => (
-  <div className="flex gap-4">
-    <Icon className="w-5 h-5 text-primary shrink-0" />
-    <div>
-      <p className="text-sm font-medium text-muted-foreground">{label}</p>
-      <p className="text-base font-semibold text-foreground whitespace-pre-wrap">{value}</p>
     </div>
-  </div>
-);
+  );
+};
 
 export default StudentDetailPage;

@@ -1,254 +1,163 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api.js';
-import { Loader2, Check, X, Minus, Save } from 'lucide-react';
-import PageHeader from '../components/PageHeader.jsx';
+import api from '../services/api';
+import { Calendar, Check, X, Save, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-// Get today's date in YYYY-MM-DD format
-const getTodayDate = () => new Date().toISOString().split('T')[0];
-
-function AttendancePage() {
-  const [batches, setBatches] = useState([]);
+const AttendancePage = () => {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [students, setStudents] = useState([]);
-  const [attendance, setAttendance] = useState({}); // { studentId: 'P', ... }
-  const [loadingBatches, setLoadingBatches] = useState(true);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const [selectedBatch, setSelectedBatch] = useState('');
-  const [selectedDate, setSelectedDate] = useState(getTodayDate());
+  const [attendanceMap, setAttendanceMap] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [existingRecordId, setExistingRecordId] = useState(null);
 
-  // 1. Fetch all batches for the dropdown
   useEffect(() => {
-    const fetchBatches = async () => {
-      try {
-        const res = await api.get('/batches/');
-        setBatches(res.data.results || []);
-        if (res.data.results?.length > 0) {
-          setSelectedBatch(res.data.results[0].id);
-        }
-      } catch (err) {
-        toast.error('Failed to load batches.');
-      } finally {
-        setLoadingBatches(false);
-      }
-    };
-    fetchBatches();
-  }, []);
-
-  // 2. Fetch students and any existing attendance when batch or date changes
-  useEffect(() => {
-    if (!selectedBatch || !selectedDate) {
-      setStudents([]);
-      setAttendance({});
-      return;
-    }
-
-    const fetchAttendanceData = async () => {
-      setLoadingStudents(true);
-      setExistingRecordId(null);
-      
-      try {
-        // First, check if an attendance record *already exists*
-        const existingRes = await api.get('/attendance/records/', {
-          params: { batch: selectedBatch, date: selectedDate }
-        });
-
-        let studentList = [];
-        if (existingRes.data.results?.length > 0) {
-          // --- A. RECORD EXISTS: Load it ---
-          const record = existingRes.data.results[0];
-          setExistingRecordId(record.id);
-          
-          // Use student data from the record's entries
-          studentList = record.entries.map(e => ({
-            id: e.student, // student ID
-            name: e.student_name,
-            reg_no: 'N/A' // Reg no isn't in this serializer, but that's ok
-          }));
-          
-          const existingAttendance = record.entries.reduce((acc, entry) => {
-            acc[entry.student] = entry.status;
-            return acc;
-          }, {});
-          setAttendance(existingAttendance);
-          
-        } else {
-          // --- B. NO RECORD: Fetch all students enrolled in the batch ---
-          const enrollRes = await api.get('/enrollments/', {
-            params: { batch: selectedBatch, page_size: 100 } // Get all students
-          });
-          
-          studentList = enrollRes.data.results.map(en => ({
-            id: en.student, // student ID
-            name: en.student_name,
-            reg_no: 'N/A' // Not needed for the form
-          }));
-          
-          // Set default attendance to 'P' (Present)
-          const defaultAttendance = studentList.reduce((acc, student) => {
-            acc[student.id] = 'P';
-            return acc;
-          }, {});
-          setAttendance(defaultAttendance);
-        }
-        
-        setStudents(studentList);
-        if (studentList.length === 0) {
-          toast.error("No students are enrolled in this batch.");
-        }
-
-      } catch (err) {
-        toast.error('Failed to load student data for this batch.');
-        console.error(err);
-      } finally {
-        setLoadingStudents(false);
-      }
-    };
-
     fetchAttendanceData();
-  }, [selectedBatch, selectedDate]);
-  
-  // 3. Handle setting attendance
-  const setStudentStatus = (studentId, status) => {
-    setAttendance(prev => ({ ...prev, [studentId]: status }));
+  }, [date]);
+
+  const fetchAttendanceData = async () => {
+    setLoading(true);
+    setExistingRecordId(null);
+    try {
+      // 1. Check if attendance exists for this date
+      const recordRes = await api.get('/attendance/records/', { params: { date } });
+      
+      if (recordRes.data.results?.length > 0) {
+        // Edit mode
+        const record = recordRes.data.results[0];
+        setExistingRecordId(record.id);
+        
+        // Map existing entries
+        const map = {};
+        record.entries.forEach(entry => {
+          map[entry.student] = entry.status;
+        });
+        setAttendanceMap(map);
+
+        // We need the full student list to show anyone who might have been added *after* this record was made, 
+        // or just rely on the record. For simplicity, let's re-fetch active students to ensure we see everyone.
+        const studentRes = await api.get('/students/?active=true');
+        setStudents(studentRes.data.results || []);
+        
+        // If a new student joined after this old record was created, default them to 'P' (Present) or ''?
+        // Let's default to what's in the map, or 'P' if new.
+      } else {
+        // New Entry mode
+        const studentRes = await api.get('/students/?active=true');
+        const activeStudents = studentRes.data.results || [];
+        setStudents(activeStudents);
+        
+        // Default everyone to Present
+        const map = {};
+        activeStudents.forEach(s => map[s.id] = 'P');
+        setAttendanceMap(map);
+      }
+    } catch (error) {
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // 4. Handle submitting the whole sheet
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    
-    const entries = Object.keys(attendance).map(studentId => ({
-      student: parseInt(studentId, 10),
-      status: attendance[studentId]
+  const toggleStatus = (studentId) => {
+    setAttendanceMap(prev => ({
+      ...prev,
+      [studentId]: prev[studentId] === 'P' ? 'A' : 'P'
     }));
-    
-    const payload = {
-      batch: parseInt(selectedBatch, 10),
-      date: selectedDate,
-      entries: entries
-    };
+  };
 
-    const promise = existingRecordId
-      ? api.put(`/attendance/records/${existingRecordId}/`, payload) // UPDATE
-      : api.post('/attendance/records/', payload); // CREATE
+  const handleSave = async () => {
+    setSaving(true);
+    const entries = Object.keys(attendanceMap).map(studentId => ({
+      student: parseInt(studentId),
+      status: attendanceMap[studentId]
+    }));
+
+    const payload = { date, entries };
 
     try {
-      const res = await toast.promise(promise, {
-        loading: 'Submitting attendance...',
-        success: `Attendance ${existingRecordId ? 'updated' : 'saved'}!`,
-        error: (err) => err.response?.data?.entries?.[0] || 'Failed to submit.'
-      });
-      
-      // On create, set the new record ID
-      if (!existingRecordId) {
-        setExistingRecordId(res.data.id);
+      if (existingRecordId) {
+        await api.put(`/attendance/records/${existingRecordId}/`, payload);
+      } else {
+        await api.post('/attendance/records/', payload);
       }
-    } catch (err) { /* handled by toast */ } finally {
-      setIsSubmitting(false);
+      toast.success("Attendance saved");
+      fetchAttendanceData(); // Refresh to get ID if it was new
+    } catch (error) {
+      toast.error("Failed to save attendance");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <>
-      <PageHeader title="Take Attendance" />
-
-      <main className="p-4 md:p-8">
-        <div className="mx-auto max-w-4xl">
-          {/* Filters */}
-          <div className="card p-4 mb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">Select Batch</label>
-                {loadingBatches ? <Loader2 className="animate-spin" /> : (
-                  <select
-                    value={selectedBatch}
-                    onChange={(e) => setSelectedBatch(e.target.value)}
-                    className="form-input"
-                  >
-                    {batches.map(batch => (
-                      <option key={batch.id} value={batch.id}>
-                        {batch.code} ({batch.course_title})
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div>
-                <label className="form-label">Select Date</label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="form-input"
-                />
-              </div>
-            </div>
-          </div>
-          
-          {/* Student List */}
-          <div className="card overflow-hidden">
-            {loadingStudents ? (
-              <div className="flex justify-center items-center h-64">
-                <Loader2 className="animate-spin text-primary" size={40} />
-              </div>
-            ) : students.length === 0 ? (
-              <p className="text-center p-8 text-muted-foreground">
-                No students found for this batch.
-              </p>
-            ) : (
-              <ul role="list" className="divide-y divide-border">
-                {students.map((student) => {
-                  const status = attendance[student.id] || 'P';
-                  return (
-                    <li key={student.id} className="p-4 flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground">{student.name}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <StatusButton icon={Check} label="P" isActive={status === 'P'} onClick={() => setStudentStatus(student.id, 'P')} color="green" />
-                        <StatusButton icon={X} label="A" isActive={status === 'A'} onClick={() => setStudentStatus(student.id, 'A')} color="red" />
-                        <StatusButton icon={Minus} label="L" isActive={status === 'L'} onClick={() => setStudentStatus(student.id, 'L')} color="yellow" />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-          
-          {/* Submit Button */}
-          {students.length > 0 && (
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || loadingStudents}
-                className="btn-primary flex items-center gap-2"
-              >
-                {isSubmitting ? <Loader2 className="animate-spin" /> : <Save size={18} />}
-                {existingRecordId ? 'Update Attendance' : 'Submit Attendance'}
-              </button>
-            </div>
-          )}
+    <div className="space-y-4 pb-24">
+      <div className="sticky top-0 z-10 bg-gray-50 pb-4 pt-2">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">Attendance</h2>
+          <button 
+            onClick={handleSave} 
+            disabled={saving || loading}
+            className="bg-primary-600 text-white px-4 py-2 rounded-xl font-semibold shadow-lg flex items-center gap-2 disabled:opacity-50"
+          >
+            {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+            <span>Save</span>
+          </button>
         </div>
-      </main>
-    </>
-  );
-}
 
-const StatusButton = ({ icon: Icon, label, isActive, onClick, color }) => (
-  <button
-    onClick={onClick}
-    className={`p-2 rounded-full ${
-      isActive 
-        ? `bg-${color}-600 text-white` 
-        : `bg-muted text-muted-foreground hover:bg-${color}-100`
-    }`}
-    aria-label={label}
-  >
-    <Icon size={20} />
-  </button>
-);
+        <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3">
+          <Calendar className="text-primary-600" size={20} />
+          <input 
+            type="date" 
+            value={date} 
+            onChange={(e) => setDate(e.target.value)}
+            className="flex-1 bg-transparent font-medium text-gray-900 outline-none"
+          />
+        </div>
+      </div>
+
+      {loading ? <div className="text-center py-10 text-gray-400">Loading students...</div> : (
+        <div className="space-y-3">
+          {students.map(student => {
+            const isPresent = attendanceMap[student.id] === 'P';
+            return (
+              <div 
+                key={student.id} 
+                onClick={() => toggleStatus(student.id)}
+                className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all active:scale-[0.98] ${
+                  isPresent 
+                    ? 'bg-white border-green-100 shadow-sm' 
+                    : 'bg-red-50 border-red-100'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+                    isPresent ? 'bg-primary-100 text-primary-600' : 'bg-red-200 text-red-700'
+                  }`}>
+                    {student.user.first_name[0]}
+                  </div>
+                  <div>
+                    <h3 className={`font-bold ${isPresent ? 'text-gray-900' : 'text-red-800'}`}>
+                      {student.user.first_name} {student.user.last_name}
+                    </h3>
+                    <p className={`text-xs ${isPresent ? 'text-gray-500' : 'text-red-600'}`}>
+                      {student.reg_no}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  isPresent ? 'bg-green-100 text-green-600' : 'bg-red-200 text-red-600'
+                }`}>
+                  {isPresent ? <Check size={18} strokeWidth={3} /> : <X size={18} strokeWidth={3} />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default AttendancePage;

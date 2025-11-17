@@ -1,142 +1,91 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '@/services/api.js';
-import { jwtDecode } from 'jwt-decode';
+import api from '../services/api';
 import { toast } from 'react-hot-toast';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [tokens, setTokens] = useState(() => {
-    try {
-      const storedTokens = localStorage.getItem('authTokens');
-      return storedTokens ? JSON.parse(storedTokens) : null;
-    } catch (error) {
-      console.error("Failed to parse auth tokens:", error);
-      return null;
-    }
-  });
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Check for existing token on mount
   useEffect(() => {
-    const checkUser = async () => {
-      if (tokens) {
+    const initAuth = async () => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
         try {
-          // Validate token expiration
-          const decodedToken = jwtDecode(tokens.access);
-          if (decodedToken.exp * 1000 < Date.now()) {
-            // Token is expired, try to refresh (interceptor will handle)
-            // For now, just logout to be safe if interceptor fails
-            console.log("Token expired, interceptor will refresh or logout.");
-          }
-
-          api.defaults.headers.common['Authorization'] = 'Bearer ' + tokens.access;
-          
-          const userResponse = await api.get('/users/me/');
-          let fullUser = userResponse.data;
-          
-          // IF USER IS A STUDENT, FETCH STUDENT PROFILE
-          // This matches your backend UserSerializer (student_id)
-          if (fullUser.student_id) {
-            try {
-              const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
-              fullUser.student = studentResponse.data; // Attach student profile
-            } catch (e) {
-              console.error("Failed to fetch student profile", e);
-              // Don't fail the whole login, just log the error
-            }
-          }
-
-          setUser(fullUser);
-
+          // Verify token by fetching user profile
+          await fetchUserProfile(); 
         } catch (error) {
-          console.error("Auth check failed, token might be invalid", error);
+          console.error("Session expired");
+          logout();
         }
       }
       setLoading(false);
     };
-    checkUser();
-  }, [tokens]); // Only re-run when tokens change
+    initAuth();
+  }, []);
 
-  const loginUser = async (username, password) => {
+  const fetchUserProfile = async () => {
     try {
-      const tokenResponse = await api.post('/auth/token/', {
-        username,
-        password,
-      });
-      const newTokens = tokenResponse.data;
+      const res = await api.get('/users/me/');
+      const userData = res.data;
       
-      setTokens(newTokens);
-      localStorage.setItem('authTokens', JSON.stringify(newTokens));
-      api.defaults.headers.common['Authorization'] = 'Bearer ' + newTokens.access;
-      
-      const userResponse = await api.get('/users/me/');
-      let fullUser = userResponse.data;
-
-      if (fullUser.student_id) {
-        try {
-          const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
-          fullUser.student = studentResponse.data;
-        } catch (e) {
-          console.error("Failed to fetch student profile during login", e);
-        }
+      // If student, try to fetch student details too
+      if (userData.student_id && !userData.is_staff) {
+         try {
+             const studentRes = await api.get(`/students/${userData.student_id}/`);
+             userData.student_details = studentRes.data;
+         } catch (e) {
+             console.log("Could not fetch student specific details");
+         }
       }
-
-      setUser(fullUser);
-
-      const from = location.state?.from?.pathname;
-
-      if (from) {
-        navigate(from, { replace: true });
-      } else if (fullUser.is_staff) {
-        navigate('/admin/dashboard', { replace: true });
-      } else {
-        navigate('/student/dashboard', { replace: true });
-      }
-      toast.success(`Welcome, ${fullUser.first_name || fullUser.username}!`);
-      
+      setUser(userData);
+      return userData;
     } catch (error) {
-      console.error('Login failed', error);
-      if (error.response && error.response.status === 401) {
-        toast.error('Invalid username or password.');
-        throw new Error('Invalid username or password.');
+      throw error;
+    }
+  };
+
+  const login = async (username, password) => {
+    try {
+      const res = await api.post('/auth/token/', { username, password });
+      localStorage.setItem('access_token', res.data.access);
+      localStorage.setItem('refresh_token', res.data.refresh);
+      
+      const userData = await fetchUserProfile();
+      
+      toast.success(`Welcome back, ${userData.first_name || userData.username}!`);
+      
+      // Redirect based on role
+      if (userData.is_staff) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/student/home');
       }
-      toast.error('Login failed. Please try again.');
-      throw new Error('Login failed. Please try again.');
+      return true;
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(error.response?.data?.detail || 'Invalid credentials');
+      return false;
     }
   };
 
-  const logoutUser = (redirect = true) => {
+  const logout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     setUser(null);
-    setTokens(null);
-    localStorage.removeItem('authTokens');
-    delete api.defaults.headers.common['Authorization'];
-    if (redirect) {
-      navigate('/login');
-    }
-  };
-
-  const contextData = {
-    user,
-    tokens,
-    loading,
-    loginUser,
-    logoutUser,
-    setUser, // Expose setUser for profile updates
+    navigate('/login');
   };
 
   return (
-    <AuthContext.Provider value={contextData}>
-      {children}
+    <AuthContext.Provider value={{ user, login, logout, loading, isAdmin: user?.is_staff }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
-
-export default AuthContext;
+export const useAuth = () => useContext(AuthContext);

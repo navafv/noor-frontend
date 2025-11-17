@@ -1,234 +1,160 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api.js';
-import { Loader2, Plus, Award, Search, RefreshCcw, Check, X, Download } from 'lucide-react'; // <-- NEW
-import PageHeader from '../components/PageHeader.jsx';
-import Modal from '../components/Modal.jsx';
+import api from '../services/api';
+import { Award, Download, Trash2, Plus, Search, CheckCircle, AlertCircle } from 'lucide-react';
+import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
-// Format date
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
-// --- Issue Certificate Modal ---
-const IssueCertificateModal = ({ isOpen, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({ student: '', course: '', remarks: '' });
-  const [isLoading, setIsLoading] = useState(false);
-  // TODO: Fetch students and courses to populate dropdowns
-  // For now, we use simple number inputs for IDs
-
-  const handleChange = (e) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    const payload = {
-      ...formData,
-      student: parseInt(formData.student),
-      course: parseInt(formData.course)
-    };
-
-    const promise = api.post('/certificates/', payload);
-
-    try {
-      await toast.promise(promise, {
-        loading: 'Issuing certificate...',
-        success: 'Certificate issued successfully! PDF is generating.',
-        error: (err) => err.response?.data?.detail || 'Failed to issue certificate. Has the student completed the course?',
-      });
-      setFormData({ student: '', course: '', remarks: '' });
-      onSuccess();
-      onClose();
-    } catch (err) { /* handled by toast */ } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Issue New Certificate" size="lg">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <p className="text-sm text-muted-foreground">
-          The system will validate that the student has completed the course before issuing.
-        </p>
-        {/* TODO: Replace with async search selects */}
-        <FormInput label="Student ID" name="student" value={formData.student} onChange={handleChange} type="number" required />
-        <FormInput label="Course ID" name="course" value={formData.course} onChange={handleChange} type="number" required />
-        <FormInput label="Remarks (Optional)" name="remarks" value={formData.remarks} onChange={handleChange} />
-        
-        <div className="flex justify-end pt-4">
-          <button type="submit" className="btn-primary w-full" disabled={isLoading}>
-            {isLoading ? <Loader2 className="animate-spin" /> : 'Issue Certificate'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-// Helper component
-const FormInput = ({ label, ...props }) => (
-  <div>
-    <label htmlFor={props.name} className="form-label">{label}</label>
-    <input id={props.name} {...props} className="form-input" />
-  </div>
-);
-
-// --- Main Page Component ---
-function CertificateManagementPage() {
+const CertificateManagementPage = () => {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Form state
+  const [students, setStudents] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [formData, setFormData] = useState({ student: '', course: '', remarks: '' });
 
   const fetchCertificates = async () => {
-    setLoading(true);
     try {
-      const params = new URLSearchParams({ page, search: searchTerm });
-      const res = await api.get(`/certificates/?${params.toString()}`);
+      const res = await api.get('/certificates/');
       setCertificates(res.data.results || []);
-      setTotalPages(Math.ceil((res.data.count || 0) / 20));
-    } catch (err) {
-      toast.error('Failed to load certificates.');
+    } catch (error) {
+      toast.error("Failed to load certificates");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchCertificates();
-    }, 500); // Debounce search
-    return () => clearTimeout(timer);
-  }, [page, searchTerm]);
+  useEffect(() => { fetchCertificates(); }, []);
 
-  const handleSearchChange = (e) => {
-    setSearchTerm(e.target.value);
-    setPage(1);
-  };
-  
-  const handleRevoke = async (certId, isRevoked) => {
-    const action = isRevoked ? 'un-revoke' : 'revoke';
-    if (!window.confirm(`Are you sure you want to ${action} this certificate?`)) return;
-
-    const promise = api.post(`/certificates/${certId}/revoke/`);
-
-    try {
-      await toast.promise(promise, {
-        loading: `${action.charAt(0).toUpperCase() + action.slice(1)}ing certificate...`,
-        success: `Certificate ${action}d successfully.`,
-        error: `Failed to ${action} certificate.`
-      });
-      fetchCertificates(); // Refetch
-    } catch (err) { /* handled by toast */ }
+  const openModal = async () => {
+    // Load active students
+    const res = await api.get('/students/?active=true');
+    setStudents(res.data.results || []);
+    setIsModalOpen(true);
   };
 
-  // --- NEW: Download Handler ---
-  const handleDownload = async (certId, certNo) => {
-    const toastId = toast.loading('Downloading certificate...');
-    try {
-      // This endpoint is protected by the backend (for Admin or Owner)
-      const res = await api.get(`/certificates/${certId}/download/`, {
-        responseType: 'blob', // Tell axios to expect a file
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([res.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${certNo}.pdf`); // Set filename
-      document.body.appendChild(link);
-      link.click();
-      
-      link.parentNode.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Download complete!', { id: toastId });
-    } catch (err) {
-      console.error("Failed to download certificate:", err);
-      toast.error('Download failed. Please try again.', { id: toastId });
+  const handleStudentChange = async (e) => {
+    const studentId = e.target.value;
+    setFormData({ ...formData, student: studentId, course: '' });
+    if (studentId) {
+      // Load enrollments (completed or active) to populate Course dropdown
+      // We allow active too, but backend will warn if not complete.
+      const res = await api.get(`/enrollments/?student=${studentId}`);
+      setCourses(res.data.results || []);
+    } else {
+      setCourses([]);
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/certificates/', formData);
+      toast.success("Certificate Issued!");
+      setIsModalOpen(false);
+      fetchCertificates();
+      setFormData({ student: '', course: '', remarks: '' });
+    } catch (error) {
+      const msg = error.response?.data?.non_field_errors?.[0] || "Failed to issue. Check completion status.";
+      toast.error(msg);
+    }
+  };
+
+  const handleRevoke = async (id) => {
+    if (!confirm("Are you sure you want to revoke/un-revoke this certificate?")) return;
+    try {
+      await api.post(`/certificates/${id}/revoke/`);
+      toast.success("Status updated");
+      fetchCertificates();
+    } catch (e) { toast.error("Action failed"); }
+  };
+
+  const handleDownload = async (id) => {
+    try {
+        const response = await api.get(`/certificates/${id}/download/`, { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `Certificate_${id}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+    } catch (e) { toast.error("Download failed"); }
+  };
+
   return (
-    <>
-      <PageHeader title="Certificate Management">
-        <button className="btn-primary flex items-center gap-2" onClick={() => setIsModalOpen(true)}>
-          <Plus size={18} />
-          Issue Certificate
+    <div className="space-y-4 pb-24">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold text-gray-900">Certificates</h2>
+        <button onClick={openModal} className="bg-primary-600 text-white p-2.5 rounded-full shadow-lg">
+            <Plus size={24} />
         </button>
-      </PageHeader>
+      </div>
 
-      <main className="p-4 md:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-6 relative">
-            <input
-              type="text"
-              placeholder="Search by certificate no, student name, or course..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              className="form-input pl-10"
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          </div>
-
-          <div className="card overflow-hidden">
-            {loading ? (
-              <div className="flex justify-center items-center h-64"><Loader2 className="animate-spin text-primary" size={40} /></div>
-            ) : certificates.length === 0 ? (
-              <p className="text-center p-8 text-muted-foreground">No certificates found.</p>
-            ) : (
-              <ul role="list" className="divide-y divide-border">
-                {certificates.map((cert) => (
-                  <li key={cert.id} className="p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-semibold text-primary">{cert.certificate_no}</p>
-                      <p className="text-sm font-medium text-foreground">{cert.student_name}</p>
-                      <p className="text-sm text-muted-foreground">{cert.course_title}</p>
-                      <p className="text-xs text-muted-foreground">Issued: {formatDate(cert.issue_date)}</p>
+      <div className="space-y-3">
+        {loading ? <p className="text-center text-gray-400">Loading...</p> : certificates.map(cert => (
+            <div key={cert.id} className={`p-4 rounded-2xl shadow-sm border relative overflow-hidden ${cert.revoked ? 'bg-gray-50 border-gray-200 opacity-75' : 'bg-white border-gray-100'}`}>
+                
+                {cert.revoked && (
+                    <div className="absolute right-0 top-0 bg-red-100 text-red-600 text-xs px-2 py-1 rounded-bl-xl font-bold">
+                        REVOKED
                     </div>
-                    <div className="flex items-center gap-2">
-                      {cert.revoked ? (
-                        <span className="status-badge status-closed">Revoked</span>
-                      ) : (
-                        <span className="status-badge status-completed">Valid</span>
-                      )}
-                      {/* --- NEW: Download Button --- */}
-                      <button
-                        onClick={() => handleDownload(cert.id, cert.certificate_no)}
-                        className="btn-outline btn-sm"
-                        title="Download PDF"
-                      >
-                        <Download size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleRevoke(cert.id, cert.revoked)}
-                        className={`btn-outline btn-sm ${cert.revoked ? 'text-green-600' : 'text-red-600'}`}
-                        title={cert.revoked ? 'Un-Revoke' : 'Revoke'}
-                      >
-                        {cert.revoked ? <Check size={16} /> : <X size={16} />}
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {/* TODO: Add Pagination controls */}
-          </div>
-        </div>
-      </main>
+                )}
 
-      <IssueCertificateModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSuccess={fetchCertificates}
-      />
-    </>
+                <div className="flex items-start gap-3">
+                    <div className={`p-3 rounded-xl ${cert.revoked ? 'bg-gray-200 text-gray-500' : 'bg-yellow-50 text-yellow-600'}`}>
+                        <Award size={24} />
+                    </div>
+                    <div className="flex-1">
+                        <h3 className="font-bold text-gray-900">{cert.student_name}</h3>
+                        <p className="text-sm text-primary-600 font-medium">{cert.course_title}</p>
+                        <p className="text-xs text-gray-400 mt-1">Issued: {cert.issue_date}</p>
+                        <p className="text-xs text-gray-400 font-mono">{cert.certificate_no}</p>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
+                    <button onClick={() => handleRevoke(cert.id)} className="px-3 py-1.5 text-xs font-bold text-red-500 bg-red-50 rounded-lg">
+                        {cert.revoked ? "Activate" : "Revoke"}
+                    </button>
+                    <button onClick={() => handleDownload(cert.id)} className="px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg flex items-center gap-1">
+                        <Download size={14}/> PDF
+                    </button>
+                </div>
+            </div>
+        ))}
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Issue Certificate">
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="bg-yellow-50 p-3 rounded-xl flex gap-2 text-yellow-800 text-sm">
+                <AlertCircle size={18} className="shrink-0 mt-0.5"/>
+                <p>Certificates can only be issued if the student has sufficient attendance.</p>
+            </div>
+
+            <div>
+                <label className="text-sm font-medium text-gray-700">Student</label>
+                <select className="form-input mt-1" value={formData.student} onChange={handleStudentChange} required>
+                    <option value="">Select Student</option>
+                    {students.map(s => <option key={s.id} value={s.id}>{s.user.first_name} {s.user.last_name}</option>)}
+                </select>
+            </div>
+
+            <div>
+                <label className="text-sm font-medium text-gray-700">Course</label>
+                <select className="form-input mt-1" value={formData.course} onChange={e => setFormData({ ...formData, course: e.target.value })} required disabled={!formData.student}>
+                    <option value="">Select Course</option>
+                    {courses.map(e => <option key={e.course_id} value={e.course_id}>{e.course_title} ({e.status})</option>)}
+                </select>
+            </div>
+
+            <textarea placeholder="Remarks (e.g., Distinction)" className="form-input" value={formData.remarks} onChange={e => setFormData({ ...formData, remarks: e.target.value })} />
+            
+            <button type="submit" className="w-full btn-primary mt-2">Generate Certificate</button>
+        </form>
+      </Modal>
+    </div>
   );
-}
+};
 
 export default CertificateManagementPage;
