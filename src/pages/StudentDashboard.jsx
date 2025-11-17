@@ -5,7 +5,6 @@ import api from '../services/api.js';
 import PageHeader from '../components/PageHeader.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toast } from 'react-hot-toast';
-import FeedbackFormModal from '../components/FeedbackFormModal.jsx'; // <-- NEW
 
 // Card for navigation
 const QuickLinkCard = ({ to, icon: Icon, label, color }) => (

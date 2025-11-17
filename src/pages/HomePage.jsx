@@ -1,5 +1,4 @@
 import React from 'react';
-import EnquiryForm from '../components/EnquiryForm.jsx';
 import { Check } from 'lucide-react';
 
 function HomePage() {
@@ -35,13 +34,7 @@ function HomePage() {
                   <span className="text-muted-foreground">Government-approved certification</span>
                 </li>
               </ul>
-            </div>
-            
-            {/* Column 2: Enquiry Form */}
-            <div className="lg:pl-8">
-              <EnquiryForm />
-            </div>
-            
+            </div>            
           </div>
         </div>
       </section>

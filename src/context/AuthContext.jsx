@@ -76,12 +76,10 @@ export const AuthProvider = ({ children }) => {
       const userResponse = await api.get('/users/me/');
       let fullUser = userResponse.data;
 
-      // IF USER IS A STUDENT, FETCH STUDENT PROFILE
       if (fullUser.student_id) {
         try {
-          // Use the '/me' endpoint for students
-          const studentResponse = await api.get(`/students/me/`);
-          fullUser.student = studentResponse.data; // Attach student profile
+          const studentResponse = await api.get(`/students/${fullUser.student_id}/`);
+          fullUser.student = studentResponse.data;
         } catch (e) {
           console.error("Failed to fetch student profile during login", e);
         }
@@ -93,7 +91,7 @@ export const AuthProvider = ({ children }) => {
 
       if (from) {
         navigate(from, { replace: true });
-      } else if (fullUser.is_staff) { 
+      } else if (fullUser.is_staff) {
         navigate('/admin/dashboard', { replace: true });
       } else {
         navigate('/student/dashboard', { replace: true });

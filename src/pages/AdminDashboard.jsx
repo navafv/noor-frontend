@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { Loader2, DollarSign, Users, UserPlus, Inbox } from 'lucide-react';
 import api from '../services/api.js';
 import PageHeader from '../components/PageHeader.jsx';
-import EnquiryList from '../components/EnquiryList.jsx';
 import { toast } from 'react-hot-toast';
 
 // Reusable Stat Card Component
@@ -102,11 +101,6 @@ function AdminDashboard() {
                 {/* This component now fetches its own data.
                   We are showing only 5 "new" enquiries on the dashboard.
                 */}
-                <EnquiryList 
-                  limit={5} 
-                  status="new" 
-                  showPagination={false} 
-                />
               </div>
             </>
           )}
