@@ -14,7 +14,6 @@ const StudentDetailPage = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Modals
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isMeasureModalOpen, setIsMeasureModalOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -64,9 +63,9 @@ const StudentDetailPage = () => {
       {/* Header Card */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-3xl font-bold mb-3">
-          {student.user.first_name[0]}
+          {student.user?.first_name?.[0] || 'S'}
         </div>
-        <h2 className="text-xl font-bold text-gray-900">{student.user.first_name} {student.user.last_name}</h2>
+        <h2 className="text-xl font-bold text-gray-900">{student.user?.first_name} {student.user?.last_name}</h2>
         <p className="text-sm text-gray-500 mb-1">{student.reg_no}</p>
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${student.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
           {student.active ? 'Active' : 'Inactive'}
@@ -75,11 +74,11 @@ const StudentDetailPage = () => {
 
       {/* Actions Row */}
       <div className="grid grid-cols-2 gap-3">
-        <button onClick={() => setIsMeasureModalOpen(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+        <button onClick={() => setIsMeasureModalOpen(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
             <div className="bg-orange-50 p-2 rounded-xl text-orange-600"><Ruler size={20}/></div>
             <span className="text-xs font-bold text-gray-700">Add Measure</span>
         </button>
-        <button onClick={() => setIsHistoryModalOpen(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+        <button onClick={() => setIsHistoryModalOpen(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform cursor-pointer">
             <div className="bg-purple-50 p-2 rounded-xl text-purple-600"><History size={20}/></div>
             <span className="text-xs font-bold text-gray-700">View History</span>
         </button>
@@ -92,7 +91,7 @@ const StudentDetailPage = () => {
           <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><Phone size={18} /></div>
           <div className="flex-1">
               <p className="text-xs text-gray-400">Phone</p>
-              <a href={`tel:${student.user.phone}`} className="font-medium text-primary-600">{student.user.phone}</a>
+              <a href={`tel:${student.user?.phone}`} className="font-medium text-primary-600">{student.user?.phone || 'N/A'}</a>
           </div>
         </div>
         <div className="flex items-center gap-3">

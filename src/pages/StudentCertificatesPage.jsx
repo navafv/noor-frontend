@@ -15,6 +15,7 @@ const StudentCertificatesPage = () => {
   }, []);
 
   const downloadCert = async (id, certNo) => {
+    const toastId = toast.loading("Downloading...");
     try {
         const response = await api.get(`/certificates/${id}/download/`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -23,7 +24,11 @@ const StudentCertificatesPage = () => {
         link.setAttribute('download', `${certNo}.pdf`);
         document.body.appendChild(link);
         link.click();
-    } catch (e) { toast.error("Download failed"); }
+        document.body.removeChild(link);
+        toast.success("Download complete", { id: toastId });
+    } catch (e) { 
+        toast.error("Download failed", { id: toastId }); 
+    }
   };
 
   return (
@@ -51,7 +56,7 @@ const StudentCertificatesPage = () => {
                         <span className="text-xs text-gray-400">Issued: {cert.issue_date}</span>
                         <button 
                             onClick={() => downloadCert(cert.id, cert.certificate_no)}
-                            className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-xl hover:bg-gray-800 transition-colors"
+                            className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
                         >
                             <Download size={14} /> Download
                         </button>

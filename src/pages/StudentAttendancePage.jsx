@@ -13,6 +13,12 @@ const StudentAttendancePage = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const parseDate = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'P': return <CheckCircle size={20} className="text-green-600" />;
@@ -41,7 +47,9 @@ const StudentAttendancePage = () => {
                             <Calendar size={18} />
                         </div>
                         <div>
-                            <p className="font-bold text-gray-900">{new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                            <p className="font-bold text-gray-900">
+                                {parseDate(record.date).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
+                            </p>
                             <p className="text-xs text-gray-400">{record.remarks || "No remarks"}</p>
                         </div>
                     </div>

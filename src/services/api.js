@@ -1,7 +1,6 @@
 import axios from 'axios';
 
-// Determine API URL based on environment
-const API_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.2:8000/api/v1';
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.1.2:8000/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,

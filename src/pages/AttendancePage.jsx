@@ -94,10 +94,10 @@ const AttendancePage = () => {
               <div key={student.id} onClick={() => toggleStatus(student.id)} className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all active:scale-[0.98] ${isPresent ? 'bg-white border-green-100 shadow-sm' : 'bg-red-50 border-red-100'}`}>
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${isPresent ? 'bg-primary-100 text-primary-600' : 'bg-red-200 text-red-700'}`}>
-                    {student.user.first_name[0]}
+                    {student.user?.first_name?.[0] || 'S'}
                   </div>
                   <div>
-                    <h3 className={`font-bold ${isPresent ? 'text-gray-900' : 'text-red-800'}`}>{student.user.first_name} {student.user.last_name}</h3>
+                    <h3 className={`font-bold ${isPresent ? 'text-gray-900' : 'text-red-800'}`}>{student.user?.first_name} {student.user?.last_name}</h3>
                     <p className={`text-xs ${isPresent ? 'text-gray-500' : 'text-red-600'}`}>{student.reg_no}</p>
                   </div>
                 </div>

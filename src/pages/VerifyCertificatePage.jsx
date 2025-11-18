@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, useParams, Link } from 'react-router-dom';
 import api from '../services/api';
 import { CheckCircle, XCircle, Loader2, Search } from 'lucide-react';
 
 const VerifyCertificatePage = () => {
+  const { hash: paramHash } = useParams(); // From URL path (QR code)
   const [searchParams] = useSearchParams();
-  const hash = searchParams.get('hash');
+  const queryHash = searchParams.get('hash'); // From query string (?hash=...)
+  
+  const hash = paramHash || queryHash;
+
   const [loading, setLoading] = useState(!!hash);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -40,6 +44,7 @@ const VerifyCertificatePage = () => {
             <div className="bg-gray-50 rounded-2xl p-4 text-left space-y-2 text-sm border border-gray-100">
               <div><p className="text-xs text-gray-400 uppercase">Student</p><p className="font-bold text-gray-900">{result.student_name}</p></div>
               <div><p className="text-xs text-gray-400 uppercase">Course</p><p className="font-bold text-gray-900">{result.course_title}</p></div>
+              <div><p className="text-xs text-gray-400 uppercase">Issued</p><p className="font-bold text-gray-900">{result.issue_date}</p></div>
             </div>
           </div>
         )}

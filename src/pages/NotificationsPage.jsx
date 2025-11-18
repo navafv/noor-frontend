@@ -21,17 +21,23 @@ const NotificationsPage = () => {
   useEffect(() => { fetchNotifications(); }, []);
 
   const markAllRead = async () => {
+    // Optimistic update
+    const previousState = [...notifications];
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    
     try {
       await api.post('/notifications/mark_all_read/');
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       toast.success("All marked as read");
-    } catch (e) { toast.error("Action failed"); }
+    } catch (e) { 
+      setNotifications(previousState); // Revert on failure
+      toast.error("Action failed"); 
+    }
   };
 
   const markOneRead = async (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     try {
       await api.post(`/notifications/${id}/mark_read/`);
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     } catch (e) { console.error(e); }
   };
 
@@ -58,7 +64,7 @@ const NotificationsPage = () => {
             <div 
                 key={notif.id} 
                 onClick={() => !notif.read && markOneRead(notif.id)}
-                className={`p-4 rounded-2xl border transition-all ${notif.read ? 'bg-white border-gray-100 text-gray-500' : 'bg-white border-primary-200 shadow-sm text-gray-900'}`}
+                className={`p-4 rounded-2xl border transition-all ${notif.read ? 'bg-white border-gray-100 text-gray-500' : 'bg-white border-primary-200 shadow-sm text-gray-900 cursor-pointer'}`}
             >
                 <div className="flex gap-3">
                     <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${notif.read ? 'bg-gray-200' : 'bg-primary-500'}`} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Upload, Trash2, FileText, Link as LinkIcon } from 'lucide-react';
+import { Upload, Trash2, FileText, Link as LinkIcon, X } from 'lucide-react';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
@@ -42,6 +42,15 @@ const AdminCourseMaterialsPage = () => {
     e.preventDefault();
     if (!selectedCourse) return;
 
+    if (formData.link && file) {
+        toast.error("Please provide either a File OR a Link, not both.");
+        return;
+    }
+    if (!formData.link && !file) {
+        toast.error("Please provide a File or a Link.");
+        return;
+    }
+
     const data = new FormData();
     data.append('title', formData.title);
     data.append('description', formData.description);
@@ -69,6 +78,17 @@ const AdminCourseMaterialsPage = () => {
       toast.success("Deleted");
       fetchMaterials(selectedCourse);
     } catch(e) { toast.error("Delete failed"); }
+  };
+
+  // Helper to clear mutually exclusive fields
+  const handleLinkChange = (e) => {
+    setFormData({ ...formData, link: e.target.value });
+    if (e.target.value) setFile(null);
+  };
+  
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+    if (e.target.files[0]) setFormData({ ...formData, link: '' });
   };
 
   return (
@@ -108,8 +128,34 @@ const AdminCourseMaterialsPage = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
             <input required placeholder="Title" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
             <textarea placeholder="Description" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-            <input type="url" placeholder="External Link (Optional)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.link} onChange={e => setFormData({...formData, link: e.target.value})} />
-            <input type="file" className="w-full text-sm text-gray-500" onChange={e => setFile(e.target.files[0])} />
+            
+            <div className="space-y-3 pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400 uppercase font-bold">Attach (Choose One)</p>
+                
+                <div className="relative">
+                    <input 
+                        type="url" 
+                        placeholder="External Link" 
+                        className={`w-full p-3 rounded-xl border outline-none transition-colors ${file ? 'bg-gray-100 border-gray-200 text-gray-400' : 'border-gray-200'}`}
+                        value={formData.link} 
+                        onChange={handleLinkChange}
+                        disabled={!!file}
+                    />
+                    {file && <div className="absolute right-3 top-3 text-xs text-gray-400 italic">File selected</div>}
+                </div>
+
+                <div className="relative">
+                    <input 
+                        type="file" 
+                        className={`w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 ${formData.link ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onChange={handleFileChange}
+                        ref={ref => { if (ref && !file) ref.value = ''; }} // Reset if file state is null
+                        disabled={!!formData.link}
+                    />
+                    {formData.link && <div className="absolute right-0 top-0 text-xs text-gray-400 italic mt-2">Link entered</div>}
+                </div>
+            </div>
+
             <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer">Upload</button>
         </form>
       </Modal>

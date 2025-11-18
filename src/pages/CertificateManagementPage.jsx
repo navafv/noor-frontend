@@ -101,7 +101,7 @@ const CertificateManagementPage = () => {
             </div>
             <select className="w-full p-3 rounded-xl border border-gray-200 outline-none bg-white" value={formData.student} onChange={handleStudentChange} required>
                 <option value="">Select Student</option>
-                {students.map(s => <option key={s.id} value={s.id}>{s.user.first_name} {s.user.last_name}</option>)}
+                {students.map(s => <option key={s.id} value={s.id}>{s.user?.first_name} {s.user?.last_name}</option>)}
             </select>
             <select className="w-full p-3 rounded-xl border border-gray-200 outline-none bg-white" value={formData.course} onChange={e => setFormData({ ...formData, course: e.target.value })} required disabled={!formData.student}>
                 <option value="">Select Course</option>

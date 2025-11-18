@@ -3,7 +3,7 @@ import api from '../services/api';
 import DashboardCard from '../components/DashboardCard';
 import { Users, BookOpen, Wallet, Plus, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { BarChart, Bar, ResponsiveContainer, XAxis } from 'recharts';
+import { BarChart, Bar, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({ students: 0, courses: 0, revenue: 0 });
@@ -20,12 +20,12 @@ const AdminDashboard = () => {
         ]);
 
         setStats({
-          students: studentsRes.data.count,
-          courses: coursesRes.data.count,
-          revenue: financeRes.data.summary.month_revenue 
+          students: studentsRes.data.count || 0,
+          courses: coursesRes.data.count || 0,
+          revenue: financeRes.data.summary.month_revenue || 0
         });
         // Take last 4 months for a mini chart
-        setChartData(financeRes.data.chart_data.slice(0, 4).reverse());
+        setChartData((financeRes.data.chart_data || []).slice(0, 4).reverse());
       } catch (error) {
         console.error("Failed to load stats", error);
       } finally {
@@ -36,7 +36,7 @@ const AdminDashboard = () => {
   }, []);
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount || 0);
   };
 
   return (

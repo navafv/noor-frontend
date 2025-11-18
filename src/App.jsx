@@ -51,7 +51,10 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+        
+        <Route path="/verify-certificate/:hash" element={<VerifyCertificatePage />} />
         <Route path="/verify" element={<VerifyCertificatePage />} />
+        
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
         <Route path="/" element={<RootRedirect />} />

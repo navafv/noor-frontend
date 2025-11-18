@@ -51,7 +51,7 @@ const AccountSettings = () => {
       if (photoFile && !authUser.is_staff) {
         const formData = new FormData();
         formData.append('photo', photoFile);
-        await api.patch('/students/students/me/', formData, {
+        await api.patch('/students/me/', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
       }

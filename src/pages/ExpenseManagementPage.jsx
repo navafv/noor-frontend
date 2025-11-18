@@ -73,7 +73,7 @@ const ExpenseManagementPage = () => {
                 <div className="flex justify-between items-center mt-3 border-t border-gray-50 pt-2 ml-12">
                     <div className="flex items-center gap-1 text-xs text-gray-400"><Calendar size={12} />{expense.date}</div>
                     <div className="flex gap-2">
-                        {expense.receipt_image && <a href={expense.receipt_image} target="_blank" className="text-blue-500"><Paperclip size={16}/></a>}
+                        {expense.receipt_image && <a href={expense.receipt_image} target="_blank" rel="noopener noreferrer" className="text-blue-500"><Paperclip size={16}/></a>}
                     </div>
                 </div>
             </div>
@@ -87,7 +87,7 @@ const ExpenseManagementPage = () => {
                 <select className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
                     {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
-                <input required type="number" placeholder="Amount" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
+                <input required type="number" placeholder="Amount (₹)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
             </div>
             <input type="date" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
             <textarea placeholder="Description" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />

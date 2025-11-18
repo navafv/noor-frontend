@@ -49,6 +49,13 @@ const EventsPage = () => {
     } catch(e) { toast.error("Delete failed"); }
   };
 
+  // Helper to parse YYYY-MM-DD correctly regardless of timezone
+  const parseDate = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   return (
     <div className="space-y-4 pb-20">
       <div className="flex justify-between items-center mb-2">
@@ -64,13 +71,16 @@ const EventsPage = () => {
         {loading ? <p className="text-center text-gray-400">Loading...</p> : 
          events.length === 0 ? <p className="text-center text-gray-400 py-8">No upcoming events.</p> :
          events.map(event => {
-            const isPast = new Date(event.end_date || event.start_date) < new Date();
+            const startDate = parseDate(event.start_date);
+            const endDate = event.end_date ? parseDate(event.end_date) : startDate;
+            const isPast = endDate < new Date(); // Simple comparison works roughly ok
+
             return (
                 <div key={event.id} className={`bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden ${isPast ? 'opacity-60' : ''}`}>
                     {/* Date Badge */}
                     <div className="absolute right-0 top-0 bg-primary-50 text-primary-700 px-3 py-2 rounded-bl-2xl font-bold text-xs flex flex-col items-center leading-tight w-16 text-center">
-                        <span className="text-lg">{new Date(event.start_date).getDate()}</span>
-                        <span className="uppercase">{new Date(event.start_date).toLocaleString('default', { month: 'short' })}</span>
+                        <span className="text-lg">{startDate.getDate()}</span>
+                        <span className="uppercase">{startDate.toLocaleString('default', { month: 'short' })}</span>
                     </div>
 
                     <h3 className="font-bold text-lg text-gray-900 pr-16">{event.title}</h3>
@@ -80,7 +90,7 @@ const EventsPage = () => {
                             <Clock size={14} className="text-primary-400"/>
                             {event.start_date === event.end_date || !event.end_date 
                                 ? 'Single Day' 
-                                : `Until ${new Date(event.end_date).toLocaleDateString()}`}
+                                : `Until ${endDate.toLocaleDateString()}`}
                         </div>
                     </div>
 
@@ -91,7 +101,7 @@ const EventsPage = () => {
                     )}
 
                     {isAdmin && (
-                        <button onClick={() => handleDelete(event.id)} className="absolute bottom-4 right-4 text-red-400 hover:text-red-600 p-1">
+                        <button onClick={() => handleDelete(event.id)} className="absolute bottom-4 right-4 text-red-400 hover:text-red-600 p-1 cursor-pointer">
                             <Trash2 size={18} />
                         </button>
                     )}
@@ -114,7 +124,7 @@ const EventsPage = () => {
                 </div>
             </div>
             <textarea placeholder="Description..." className="w-full p-3 rounded-xl border border-gray-200 outline-none" rows="3" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-            <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer">Create Event</button>
+            <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer hover:bg-primary-700">Create Event</button>
         </form>
       </Modal>
     </div>

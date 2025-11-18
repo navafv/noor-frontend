@@ -58,10 +58,12 @@ const StudentListPage = () => {
     }
   };
 
-  const filteredStudents = students.filter(s => 
-    s.user.first_name.toLowerCase().includes(search.toLowerCase()) ||
-    s.reg_no?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredStudents = students.filter(s => {
+    const name = s.user?.first_name?.toLowerCase() || '';
+    const reg = s.reg_no?.toLowerCase() || '';
+    const query = search.toLowerCase();
+    return name.includes(query) || reg.includes(query);
+  });
 
   return (
     <div className="space-y-4">
@@ -92,10 +94,10 @@ const StudentListPage = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold text-lg">
-                  {student.user.first_name[0]}
+                  {student.user?.first_name?.[0] || 'S'}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">{student.user.first_name} {student.user.last_name}</h3>
+                  <h3 className="font-bold text-gray-900">{student.user?.first_name} {student.user?.last_name}</h3>
                   <p className="text-xs text-gray-500">{student.reg_no || 'Pending Reg'}</p>
                 </div>
               </div>

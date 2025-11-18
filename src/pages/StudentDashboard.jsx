@@ -17,9 +17,20 @@ const StudentDashboard = () => {
         const enrollRes = await api.get('/enrollments/');
         setEnrollments(enrollRes.data.results || []);
         
-        // 2. Fetch Attendance Summary for the stats cards
-        const attRes = await api.get('/attendance/analytics/summary/', { params: { days: 30 } });
-        setAttendanceStats(attRes.data.stats);
+        // 2. Fetch Student's own attendance (Admin analytics endpoint is restricted)
+        const attRes = await api.get('/attendance/records/me/');
+        const records = attRes.data.results || attRes.data || [];
+        
+        // Calculate stats locally
+        const presentCount = records.filter(r => r.status === 'P').length;
+        const totalCount = records.length;
+        const rate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+        setAttendanceStats({
+            present: presentCount,
+            rate: rate
+        });
+
       } catch (e) {
         console.error("Dashboard load error:", e);
       } finally {
@@ -62,7 +73,7 @@ const StudentDashboard = () => {
                     <span className="text-xs font-bold uppercase">Present</span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">{attendanceStats.present} Days</p>
-                <p className="text-xs text-gray-400 mt-1">Last 30 Days</p>
+                <p className="text-xs text-gray-400 mt-1">Total Present</p>
             </div>
 
             {/* Attendance Rate Card (Clickable -> Links to History) */}

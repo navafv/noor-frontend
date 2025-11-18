@@ -59,10 +59,10 @@ const AdminEnrollmentsPage = () => {
                 <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-3">
                         <div className="bg-blue-50 text-blue-600 p-2 rounded-full font-bold text-sm">
-                            {enroll.student_name[0]}
+                            {enroll.student_name ? enroll.student_name[0] : 'S'}
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900">{enroll.student_name}</h3>
+                            <h3 className="font-bold text-gray-900">{enroll.student_name || 'Unknown Student'}</h3>
                             <p className="text-xs text-gray-500 flex items-center gap-1">
                                 <BookOpen size={12} /> {enroll.course_title}
                             </p>
