@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Phone, MapPin, User, BookOpen, Plus } from 'lucide-react';
+import { Phone, MapPin, User, BookOpen, Plus, Ruler, History } from 'lucide-react';
 import Modal from '../components/Modal';
+import MeasurementForm from '../components/MeasurementForm';
+import MeasurementHistoryModal from '../components/MeasurementHistoryModal';
 import { toast } from 'react-hot-toast';
 
 const StudentDetailPage = () => {
@@ -11,7 +13,12 @@ const StudentDetailPage = () => {
   const [enrollments, setEnrollments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modals
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
+  const [isMeasureModalOpen, setIsMeasureModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  
   const [selectedCourse, setSelectedCourse] = useState('');
 
   const fetchData = async () => {
@@ -54,6 +61,7 @@ const StudentDetailPage = () => {
 
   return (
     <div className="space-y-6 pb-20">
+      {/* Header Card */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center text-center relative overflow-hidden">
         <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-3xl font-bold mb-3">
           {student.user.first_name[0]}
@@ -65,11 +73,27 @@ const StudentDetailPage = () => {
         </span>
       </div>
 
+      {/* Actions Row */}
+      <div className="grid grid-cols-2 gap-3">
+        <button onClick={() => setIsMeasureModalOpen(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+            <div className="bg-orange-50 p-2 rounded-xl text-orange-600"><Ruler size={20}/></div>
+            <span className="text-xs font-bold text-gray-700">Add Measure</span>
+        </button>
+        <button onClick={() => setIsHistoryModalOpen(true)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-2 active:scale-95 transition-transform">
+            <div className="bg-purple-50 p-2 rounded-xl text-purple-600"><History size={20}/></div>
+            <span className="text-xs font-bold text-gray-700">View History</span>
+        </button>
+      </div>
+
+      {/* Details */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-4">
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Details</h3>
         <div className="flex items-center gap-3">
           <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><Phone size={18} /></div>
-          <div><p className="text-xs text-gray-400">Phone</p><p className="font-medium">{student.user.phone}</p></div>
+          <div className="flex-1">
+              <p className="text-xs text-gray-400">Phone</p>
+              <a href={`tel:${student.user.phone}`} className="font-medium text-primary-600">{student.user.phone}</a>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="bg-gray-50 p-2 rounded-lg text-gray-500"><User size={18} /></div>
@@ -81,6 +105,7 @@ const StudentDetailPage = () => {
         </div>
       </div>
 
+      {/* Enrollments */}
       <div className="space-y-3">
         <div className="flex justify-between items-center px-1">
             <h3 className="text-lg font-bold text-gray-900">Courses</h3>
@@ -108,6 +133,7 @@ const StudentDetailPage = () => {
         )}
       </div>
 
+      {/* Modals */}
       <Modal isOpen={isEnrollModalOpen} onClose={() => setIsEnrollModalOpen(false)} title="Enroll Student">
         <div className="space-y-4">
             <label className="block text-sm font-medium text-gray-700">Select Course</label>
@@ -124,6 +150,16 @@ const StudentDetailPage = () => {
             <button onClick={handleEnroll} className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer">Confirm Enrollment</button>
         </div>
       </Modal>
+
+      <Modal isOpen={isMeasureModalOpen} onClose={() => setIsMeasureModalOpen(false)} title="New Measurement">
+        <MeasurementForm studentId={id} onSuccess={() => setIsMeasureModalOpen(false)} />
+      </Modal>
+
+      <MeasurementHistoryModal 
+        isOpen={isHistoryModalOpen} 
+        onClose={() => setIsHistoryModalOpen(false)} 
+        studentId={id} 
+      />
     </div>
   );
 };
