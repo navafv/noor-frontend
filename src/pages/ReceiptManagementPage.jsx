@@ -1,30 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Download } from 'lucide-react';
+import { Plus, Download, Trash2, Lock, Loader2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
 const ReceiptManagementPage = () => {
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nextPage, setNextPage] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
   const [formData, setFormData] = useState({ student: '', course: '', amount: '', mode: 'cash', remarks: '' });
 
-  const fetchReceipts = async () => {
+  const fetchReceipts = async (url = '/finance/receipts/') => {
     try {
-      const res = await api.get('/finance/receipts/');
-      setReceipts(res.data.results || []);
+      const res = await api.get(url);
+      if (url === '/finance/receipts/') {
+        setReceipts(res.data.results || []);
+      } else {
+        setReceipts(prev => [...prev, ...(res.data.results || [])]);
+      }
+      setNextPage(res.data.next);
     } catch (error) {
       toast.error('Failed to load receipts');
     } finally {
         setLoading(false);
+        setLoadingMore(false);
     }
   };
 
   useEffect(() => { fetchReceipts(); }, []);
+
+  const handleLoadMore = () => {
+    if (nextPage) {
+      setLoadingMore(true);
+      fetchReceipts(nextPage);
+    }
+  };
 
   const openModal = async () => {
       const res = await api.get('/students/?active=true');
@@ -49,7 +64,7 @@ const ReceiptManagementPage = () => {
           await api.post('/finance/receipts/', formData);
           toast.success('Receipt created');
           setIsModalOpen(false);
-          fetchReceipts();
+          fetchReceipts(); // Refresh list
           setFormData({ student: '', course: '', amount: '', mode: 'cash', remarks: '' });
       } catch (error) {
           toast.error('Failed to create receipt');
@@ -70,6 +85,17 @@ const ReceiptManagementPage = () => {
       }
   };
 
+  const handleDelete = async (id) => {
+      if (!confirm("Are you sure you want to delete this receipt?")) return;
+      try {
+          await api.delete(`/finance/receipts/${id}/`);
+          toast.success("Receipt deleted");
+          fetchReceipts();
+      } catch (e) {
+          toast.error("Could not delete (Receipt might be locked)");
+      }
+  }
+
   return (
     <div className="space-y-4 pb-20">
       <div className="flex justify-between items-center mb-2">
@@ -80,23 +106,48 @@ const ReceiptManagementPage = () => {
       </div>
 
       <div className="space-y-3">
-        {loading ? <p className="text-center text-gray-400">Loading...</p> : receipts.map(receipt => (
-            <div key={receipt.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start">
-                    <div>
-                        <p className="font-bold text-gray-900">{receipt.student_name}</p>
-                        <p className="text-xs text-gray-500">{receipt.course_title}</p>
+        {loading ? <p className="text-center text-gray-400">Loading...</p> : 
+         <>
+            {receipts.map(receipt => (
+                <div key={receipt.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="font-bold text-gray-900">{receipt.student_name}</p>
+                            <p className="text-xs text-gray-500">{receipt.course_title}</p>
+                        </div>
+                        <p className="font-bold text-lg text-green-600">₹{receipt.amount}</p>
                     </div>
-                    <p className="font-bold text-lg text-green-600">₹{receipt.amount}</p>
+                    <div className="flex justify-between items-center mt-3 border-t border-gray-50 pt-3">
+                        <div className="flex gap-2 items-center">
+                            <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded uppercase">{receipt.mode}</span>
+                            {receipt.locked && <Lock size={14} className="text-gray-400"/>}
+                        </div>
+                        <div className="flex gap-2">
+                            {!receipt.locked && (
+                                <button onClick={() => handleDelete(receipt.id)} className="text-red-500 p-1 hover:bg-red-50 rounded-full cursor-pointer">
+                                    <Trash2 size={18} />
+                                </button>
+                            )}
+                            <button onClick={() => handleDownload(receipt.id)} className="text-primary-600 p-1 bg-primary-50 rounded-full cursor-pointer hover:bg-primary-100">
+                                <Download size={18}/>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex justify-between items-center mt-3 border-t border-gray-50 pt-3">
-                    <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded uppercase">{receipt.mode}</span>
-                    <button onClick={() => handleDownload(receipt.id)} className="text-primary-600 p-1 bg-primary-50 rounded-full cursor-pointer">
-                        <Download size={18}/>
-                    </button>
-                </div>
-            </div>
-        ))}
+            ))}
+
+            {nextPage && (
+                <button 
+                    onClick={handleLoadMore} 
+                    disabled={loadingMore}
+                    className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                    {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                    Load More Receipts
+                </button>
+            )}
+         </>
+        }
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Collect Fees">

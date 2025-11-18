@@ -1,21 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { Award, Download } from 'lucide-react';
+import { Award, Download, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const StudentCertificatesPage = () => {
   const [certs, setCerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nextPage, setNextPage] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    api.get('/my-certificates/')
-      .then(res => setCerts(res.data.results || []))
-      .catch(() => toast.error("Failed to load certificates"))
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchCerts = async (url = '/my-certificates/') => {
+    try {
+      const res = await api.get(url);
+      if (url === '/my-certificates/') {
+        setCerts(res.data.results || []);
+      } else {
+        setCerts(prev => [...prev, ...(res.data.results || [])]);
+      }
+      setNextPage(res.data.next);
+    } catch (error) {
+      toast.error("Failed to load certificates");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => { fetchCerts(); }, []);
+
+  const handleLoadMore = () => {
+    if (nextPage) {
+      setLoadingMore(true);
+      fetchCerts(nextPage);
+    }
+  };
 
   const downloadCert = async (id, certNo) => {
-    const toastId = toast.loading("Downloading...");
     try {
         const response = await api.get(`/certificates/${id}/download/`, { responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -24,11 +44,7 @@ const StudentCertificatesPage = () => {
         link.setAttribute('download', `${certNo}.pdf`);
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
-        toast.success("Download complete", { id: toastId });
-    } catch (e) { 
-        toast.error("Download failed", { id: toastId }); 
-    }
+    } catch (e) { toast.error("Download failed"); }
   };
 
   return (
@@ -37,34 +53,47 @@ const StudentCertificatesPage = () => {
       
       {loading ? <p className="text-center text-gray-400">Loading...</p> : 
        certs.length === 0 ? <div className="text-center py-10 text-gray-400">No certificates earned yet.</div> : (
-         <div className="space-y-3">
-           {certs.map(cert => (
-             <div key={cert.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
-                {/* Decorative Background */}
-                <div className="absolute -right-6 -top-6 w-24 h-24 bg-yellow-50 rounded-full opacity-50"></div>
-                
-                <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="bg-yellow-100 text-yellow-700 p-2 rounded-xl"><Award size={24}/></div>
-                        <div>
-                            <h3 className="font-bold text-gray-900 leading-tight">{cert.course_title}</h3>
-                            <p className="text-xs text-gray-500">{cert.certificate_no}</p>
+         <>
+            <div className="space-y-3">
+            {certs.map(cert => (
+                <div key={cert.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                    {/* Decorative Background */}
+                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-yellow-50 rounded-full opacity-50"></div>
+                    
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="bg-yellow-100 text-yellow-700 p-2 rounded-xl"><Award size={24}/></div>
+                            <div>
+                                <h3 className="font-bold text-gray-900 leading-tight">{cert.course_title}</h3>
+                                <p className="text-xs text-gray-500">{cert.certificate_no}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-4 border-t border-gray-50 pt-3">
+                            <span className="text-xs text-gray-400">Issued: {cert.issue_date}</span>
+                            <button 
+                                onClick={() => downloadCert(cert.id, cert.certificate_no)}
+                                className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-xl hover:bg-gray-800 transition-colors"
+                            >
+                                <Download size={14} /> Download
+                            </button>
                         </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between mt-4 border-t border-gray-50 pt-3">
-                        <span className="text-xs text-gray-400">Issued: {cert.issue_date}</span>
-                        <button 
-                            onClick={() => downloadCert(cert.id, cert.certificate_no)}
-                            className="flex items-center gap-1.5 text-xs font-bold bg-gray-900 text-white px-3 py-2 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
-                        >
-                            <Download size={14} /> Download
-                        </button>
-                    </div>
                 </div>
-             </div>
-           ))}
-         </div>
+            ))}
+            </div>
+
+            {nextPage && (
+                <button 
+                    onClick={handleLoadMore} 
+                    disabled={loadingMore}
+                    className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                    {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                    Load More
+                </button>
+            )}
+         </>
        )}
     </div>
   );

@@ -18,15 +18,17 @@ const ResetPasswordPage = () => {
     
     setIsSubmitting(true);
     try {
+      // Matches backend SetNewPasswordSerializer
       await api.post('/auth/password-reset-confirm/', {
-        uidb64: uid,
-        token: token,
+        uidb64: uid, // Extracted from URL params
+        token: token, // Extracted from URL params
         new_password: password
       });
       toast.success("Password reset successful! Please login.");
       navigate('/login');
     } catch (error) {
-      toast.error("Invalid or expired link.");
+      toast.error(error.response?.data?.detail || "Invalid or expired link.");
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -68,7 +70,7 @@ const ResetPasswordPage = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-700 transition-all flex justify-center items-center disabled:opacity-70"
+            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-xl hover:bg-primary-700 transition-all flex justify-center items-center disabled:opacity-70 cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="animate-spin" /> : 'Reset Password'}
           </button>

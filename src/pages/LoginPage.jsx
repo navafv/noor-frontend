@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Scissors, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -11,7 +12,9 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username || !password) return;
+    
     setIsSubmitting(true);
+    // Login function in AuthContext handles toasts/errors internally
     await login(username, password);
     setIsSubmitting(false);
   };
@@ -36,6 +39,7 @@ const LoginPage = () => {
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all bg-gray-50"
               placeholder="Enter username"
+              required
             />
           </div>
 
@@ -47,6 +51,7 @@ const LoginPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all bg-gray-50"
               placeholder="••••••••"
+              required
             />
           </div>
 
@@ -58,6 +63,10 @@ const LoginPage = () => {
             {isSubmitting ? <Loader2 className="animate-spin" /> : 'Sign In'}
           </button>
         </form>
+        
+        <div className="mt-6 text-center">
+            <Link to="/forgot-password" class="text-sm text-gray-400 hover:text-primary-600">Forgot Password?</Link>
+        </div>
       </div>
     </div>
   );

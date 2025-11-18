@@ -30,6 +30,7 @@ import OutstandingFeesPage from './pages/OutstandingFeesPage';
 import FinanceAnalyticsPage from './pages/FinanceAnalyticsPage';
 import AttendanceStatsPage from './pages/AttendanceStatsPage';
 import AdminEnrollmentsPage from './pages/AdminEnrollmentsPage';
+import StaffListPage from './pages/StaffListPage'; // NEW
 
 // Student Pages
 import StudentDashboard from './pages/StudentDashboard';
@@ -51,10 +52,8 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
-        
         <Route path="/verify-certificate/:hash" element={<VerifyCertificatePage />} />
         <Route path="/verify" element={<VerifyCertificatePage />} />
-        
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
         <Route path="/" element={<RootRedirect />} />
@@ -82,6 +81,7 @@ function App() {
              <Route path="finance-stats" element={<ProtectedRoute staffOnly={true}><FinanceAnalyticsPage /></ProtectedRoute>} />
              <Route path="attendance-stats" element={<ProtectedRoute staffOnly={true}><AttendanceStatsPage /></ProtectedRoute>} />
              <Route path="enrollments" element={<ProtectedRoute staffOnly={true}><AdminEnrollmentsPage /></ProtectedRoute>} />
+             <Route path="staff" element={<ProtectedRoute staffOnly={true}><StaffListPage /></ProtectedRoute>} />
           </Route>
 
           {/* Student */}

@@ -1,27 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nextPage, setNextPage] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (url = '/notifications/') => {
     try {
-      const res = await api.get('/notifications/');
-      setNotifications(res.data.results || []);
+      const res = await api.get(url);
+      if (url === '/notifications/') {
+        setNotifications(res.data.results || []);
+      } else {
+        setNotifications(prev => [...prev, ...(res.data.results || [])]);
+      }
+      setNextPage(res.data.next);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => { fetchNotifications(); }, []);
 
+  const handleLoadMore = () => {
+      if (nextPage) {
+          setLoadingMore(true);
+          fetchNotifications(nextPage);
+      }
+  };
+
   const markAllRead = async () => {
-    // Optimistic update
     const previousState = [...notifications];
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     
@@ -29,7 +43,7 @@ const NotificationsPage = () => {
       await api.post('/notifications/mark_all_read/');
       toast.success("All marked as read");
     } catch (e) { 
-      setNotifications(previousState); // Revert on failure
+      setNotifications(previousState); 
       toast.error("Action failed"); 
     }
   };
@@ -60,22 +74,36 @@ const NotificationsPage = () => {
                 <p>No notifications</p>
             </div>
          ) : 
-         notifications.map(notif => (
-            <div 
-                key={notif.id} 
-                onClick={() => !notif.read && markOneRead(notif.id)}
-                className={`p-4 rounded-2xl border transition-all ${notif.read ? 'bg-white border-gray-100 text-gray-500' : 'bg-white border-primary-200 shadow-sm text-gray-900 cursor-pointer'}`}
-            >
-                <div className="flex gap-3">
-                    <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${notif.read ? 'bg-gray-200' : 'bg-primary-500'}`} />
-                    <div>
-                        <h3 className={`font-bold text-sm ${notif.read ? 'font-medium' : ''}`}>{notif.title}</h3>
-                        <p className="text-sm mt-1 opacity-90 leading-relaxed">{notif.message}</p>
-                        <p className="text-[10px] mt-2 opacity-50">{new Date(notif.created_at).toLocaleString()}</p>
+         <>
+            {notifications.map(notif => (
+                <div 
+                    key={notif.id} 
+                    onClick={() => !notif.read && markOneRead(notif.id)}
+                    className={`p-4 rounded-2xl border transition-all ${notif.read ? 'bg-white border-gray-100 text-gray-500' : 'bg-white border-primary-200 shadow-sm text-gray-900 cursor-pointer'}`}
+                >
+                    <div className="flex gap-3">
+                        <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${notif.read ? 'bg-gray-200' : 'bg-primary-500'}`} />
+                        <div>
+                            <h3 className={`font-bold text-sm ${notif.read ? 'font-medium' : ''}`}>{notif.title}</h3>
+                            <p className="text-sm mt-1 opacity-90 leading-relaxed">{notif.message}</p>
+                            <p className="text-[10px] mt-2 opacity-50">{new Date(notif.created_at).toLocaleString()}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        ))}
+            ))}
+
+            {nextPage && (
+                <button 
+                    onClick={handleLoadMore} 
+                    disabled={loadingMore}
+                    className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                    {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                    Load More
+                </button>
+            )}
+         </>
+        }
       </div>
     </div>
   );

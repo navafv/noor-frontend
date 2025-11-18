@@ -13,11 +13,14 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // Matches backend PasswordResetRequestSerializer
       await api.post('/auth/password-reset/', { email });
       setIsSent(true);
       toast.success("Reset link sent to your email");
     } catch (error) {
       toast.error(error.response?.data?.detail || "Failed to send link. Check email.");
+      // For security, sometimes it's better not to reveal if email exists, 
+      // but for this internal app, showing error is fine.
     } finally {
       setIsSubmitting(false);
     }
@@ -57,7 +60,7 @@ const ForgotPasswordPage = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gray-900 text-white font-semibold py-3.5 rounded-xl hover:bg-gray-800 transition-all flex justify-center items-center disabled:opacity-70"
+              className="w-full bg-gray-900 text-white font-semibold py-3.5 rounded-xl hover:bg-gray-800 transition-all flex justify-center items-center disabled:opacity-70 cursor-pointer"
             >
               {isSubmitting ? <Loader2 className="animate-spin" /> : 'Send Reset Link'}
             </button>
@@ -65,7 +68,7 @@ const ForgotPasswordPage = () => {
         ) : (
             <button
               onClick={() => setIsSent(false)}
-              className="w-full bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-xl hover:bg-gray-200 transition-all"
+              className="w-full bg-gray-100 text-gray-700 font-semibold py-3.5 rounded-xl hover:bg-gray-200 transition-all cursor-pointer"
             >
               Try another email
             </button>

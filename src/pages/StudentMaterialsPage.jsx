@@ -1,25 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { FileText, Download, ExternalLink } from 'lucide-react';
+import { FileText, Download, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const StudentMaterialsPage = () => {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nextPage, setNextPage] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
-  useEffect(() => {
-    const fetchMaterials = async () => {
-      try {
-        const res = await api.get('/my-materials/');
+  const fetchMaterials = async (url = '/my-materials/') => {
+    try {
+      const res = await api.get(url);
+      if (url === '/my-materials/') {
         setMaterials(res.data.results || []);
-      } catch (error) {
-        toast.error("Could not load materials");
-      } finally {
-        setLoading(false);
+      } else {
+        setMaterials(prev => [...prev, ...(res.data.results || [])]);
       }
-    };
-    fetchMaterials();
-  }, []);
+      setNextPage(res.data.next);
+    } catch (error) {
+      toast.error("Could not load materials");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => { fetchMaterials(); }, []);
+
+  const handleLoadMore = () => {
+    if (nextPage) {
+      setLoadingMore(true);
+      fetchMaterials(nextPage);
+    }
+  };
 
   const handleDownload = async (courseId, materialId, fileName) => {
     try {
@@ -49,38 +63,51 @@ const StudentMaterialsPage = () => {
             <p className="text-gray-500">No materials uploaded yet.</p>
          </div>
        ) : (
-         <div className="space-y-3">
-           {materials.map((item) => (
-             <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
-               <div className="bg-primary-50 p-3 rounded-xl text-primary-600 mt-1">
-                 <FileText size={24} />
-               </div>
-               <div className="flex-1">
-                 <h3 className="font-bold text-gray-900">{item.title}</h3>
-                 <p className="text-xs text-primary-600 font-medium mb-1">{item.course_title}</p>
-                 {item.description && <p className="text-sm text-gray-500 mb-3">{item.description}</p>}
-                 
-                 {item.link ? (
-                    <a 
-                      href={item.link} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg"
-                    >
-                      <ExternalLink size={14} /> Open Link
-                    </a>
-                 ) : (
-                    <button 
-                      onClick={() => handleDownload(item.course, item.id, item.title)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg cursor-pointer"
-                    >
-                      <Download size={14} /> Download File
-                    </button>
-                 )}
-               </div>
-             </div>
-           ))}
-         </div>
+         <>
+            <div className="space-y-3">
+            {materials.map((item) => (
+                <div key={item.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4">
+                <div className="bg-primary-50 p-3 rounded-xl text-primary-600 mt-1">
+                    <FileText size={24} />
+                </div>
+                <div className="flex-1">
+                    <h3 className="font-bold text-gray-900">{item.title}</h3>
+                    <p className="text-xs text-primary-600 font-medium mb-1">{item.course_title}</p>
+                    {item.description && <p className="text-sm text-gray-500 mb-3">{item.description}</p>}
+                    
+                    {item.link ? (
+                        <a 
+                        href={item.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg"
+                        >
+                        <ExternalLink size={14} /> Open Link
+                        </a>
+                    ) : (
+                        <button 
+                        onClick={() => handleDownload(item.course, item.id, item.title)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg cursor-pointer"
+                        >
+                        <Download size={14} /> Download File
+                        </button>
+                    )}
+                </div>
+                </div>
+            ))}
+            </div>
+
+            {nextPage && (
+                <button 
+                    onClick={handleLoadMore} 
+                    disabled={loadingMore}
+                    className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                    {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                    Load More Materials
+                </button>
+            )}
+         </>
        )}
     </div>
   );

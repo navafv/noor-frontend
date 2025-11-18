@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Calendar, TrendingDown, Trash2, Paperclip } from 'lucide-react';
+import { Plus, Calendar, TrendingDown, Trash2, Paperclip, Loader2 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
 const ExpenseManagementPage = () => {
   const [expenses, setExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [nextPage, setNextPage] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '', category: 'other', amount: '', date: new Date().toISOString().split('T')[0], description: ''
@@ -22,14 +24,29 @@ const ExpenseManagementPage = () => {
     { id: 'other', label: 'Other' },
   ];
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = async (url = '/finance/expenses/') => {
     try {
-      const res = await api.get('/finance/expenses/');
-      setExpenses(res.data.results || []);
-    } catch (error) { toast.error("Failed to load expenses"); } finally { setLoading(false); }
+      const res = await api.get(url);
+      if (url === '/finance/expenses/') {
+        setExpenses(res.data.results || []);
+      } else {
+        setExpenses(prev => [...prev, ...(res.data.results || [])]);
+      }
+      setNextPage(res.data.next);
+    } catch (error) { toast.error("Failed to load expenses"); } finally { 
+        setLoading(false);
+        setLoadingMore(false);
+    }
   };
 
   useEffect(() => { fetchExpenses(); }, []);
+
+  const handleLoadMore = () => {
+    if (nextPage) {
+      setLoadingMore(true);
+      fetchExpenses(nextPage);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,6 +64,15 @@ const ExpenseManagementPage = () => {
     } catch (error) { toast.error("Failed to save"); }
   };
 
+  const handleDelete = async (id) => {
+    if (!confirm("Delete this expense?")) return;
+    try {
+        await api.delete(`/finance/expenses/${id}/`);
+        toast.success("Expense deleted");
+        fetchExpenses(); // Refresh to ensure clean list
+    } catch (e) { toast.error("Failed to delete"); }
+  };
+
   return (
     <div className="space-y-4 pb-20">
       <div className="flex justify-between items-center mb-2">
@@ -57,27 +83,45 @@ const ExpenseManagementPage = () => {
       </div>
 
       <div className="space-y-3">
-        {loading ? <p className="text-center text-gray-400">Loading...</p> : expenses.map(expense => (
-            <div key={expense.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start">
-                    <div className="flex items-start gap-3">
-                        <div className="bg-red-50 text-red-600 p-2 rounded-xl"><TrendingDown size={20}/></div>
-                        <div>
-                            <p className="font-bold text-gray-900">{expense.title}</p>
-                            <p className="text-xs text-gray-500 uppercase tracking-wider">{expense.category}</p>
+        {loading ? <p className="text-center text-gray-400">Loading...</p> : 
+         <>
+            {expenses.map(expense => (
+                <div key={expense.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 relative">
+                    <div className="flex justify-between items-start pr-8">
+                        <div className="flex items-start gap-3">
+                            <div className="bg-red-50 text-red-600 p-2 rounded-xl"><TrendingDown size={20}/></div>
+                            <div>
+                                <p className="font-bold text-gray-900">{expense.title}</p>
+                                <p className="text-xs text-gray-500 uppercase tracking-wider">{expense.category}</p>
+                            </div>
+                        </div>
+                        <p className="font-bold text-lg text-red-600">-₹{expense.amount}</p>
+                    </div>
+                    {expense.description && <p className="text-sm text-gray-500 mt-2 ml-12 bg-gray-50 p-2 rounded-lg">{expense.description}</p>}
+                    <div className="flex justify-between items-center mt-3 border-t border-gray-50 pt-2 ml-12">
+                        <div className="flex items-center gap-1 text-xs text-gray-400"><Calendar size={12} />{expense.date}</div>
+                        <div className="flex gap-2">
+                            {expense.receipt_image && <a href={expense.receipt_image} target="_blank" rel="noopener noreferrer" className="text-blue-500"><Paperclip size={16}/></a>}
                         </div>
                     </div>
-                    <p className="font-bold text-lg text-red-600">-₹{expense.amount}</p>
+                    <button onClick={() => handleDelete(expense.id)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 cursor-pointer p-1">
+                        <Trash2 size={18} />
+                    </button>
                 </div>
-                {expense.description && <p className="text-sm text-gray-500 mt-2 ml-12 bg-gray-50 p-2 rounded-lg">{expense.description}</p>}
-                <div className="flex justify-between items-center mt-3 border-t border-gray-50 pt-2 ml-12">
-                    <div className="flex items-center gap-1 text-xs text-gray-400"><Calendar size={12} />{expense.date}</div>
-                    <div className="flex gap-2">
-                        {expense.receipt_image && <a href={expense.receipt_image} target="_blank" rel="noopener noreferrer" className="text-blue-500"><Paperclip size={16}/></a>}
-                    </div>
-                </div>
-            </div>
-        ))}
+            ))}
+
+            {nextPage && (
+                <button 
+                    onClick={handleLoadMore} 
+                    disabled={loadingMore}
+                    className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
+                >
+                    {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                    Load More Expenses
+                </button>
+            )}
+         </>
+        }
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Expense">

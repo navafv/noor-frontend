@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, FileText, ChevronRight, TrendingDown, AlertCircle, BarChart2, Users } from 'lucide-react';
+import { LogOut, FileText, ChevronRight, TrendingDown, AlertCircle, BarChart2, Users, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AdminMenuPage = () => {
@@ -36,12 +36,13 @@ const AdminMenuPage = () => {
         <MenuLink icon={BarChart2} label="Finance Overview" to="/admin/finance-stats" color="text-green-600" bgColor="bg-green-50" />
         <MenuLink icon={Users} label="Attendance Stats" to="/admin/attendance-stats" color="text-blue-600" bgColor="bg-blue-50" />
 
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1 mt-6">Finance</h3>
+        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1 mt-6">Management</h3>
+        <MenuLink icon={Shield} label="Staff Management" to="/admin/staff" color="text-purple-600" bgColor="bg-purple-50" />
         <MenuLink icon={TrendingDown} label="Manage Expenses" to="/admin/expenses" color="text-red-600" bgColor="bg-red-50" />
         <MenuLink icon={AlertCircle} label="Outstanding Fees" to="/admin/outstanding" color="text-orange-600" bgColor="bg-orange-50" />
 
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1 mt-6">Academic</h3>
-        <MenuLink icon={FileText} label="Course Materials" to="/admin/materials" color="text-purple-600" bgColor="bg-purple-50" />
+        <MenuLink icon={FileText} label="Course Materials" to="/admin/materials" color="text-indigo-600" bgColor="bg-indigo-50" />
         <MenuLink icon={FileText} label="Certificates" to="/admin/certificates" color="text-yellow-600" bgColor="bg-yellow-50" />
       </div>
 

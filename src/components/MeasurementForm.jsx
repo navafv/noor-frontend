@@ -1,11 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
 
-const MeasurementForm = ({ studentId, onSuccess }) => {
+const MeasurementForm = ({ studentId, measurementId, initialData, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     neck: '', chest: '', waist: '', hips: '', sleeve_length: '', inseam: '', notes: ''
   });
+
+  // Load initial data if editing
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        neck: initialData.neck || '',
+        chest: initialData.chest || '',
+        waist: initialData.waist || '',
+        hips: initialData.hips || '',
+        sleeve_length: initialData.sleeve_length || '',
+        inseam: initialData.inseam || '',
+        notes: initialData.notes || ''
+      });
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -16,13 +31,21 @@ const MeasurementForm = ({ studentId, onSuccess }) => {
     });
 
     try {
-      await api.post(`/students/${studentId}/measurements/`, payload);
-      toast.success("Measurements saved");
-      setFormData({ neck: '', chest: '', waist: '', hips: '', sleeve_length: '', inseam: '', notes: '' }); // Reset form
+      if (measurementId) {
+        // Update Mode
+        await api.patch(`/students/${studentId}/measurements/${measurementId}/`, payload);
+        toast.success("Measurement updated");
+      } else {
+        // Create Mode
+        await api.post(`/students/${studentId}/measurements/`, payload);
+        toast.success("Measurement saved");
+        setFormData({ neck: '', chest: '', waist: '', hips: '', sleeve_length: '', inseam: '', notes: '' });
+      }
+      
       if (onSuccess) onSuccess();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to save measurements");
+      toast.error("Failed to save");
     }
   };
 
@@ -41,7 +64,17 @@ const MeasurementForm = ({ studentId, onSuccess }) => {
         <input type="number" step="0.01" name="inseam" placeholder="Inseam (in)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.inseam} onChange={handleChange} />
       </div>
       <textarea name="notes" placeholder="Additional Notes..." className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.notes} onChange={handleChange} />
-      <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer hover:bg-primary-700">Save Measurements</button>
+      
+      <div className="flex gap-2">
+        {onCancel && (
+            <button type="button" onClick={onCancel} className="flex-1 bg-gray-100 text-gray-600 py-3 rounded-xl font-semibold cursor-pointer hover:bg-gray-200">
+                Cancel
+            </button>
+        )}
+        <button type="submit" className="flex-1 bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg cursor-pointer hover:bg-primary-700">
+            {measurementId ? 'Update' : 'Save'}
+        </button>
+      </div>
     </form>
   );
 };
