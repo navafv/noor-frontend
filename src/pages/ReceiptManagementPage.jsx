@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Download, Trash2, Lock, Loader2 } from 'lucide-react';
+import { Plus, Download, Trash2, Lock, Loader2, Calendar } from 'lucide-react';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
@@ -13,7 +13,16 @@ const ReceiptManagementPage = () => {
   
   const [students, setStudents] = useState([]);
   const [courses, setCourses] = useState([]);
-  const [formData, setFormData] = useState({ student: '', course: '', amount: '', mode: 'cash', remarks: '' });
+  
+  // FIXED: Added 'date' field initialized to today
+  const [formData, setFormData] = useState({ 
+    student: '', 
+    course: '', 
+    amount: '', 
+    mode: 'cash', 
+    date: new Date().toISOString().split('T')[0],
+    remarks: '' 
+  });
 
   const fetchReceipts = async (url = '/finance/receipts/') => {
     try {
@@ -64,10 +73,19 @@ const ReceiptManagementPage = () => {
           await api.post('/finance/receipts/', formData);
           toast.success('Receipt created');
           setIsModalOpen(false);
-          fetchReceipts(); // Refresh list
-          setFormData({ student: '', course: '', amount: '', mode: 'cash', remarks: '' });
+          fetchReceipts(); 
+          // Reset form
+          setFormData({ 
+              student: '', 
+              course: '', 
+              amount: '', 
+              mode: 'cash', 
+              date: new Date().toISOString().split('T')[0],
+              remarks: '' 
+          });
       } catch (error) {
-          toast.error('Failed to create receipt');
+          console.error(error);
+          toast.error('Failed to create receipt. Check inputs.');
       }
   };
 
@@ -114,6 +132,9 @@ const ReceiptManagementPage = () => {
                         <div>
                             <p className="font-bold text-gray-900">{receipt.student_name}</p>
                             <p className="text-xs text-gray-500">{receipt.course_title}</p>
+                            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                                <Calendar size={10} /> {receipt.date}
+                            </p>
                         </div>
                         <p className="font-bold text-lg text-green-600">₹{receipt.amount}</p>
                     </div>
@@ -162,13 +183,19 @@ const ReceiptManagementPage = () => {
                 {courses.map(e => <option key={e.course_id} value={e.course_id}>{e.course_title}</option>)}
             </select>
 
-            <input type="number" placeholder="Amount (₹)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required />
+            {/* FIXED: Added Date Input */}
+            <div className="grid grid-cols-2 gap-4">
+                <input type="number" placeholder="Amount (₹)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required />
+                <input type="date" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} required />
+            </div>
             
             <select className="w-full p-3 rounded-xl border border-gray-200 bg-white outline-none" value={formData.mode} onChange={e => setFormData({...formData, mode: e.target.value})}>
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
                 <option value="bank_transfer">Bank Transfer</option>
             </select>
+
+            <textarea placeholder="Remarks (Optional)" className="w-full p-3 rounded-xl border border-gray-200 outline-none" value={formData.remarks} onChange={e => setFormData({...formData, remarks: e.target.value})} />
 
             <button type="submit" className="w-full bg-primary-600 text-white py-3 rounded-xl font-semibold shadow-lg mt-2 cursor-pointer hover:bg-primary-700">Create Receipt</button>
         </form>
