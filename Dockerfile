@@ -15,6 +15,10 @@ RUN npm install
 # Copy the rest of the source code
 COPY . .
 
+# Add ARGs for build time variables
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build the app
 # The API URL will be injected at runtime by NGINX
 RUN npm run build

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Plus, Download, Trash2, Lock, Loader2, Calendar } from 'lucide-react';
+import { Plus, Download, Trash2, Lock, Loader2, Calendar, MessageCircle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
 
@@ -114,6 +114,32 @@ const ReceiptManagementPage = () => {
       }
   }
 
+  const handleWhatsAppShare = (receipt) => {
+    if (!receipt.public_id) {
+      toast.error("Public ID missing for this receipt.");
+      return;
+    }
+
+    // Use VITE_BACKEND_URL from env
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin.replace(':5173', ':8000'); 
+    
+    // Public Download Link
+    const publicLink = `${backendUrl}/api/v1/finance/receipts/public/${receipt.public_id}/`;
+
+    const message = `
+*Noor Stitching Institute - Fee Receipt*
+------------------------
+*Student:* ${receipt.student_name}
+*Amount:* ₹${receipt.amount}
+*Course:* ${receipt.course_title}
+------------------------
+*Download Receipt:* ${publicLink}
+    `.trim();
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   return (
     <div className="space-y-4 pb-20">
       <div className="flex justify-between items-center mb-2">
@@ -144,14 +170,26 @@ const ReceiptManagementPage = () => {
                             {receipt.locked && <Lock size={14} className="text-gray-400"/>}
                         </div>
                         <div className="flex gap-2">
+                            {/* WhatsApp Button */}
+                            <button 
+                                onClick={() => handleWhatsAppShare(receipt)} 
+                                className="text-green-600 p-2 bg-green-50 rounded-full cursor-pointer hover:bg-green-100 transition-colors"
+                                title="Send via WhatsApp"
+                            >
+                                <MessageCircle size={18} />
+                            </button>
+
+                            {/* Download Button */}
+                            <button onClick={() => handleDownload(receipt.id)} className="text-primary-600 p-2 bg-primary-50 rounded-full cursor-pointer hover:bg-primary-100">
+                                <Download size={18}/>
+                            </button>
+                            
+                            {/* Delete Button */}
                             {!receipt.locked && (
-                                <button onClick={() => handleDelete(receipt.id)} className="text-red-500 p-1 hover:bg-red-50 rounded-full cursor-pointer">
+                                <button onClick={() => handleDelete(receipt.id)} className="text-red-500 p-2 hover:bg-red-50 rounded-full cursor-pointer">
                                     <Trash2 size={18} />
                                 </button>
                             )}
-                            <button onClick={() => handleDownload(receipt.id)} className="text-primary-600 p-1 bg-primary-50 rounded-full cursor-pointer hover:bg-primary-100">
-                                <Download size={18}/>
-                            </button>
                         </div>
                     </div>
                 </div>
