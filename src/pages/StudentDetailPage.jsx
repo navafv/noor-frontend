@@ -262,7 +262,13 @@ const StudentDetailPage = () => {
               {/* Photo Upload */}
               <div className="flex justify-center mb-4">
                   <div className="relative w-20 h-20">
-                      <img src={photoPreview || student.photo} className="w-full h-full rounded-full object-cover border border-gray-200" alt="Profile" />
+                      {(photoPreview || student.photo) ? (
+                        <img src={photoPreview || student.photo} className="w-full h-full rounded-full object-cover border border-gray-200" alt="Profile" />
+                      ) : (
+                        <div className="w-full h-full rounded-full bg-primary-100 flex items-center justify-center text-primary-600 text-2xl font-bold">
+                          {editData.first_name?.[0] || 'S'}
+                        </div>
+                      )}
                       <label className="absolute bottom-0 right-0 bg-gray-900 text-white p-1.5 rounded-full cursor-pointer shadow-md">
                           <Camera size={12} />
                           <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSelect} />

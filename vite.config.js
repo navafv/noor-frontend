@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      injectRegister: 'script',
       manifestFilename: 'manifest.json', // Use existing manifest filename
       manifest: false, // Tell plugin to use the existing manifest.json in /public
       workbox: {
