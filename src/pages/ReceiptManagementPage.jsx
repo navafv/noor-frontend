@@ -120,11 +120,13 @@ const ReceiptManagementPage = () => {
       return;
     }
 
+    const frontendBaseUrl = window.location.origin;
+
     // Use VITE_BACKEND_URL from env
     const backendUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin.replace(':5173', ':8000'); 
     
     // Public Download Link
-    const publicLink = `${backendUrl}/api/v1/finance/receipts/public/${receipt.public_id}/`;
+    const publicLink = `${frontendBaseUrl}/api/v1/finance/receipts/public/${receipt.public_id}/`;
 
     const message = `
 *Noor Stitching Institute - Fee Receipt*
