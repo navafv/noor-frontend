@@ -4,6 +4,7 @@ import { Plus, Search, ChevronRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
+import { ListSkeleton } from '../components/Skeleton';
 
 const StudentListPage = () => {
   const [students, setStudents] = useState([]);
@@ -126,42 +127,46 @@ const StudentListPage = () => {
       </div>
 
       <div className="space-y-3 pb-20">
-        {loading ? <div className="text-center text-gray-400 py-10">Loading...</div> : 
-         filteredStudents.length === 0 ? <div className="text-center text-gray-400 py-10">No students found</div> :
-         <>
-            {filteredStudents.map((student) => (
-            <Link to={`/admin/students/${student.id}`} key={student.id} className="block bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:scale-[0.99] transition-transform">
-                <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold text-lg overflow-hidden border-2 border-white shadow-sm">
-                        {student.photo ? (
-                            <img src={student.photo} className="w-full h-full object-cover" alt="" />
-                        ) : (
-                            student.user?.first_name?.[0] || 'S'
-                        )}
+        {loading ? (
+          <ListSkeleton count={6} /> 
+        ) : filteredStudents.length === 0 ? (
+              <div className="text-center text-gray-400 py-10">No students found</div>
+            ) : (
+              <>
+                {filteredStudents.map((student) => (
+                  <Link to={`/admin/students/${student.id}`} key={student.id} className="block bg-white p-4 rounded-2xl shadow-sm border border-gray-100 active:scale-[0.99] transition-transform">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold text-lg overflow-hidden border-2 border-white shadow-sm">
+                              {student.photo ? (
+                                  <img src={student.photo} className="w-full h-full object-cover" alt="" />
+                              ) : (
+                                  student.user?.first_name?.[0] || 'S'
+                              )}
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">{student.user?.first_name} {student.user?.last_name}</h3>
+                            <p className="text-xs text-gray-500">{student.reg_no || 'Pending Reg'}</p>
+                          </div>
+                      </div>
+                      <ChevronRight className="text-gray-300" />
                     </div>
-                    <div>
-                    <h3 className="font-bold text-gray-900">{student.user?.first_name} {student.user?.last_name}</h3>
-                    <p className="text-xs text-gray-500">{student.reg_no || 'Pending Reg'}</p>
-                    </div>
-                </div>
-                <ChevronRight className="text-gray-300" />
-                </div>
-            </Link>
-            ))}
-            
-            {nextPage && !search && (
-                <button 
-                    onClick={handleLoadMore} 
-                    disabled={loadingMore}
-                    className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
-                >
-                    {loadingMore && <Loader2 size={16} className="animate-spin" />}
-                    Load More Students
-                </button>
-            )}
-         </>
-        }
+                  </Link>
+                ))}
+                
+                {nextPage && !search && (
+                    <button 
+                        onClick={handleLoadMore} 
+                        disabled={loadingMore}
+                        className="w-full py-3 text-sm font-semibold text-primary-600 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 flex justify-center items-center gap-2 disabled:opacity-50"
+                    >
+                        {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                        Load More Students
+                    </button>
+                )}
+              </>
+            )
+          }
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Student">

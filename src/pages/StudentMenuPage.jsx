@@ -19,6 +19,27 @@ const StudentMenuPage = () => {
     </Link>
   );
 
+  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    });
+  };
+
   return (
     <div className="space-y-6 pb-20">
       {/* Profile Header */}
@@ -68,6 +89,12 @@ const StudentMenuPage = () => {
             </div>
         </div>
       </div>
+
+      {deferredPrompt && (
+        <button onClick={handleInstallClick} className="w-full bg-gray-900 text-white p-4 rounded-2xl font-bold mt-4 flex items-center justify-center gap-2">
+          <Smartphone size={20} /> Install App to Home Screen
+        </button>
+      )}
 
       <button onClick={logout} className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors cursor-pointer">
         <LogOut size={20} /> Sign Out

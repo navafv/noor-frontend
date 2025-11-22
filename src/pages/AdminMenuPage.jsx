@@ -1,10 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, FileText, ChevronRight, TrendingDown, AlertCircle, BarChart2, Users, Shield } from 'lucide-react';
+import { LogOut, FileText, ChevronRight, TrendingDown, AlertCircle, BarChart2, Users, Shield, Database, Download, Smartphone } from 'lucide-react'; // Added Database icon
 import { Link } from 'react-router-dom';
+import api from '../services/api';
+import { toast } from 'react-hot-toast';
 
 const AdminMenuPage = () => {
   const { user, logout } = useAuth();
+  const [backingUp, setBackingUp] = useState(false);
+
+  const handleBackup = async () => {
+    setBackingUp(true);
+    const toastId = toast.loading("Generating system backup...");
+    try {
+        const response = await api.get('/system/backup/', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `noor_backup_${new Date().toISOString().split('T')[0]}.json.gz`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Backup downloaded", { id: toastId });
+    } catch (e) {
+        toast.error("Backup failed", { id: toastId });
+    } finally {
+        setBackingUp(false);
+    }
+  };
 
   const MenuLink = ({ icon: Icon, label, to, color = "text-gray-600", bgColor = "bg-gray-50" }) => (
     <Link to={to} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm active:scale-[0.98] transition-transform">
@@ -17,6 +40,27 @@ const AdminMenuPage = () => {
       <ChevronRight size={20} className="text-gray-300" />
     </Link>
   );
+
+  const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+
+  React.useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      if (choiceResult.outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    });
+  };
 
   return (
     <div className="space-y-6 pb-20">
@@ -46,9 +90,32 @@ const AdminMenuPage = () => {
         <MenuLink icon={FileText} label="Certificates" to="/admin/certificates" color="text-yellow-600" bgColor="bg-yellow-50" />
       </div>
 
+      {deferredPrompt && (
+        <button onClick={handleInstallClick} className="w-full bg-gray-900 text-white p-4 rounded-2xl font-bold mt-4 flex items-center justify-center gap-2">
+          <Smartphone size={20} /> Install App to Home Screen
+        </button>
+      )}
+
+      {/* NEW SECTION: System Tools */}
+      <div className="mt-8">
+          <button 
+            onClick={handleBackup}
+            disabled={backingUp}
+            className="w-full flex items-center justify-between p-4 bg-gray-900 text-white rounded-2xl shadow-lg active:scale-[0.98] transition-transform cursor-pointer disabled:opacity-70"
+          >
+            <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white/10">
+                    <Database size={20} />
+                </div>
+                <span className="font-medium">Download Database Backup</span>
+            </div>
+            <Download size={20} className="text-gray-400" />
+          </button>
+      </div>
+
       <button 
         onClick={logout}
-        className="w-full flex items-center justify-center gap-2 p-4 bg-gray-100 text-gray-600 rounded-2xl font-semibold hover:bg-gray-200 transition-colors mt-8 cursor-pointer"
+        className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl font-semibold hover:bg-red-100 transition-colors mt-4 cursor-pointer"
       >
         <LogOut size={20} />
         Sign Out

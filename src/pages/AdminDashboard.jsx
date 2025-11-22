@@ -24,7 +24,6 @@ const AdminDashboard = () => {
           courses: coursesRes.data.count || 0,
           revenue: financeRes.data.summary.month_revenue || 0
         });
-        // Take last 4 months for a mini chart
         setChartData((financeRes.data.chart_data || []).slice(0, 4).reverse());
       } catch (error) {
         console.error("Failed to load stats", error);
@@ -41,7 +40,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
@@ -57,13 +55,11 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-2 gap-4">
         <DashboardCard title="Active Students" value={loading ? "-" : stats.students} icon={Users} to="/admin/students" />
         <DashboardCard title="Active Courses" value={loading ? "-" : stats.courses} icon={BookOpen} to="/admin/courses" />
       </div>
 
-      {/* Revenue Mini-Chart Card */}
       <div className="bg-linear-to-br from-gray-900 to-gray-800 p-5 rounded-3xl shadow-lg text-white relative overflow-hidden">
          <div className="relative z-10 flex justify-between items-end mb-4">
             <div>
@@ -73,18 +69,19 @@ const AdminDashboard = () => {
             <div className="bg-white/10 p-2 rounded-xl"><Wallet size={24}/></div>
          </div>
          
-         {/* Tiny Bar Chart */}
-         <div className="h-24 w-full opacity-50">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                    <Bar dataKey="revenue" fill="#ffffff" radius={[4, 4, 4, 4]} />
-                </BarChart>
-            </ResponsiveContainer>
-         </div>
+         {/* FIX: Only render chart if data exists to prevent width/height warnings */}
+         {chartData.length > 0 && (
+             <div className="h-24 w-full opacity-50">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                        <Bar dataKey="revenue" fill="#ffffff"HZ radius={[4, 4, 4, 4]} />
+                    </BarChart>
+                </ResponsiveContainer>
+             </div>
+         )}
          <Link to="/admin/finance-stats" className="absolute inset-0 z-20" aria-label="View Finance Stats"></Link>
       </div>
 
-      {/* Quick Links */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800 mb-3">Management</h3>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
