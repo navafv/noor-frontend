@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, FileText, ChevronRight, TrendingDown, AlertCircle, BarChart2, Users, Shield, Database, Download, Smartphone } from 'lucide-react'; // Added Database icon
+import { LogOut, FileText, ChevronRight, TrendingDown, AlertCircle, BarChart2, Users, Shield, Database, Download, Smartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -86,7 +86,6 @@ const AdminMenuPage = () => {
         <MenuLink icon={AlertCircle} label="Outstanding Fees" to="/admin/outstanding" color="text-orange-600" bgColor="bg-orange-50" />
 
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1 mt-6">Academic</h3>
-        <MenuLink icon={FileText} label="Course Materials" to="/admin/materials" color="text-indigo-600" bgColor="bg-indigo-50" />
         <MenuLink icon={FileText} label="Certificates" to="/admin/certificates" color="text-yellow-600" bgColor="bg-yellow-50" />
       </div>
 
@@ -96,7 +95,6 @@ const AdminMenuPage = () => {
         </button>
       )}
 
-      {/* NEW SECTION: System Tools */}
       <div className="mt-8">
           <button 
             onClick={handleBackup}

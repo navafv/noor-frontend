@@ -3,6 +3,7 @@ import api from '../services/api';
 import { Plus, Download, Trash2, Lock, Loader2, Calendar, MessageCircle } from 'lucide-react';
 import Modal from '../components/Modal';
 import { toast } from 'react-hot-toast';
+import { downloadFile } from '../utils/downloadHelper';
 
 const ReceiptManagementPage = () => {
   const [receipts, setReceipts] = useState([]);
@@ -181,9 +182,15 @@ const ReceiptManagementPage = () => {
                                 <MessageCircle size={18} />
                             </button>
 
-                            {/* Download Button */}
-                            <button onClick={() => handleDownload(receipt.id)} className="text-primary-600 p-2 bg-primary-50 rounded-full cursor-pointer hover:bg-primary-100">
-                                <Download size={18}/>
+                            <button
+                                onClick={() => downloadFile(
+                                    `/finance/receipts/${receipt.id}/download/`, 
+                                    `${receipt.receipt_no}.pdf`
+                                )}
+                                className="text-primary-600 p-2 bg-primary-50 rounded-full cursor-pointer hover:bg-primary-100"
+                                title="Download PDF"
+                            >
+                                <Download className="w-4 h-4" />
                             </button>
                             
                             {/* Delete Button */}

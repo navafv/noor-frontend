@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Phone, User, MapPin, Award, Calendar, Bell, ChevronRight, Clock } from 'lucide-react';
+import { LogOut, Phone, User, MapPin, Award, Bell, ChevronRight, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const StudentMenuPage = () => {
@@ -44,7 +44,6 @@ const StudentMenuPage = () => {
     <div className="space-y-6 pb-20">
       {/* Profile Header */}
       <div className="flex flex-col items-center text-center p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
-        {/* Fallback character if first_name is empty */}
         <div className="w-24 h-24 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-4xl font-bold mb-4">
           {user?.first_name?.[0] || 'S'}
         </div>
@@ -60,7 +59,6 @@ const StudentMenuPage = () => {
         <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider ml-1">Institute</h3>
         <MenuLink icon={Clock} label="My Attendance" to="/student/attendance" color="text-orange-600" bgColor="bg-orange-50" />
         <MenuLink icon={Award} label="My Certificates" to="/student/certificates" color="text-yellow-600" bgColor="bg-yellow-50" />
-        <MenuLink icon={Calendar} label="Events & Holidays" to="/events" color="text-blue-600" bgColor="bg-blue-50" />
         <MenuLink icon={Bell} label="Notifications" to="/notifications" color="text-purple-600" bgColor="bg-purple-50" />
       </div>
 

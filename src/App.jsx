@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 import AppLayout from './layouts/AppLayout';
@@ -7,8 +7,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 
 // Import Pages
-import HomePage from './pages/HomePage'; // Now just the Landing Page
-import LoginPage from './pages/LoginPage'; // Separate Login Page
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
 import VerifyCertificatePage from './pages/VerifyCertificatePage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
@@ -21,7 +21,6 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import CourseManagementPage from './pages/CourseManagementPage';
 import ReceiptManagementPage from './pages/ReceiptManagementPage';
 import AdminMenuPage from './pages/AdminMenuPage';
-import AdminCourseMaterialsPage from './pages/AdminCourseMaterialsPage';
 import AttendancePage from './pages/AttendancePage';
 import CertificateManagementPage from './pages/CertificateManagementPage';
 import AccountSettings from './pages/AccountSettings';
@@ -34,21 +33,20 @@ import StaffListPage from './pages/StaffListPage';
 
 // Student Pages
 import StudentDashboard from './pages/StudentDashboard';
-import StudentMaterialsPage from './pages/StudentMaterialsPage';
 import StudentFinancePage from './pages/StudentFinancePage';
 import StudentMenuPage from './pages/StudentMenuPage';
 import StudentCertificatesPage from './pages/StudentCertificatesPage';
 import StudentAttendancePage from './pages/StudentAttendancePage';
 
 // Common
-import EventsPage from './pages/EventsPage';
 import NotificationsPage from './pages/NotificationsPage';
 
 // URL Scrubber: Keeps the browser URL clean (at '/')
 const UrlScrubber = () => {
   useEffect(() => {
-    if (window.location.pathname !== '/') {
-      window.history.replaceState(null, '', '/');
+    if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/verify')) {
+      // We allow verify paths to remain so direct links work
+      // window.history.replaceState(null, '', '/');
     }
   }, []);
   return null;
@@ -63,9 +61,12 @@ function App() {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<RootRedirect />} />
-        <Route path="/login" element={<LoginPage />} /> {/* <--- Added Back */}
+        <Route path="/login" element={<LoginPage />} />
+        
+        {/* Verification Routes - Matches Backend PDF Link */}
         <Route path="/verify-certificate/:hash" element={<VerifyCertificatePage />} />
         <Route path="/verify" element={<VerifyCertificatePage />} />
+        
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password/:uid/:token" element={<ResetPasswordPage />} />
         <Route path="/download-app" element={<DownloadAppPage />} />
@@ -73,7 +74,6 @@ function App() {
         {/* Protected Routes */}
         <Route element={<AppLayout />}>
           <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
-          <Route path="/events" element={<ProtectedRoute><EventsPage /></ProtectedRoute>} />
 
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<ProtectedRoute staffOnly={true}><AdminDashboard /></ProtectedRoute>} />
@@ -83,7 +83,6 @@ function App() {
           <Route path="/admin/finance" element={<ProtectedRoute staffOnly={true}><ReceiptManagementPage /></ProtectedRoute>} />
           <Route path="/admin/attendance" element={<ProtectedRoute staffOnly={true}><AttendancePage /></ProtectedRoute>} />
           <Route path="/admin/certificates" element={<ProtectedRoute staffOnly={true}><CertificateManagementPage /></ProtectedRoute>} />
-          <Route path="/admin/materials" element={<ProtectedRoute staffOnly={true}><AdminCourseMaterialsPage /></ProtectedRoute>} />
           <Route path="/admin/menu" element={<ProtectedRoute staffOnly={true}><AdminMenuPage /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute staffOnly={true}><AccountSettings /></ProtectedRoute>} />
           <Route path="/admin/expenses" element={<ProtectedRoute staffOnly={true}><ExpenseManagementPage /></ProtectedRoute>} />
@@ -95,7 +94,6 @@ function App() {
 
           {/* Student Routes */}
           <Route path="/student/home" element={<ProtectedRoute studentOnly={true}><StudentDashboard /></ProtectedRoute>} />
-          <Route path="/student/materials" element={<ProtectedRoute studentOnly={true}><StudentMaterialsPage /></ProtectedRoute>} />
           <Route path="/student/finance" element={<ProtectedRoute studentOnly={true}><StudentFinancePage /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute studentOnly={true}><StudentMenuPage /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute studentOnly={true}><AccountSettings /></ProtectedRoute>} />

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
 import DashboardCard from '../components/DashboardCard';
-import { Users, BookOpen, Wallet, Plus, UserPlus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Users, BookOpen, Wallet, Plus, UserPlus, Bell } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ students: 0, courses: 0, revenue: 0 });
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +39,15 @@ const AdminDashboard = () => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount || 0);
   };
 
+  const quickActions = [
+    {
+      title: 'Send Alert',
+      icon: Bell,
+      color: 'bg-red-500',
+      path: '/admin/notifications/send'
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -58,6 +68,21 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-2 gap-4">
         <DashboardCard title="Active Students" value={loading ? "-" : stats.students} icon={Users} to="/admin/students" />
         <DashboardCard title="Active Courses" value={loading ? "-" : stats.courses} icon={BookOpen} to="/admin/courses" />
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        {quickActions.map((action, index) => (
+          <button
+            key={index}
+            onClick={() => navigate(action.path)}
+            className="p-4 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col items-center justify-center gap-3 group"
+          >
+            <div className={`p-3 rounded-full ${action.color} bg-opacity-10 group-hover:bg-opacity-20 transition-all`}>
+              <action.icon className={`w-6 h-6 ${action.color.replace('bg-', 'text-')}`} />
+            </div>
+            <span className="font-semibold text-gray-700">{action.title}</span>
+          </button>
+        ))}
       </div>
 
       <div className="bg-linear-to-br from-gray-900 to-gray-800 p-5 rounded-3xl shadow-lg text-white relative overflow-hidden">

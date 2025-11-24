@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Users, BookOpen, Wallet, User, Scissors } from 'lucide-react';
+import { Home, Users, Wallet, User, Scissors } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const BottomNav = () => {
@@ -17,7 +17,6 @@ const BottomNav = () => {
 
   const studentLinks = [
     { to: "/student/home", icon: Home, label: "Home" },
-    { to: "/student/materials", icon: BookOpen, label: "Learn" },
     { to: "/student/finance", icon: Wallet, label: "Fees" },
     { to: "/student/profile", icon: User, label: "Profile" },
   ];
