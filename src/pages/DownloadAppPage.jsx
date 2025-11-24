@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Smartphone, Download, CheckCircle, ArrowLeft, Shield, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DownloadAppPage = () => {
-  // Helper to get a readable date (or just hardcode it like "Nov 25, 2025")
-  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-
   const appDetails = [
     { label: "Version", value: "1.0.0" },
-    { label: "Size", value: "53 MB" }, // Updated to 70MB as requested
-    { label: "Requires", value: "Android 8.0+" }, // Check minSdkVersion in flutter android/app/build.gradle
-    { label: "Updated", value: "Nov 24, 2025" }, // Shows today's date, or change to a fixed string like "Nov 24, 2025"
+    { label: "Size", value: "53 MB" }, 
+    { label: "Requires", value: "Android 8.0+" }, 
+    { label: "Updated", value: "Nov 24, 2025" }, 
   ];
 
   return (

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import api from '../services/api';
-import { Receipt, Download, Calendar } from 'lucide-react';
+import { Receipt, Download, Calendar, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const StudentFinancePage = () => {
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   useEffect(() => {
     const fetchReceipts = async () => {
@@ -14,6 +15,7 @@ const StudentFinancePage = () => {
         setReceipts(res.data.results || []);
       } catch (error) {
         console.error(error);
+        toast.error("Could not load fee history");
       } finally {
         setLoading(false);
       }
@@ -22,6 +24,7 @@ const StudentFinancePage = () => {
   }, []);
 
   const downloadReceipt = async (id) => {
+    setDownloadingId(id);
     try {
       const response = await api.get(`/finance/receipts/${id}/download/`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -30,19 +33,23 @@ const StudentFinancePage = () => {
       link.setAttribute('download', `Receipt_${id}.pdf`);
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link); // Cleanup
+      toast.success("Download started");
     } catch (e) {
-      toast.error("Download failed");
+      toast.error("Download failed. Please contact admin.");
+    } finally {
+      setDownloadingId(null);
     }
   };
 
   return (
     <div className="space-y-4 pb-20">
       <h2 className="text-2xl font-bold text-gray-900 mb-4">Fee History</h2>
-      {loading ? <p className="text-center text-gray-400">Loading...</p> : 
+      {loading ? <div className="text-center py-10"><Loader2 className="animate-spin text-primary-600 mx-auto"/></div> : 
        receipts.length === 0 ? <div className="text-center py-10 text-gray-400">No receipts found.</div> : (
          <div className="space-y-3">
            {receipts.map((receipt) => (
-             <div key={receipt.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+             <div key={receipt.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden transition-shadow hover:shadow-md">
                <div className="absolute -right-4 -top-4 w-16 h-16 bg-green-50 rounded-full" />
                <div className="flex justify-between items-start relative z-10">
                  <div>
@@ -54,8 +61,13 @@ const StudentFinancePage = () => {
                </div>
                <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-50">
                  <div className="flex items-center gap-1 text-xs text-gray-400"><Calendar size={12} />{receipt.date}</div>
-                 <button onClick={() => downloadReceipt(receipt.id)} className="flex items-center gap-1 text-xs font-bold text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100 cursor-pointer">
-                   <Download size={14} /> PDF
+                 <button 
+                    onClick={() => downloadReceipt(receipt.id)} 
+                    disabled={downloadingId === receipt.id}
+                    className="flex items-center gap-1 text-xs font-bold text-primary-600 bg-primary-50 px-3 py-1.5 rounded-lg hover:bg-primary-100 cursor-pointer disabled:opacity-50"
+                 >
+                   {downloadingId === receipt.id ? <Loader2 size={14} className="animate-spin"/> : <Download size={14} />} 
+                   PDF
                  </button>
                </div>
              </div>

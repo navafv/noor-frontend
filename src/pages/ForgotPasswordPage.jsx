@@ -18,9 +18,9 @@ const ForgotPasswordPage = () => {
       setIsSent(true);
       toast.success("Reset link sent to your email");
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed to send link. Check email.");
-      // For security, sometimes it's better not to reveal if email exists, 
-      // but for this internal app, showing error is fine.
+      // Show backend error if available, else generic
+      const msg = error.response?.data?.detail || error.response?.data?.email?.[0] || "Failed to send link.";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

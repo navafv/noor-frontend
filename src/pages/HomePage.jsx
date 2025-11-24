@@ -1,8 +1,17 @@
 import React from 'react';
-import { Scissors, ShieldCheck, ArrowRight, Smartphone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Scissors, ShieldCheck, ArrowRight, Smartphone, LayoutDashboard, LogOut } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col relative overflow-hidden items-center justify-center">
       {/* Background Blobs */}
@@ -23,12 +32,50 @@ const HomePage = () => {
         </p>
 
         <div className="w-full max-w-xs space-y-4">
-          <Link 
-            to="/login" 
-            className="w-full bg-gray-900 text-white font-semibold py-4 rounded-2xl shadow-lg hover:bg-gray-800 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
-          >
-            Student / Staff Login <ArrowRight size={18}/>
-          </Link>
+          
+          {/* Conditional Rendering based on Auth Status */}
+          {!user ? (
+            // NOT LOGGED IN
+            <Link 
+              to="/login" 
+              className="w-full bg-gray-900 text-white font-semibold py-4 rounded-2xl shadow-lg hover:bg-gray-800 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              Student / Staff Login <ArrowRight size={18}/>
+            </Link>
+          ) : (
+            // LOGGED IN
+            <>
+              <div className="bg-primary-50 p-4 rounded-2xl border border-primary-100 mb-2">
+                <p className="text-primary-800 text-sm font-medium mb-1">Welcome back,</p>
+                <p className="text-gray-900 font-bold text-lg">{user.first_name || user.username}</p>
+              </div>
+
+              {user.is_staff ? (
+                // ADMIN LINK
+                <Link 
+                  to="/admin/dashboard" 
+                  className="w-full bg-primary-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:bg-primary-700 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard size={20} /> Go to Admin Dashboard
+                </Link>
+              ) : (
+                // STUDENT LINK
+                <Link 
+                  to="/student/home" 
+                  className="w-full bg-primary-600 text-white font-semibold py-4 rounded-2xl shadow-lg hover:bg-primary-700 transition-transform active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <LayoutDashboard size={20} /> Go to Student Portal
+                </Link>
+              )}
+              
+              <button 
+                onClick={handleLogout}
+                className="w-full bg-white text-red-500 border border-red-100 font-semibold py-3 rounded-2xl hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+              >
+                <LogOut size={18} /> Logout
+              </button>
+            </>
+          )}
           
           <Link 
             to="/verify" 
@@ -37,8 +84,9 @@ const HomePage = () => {
             <ShieldCheck size={18} /> Verify Certificate
           </Link>
 
+          {/* Updated link to point to /download route */}
           <Link 
-            to="/download-app" 
+            to="/download" 
             className="mt-6 text-sm text-primary-600 font-medium hover:text-primary-700 flex items-center justify-center gap-1 py-2"
           >
             <Smartphone size={16} /> Download Mobile App

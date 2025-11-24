@@ -5,7 +5,7 @@ import { Lock, User, Camera, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const AccountSettings = () => {
-  const { user: authUser } = useAuth(); // Get initial user from context
+  const { user: authUser } = useAuth(); 
   const [activeTab, setActiveTab] = useState('profile');
   const [loading, setLoading] = useState(false);
   
@@ -28,7 +28,6 @@ const AccountSettings = () => {
         phone: authUser.phone || '',
         address: authUser.address || '',
       });
-      // Note: Backend usually sends full URL for photo in student_details if it exists
       if (authUser.student_details?.photo) {
         setPreviewUrl(authUser.student_details.photo);
       }
@@ -57,17 +56,23 @@ const AccountSettings = () => {
       }
 
       toast.success("Profile updated successfully");
-      // Ideally reload window or re-fetch auth context here
+      
+      // Force reload to update global state/UI (Navbar avatar, etc.)
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
     } catch (error) {
+      console.error(error);
       toast.error("Failed to update profile");
-    } finally {
-      setLoading(false);
+      setLoading(false); // Only stop loading on error, on success we reload
     }
   };
 
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) return toast.error("Passwords do not match");
+    if (passwords.new.length < 8) return toast.error("Password must be at least 8 characters");
 
     setLoading(true);
     try {
@@ -75,10 +80,10 @@ const AccountSettings = () => {
         old_password: passwords.old,
         new_password: passwords.new
       });
-      toast.success("Password changed");
+      toast.success("Password changed successfully");
       setPasswords({ old: '', new: '', confirm: '' });
     } catch (error) {
-      toast.error(error.response?.data?.detail || "Failed");
+      toast.error(error.response?.data?.detail || error.response?.data?.old_password?.[0] || "Failed to update password");
     } finally {
       setLoading(false);
     }
@@ -117,10 +122,10 @@ const AccountSettings = () => {
         
         {activeTab === 'profile' ? (
             <form onSubmit={handleProfileUpdate} className="space-y-5">
-                {/* Photo Upload (Only for students usually, but available logic is there) */}
+                {/* Photo Upload */}
                 {!authUser.is_staff && (
                     <div className="flex flex-col items-center mb-6">
-                        <div className="relative w-24 h-24 mb-2">
+                        <div className="relative w-24 h-24 mb-2 group">
                             {previewUrl ? (
                                 <img src={previewUrl} alt="Profile" className="w-full h-full rounded-full object-cover border-4 border-primary-50" />
                             ) : (
@@ -128,7 +133,7 @@ const AccountSettings = () => {
                                     <User size={40} />
                                 </div>
                             )}
-                            <label className="absolute bottom-0 right-0 bg-gray-900 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-gray-800 transition-colors">
+                            <label className="absolute bottom-0 right-0 bg-gray-900 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-gray-800 transition-colors z-10">
                                 <Camera size={16} />
                                 <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
                             </label>
@@ -140,25 +145,25 @@ const AccountSettings = () => {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase">First Name</label>
-                        <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={profile.first_name} onChange={e => setProfile({...profile, first_name: e.target.value})} />
+                        <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={profile.first_name} onChange={e => setProfile({...profile, first_name: e.target.value})} />
                     </div>
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase">Last Name</label>
-                        <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={profile.last_name} onChange={e => setProfile({...profile, last_name: e.target.value})} />
+                        <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={profile.last_name} onChange={e => setProfile({...profile, last_name: e.target.value})} />
                     </div>
                 </div>
 
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Phone</label>
-                    <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} />
+                    <input className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} />
                 </div>
                 
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Address</label>
-                    <textarea rows="2" className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} />
+                    <textarea rows="2" className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} />
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full bg-primary-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-primary-700 transition-all flex justify-center">
+                <button type="submit" disabled={loading} className="w-full bg-primary-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-primary-700 transition-all flex justify-center cursor-pointer">
                     {loading ? <Loader2 className="animate-spin"/> : 'Save Changes'}
                 </button>
             </form>
@@ -167,20 +172,20 @@ const AccountSettings = () => {
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Current Password</label>
                     <div className="relative">
-                        <input type="password" required className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={passwords.old} onChange={e => setPasswords({...passwords, old: e.target.value})} />
+                        <input type="password" required className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={passwords.old} onChange={e => setPasswords({...passwords, old: e.target.value})} />
                         <Lock size={18} className="absolute right-3 top-4 text-gray-400" />
                     </div>
                 </div>
                 <div className="pt-2 border-t border-gray-100"></div>
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">New Password</label>
-                    <input type="password" required className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} />
+                    <input type="password" required className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} />
                 </div>
                 <div>
                     <label className="text-xs font-bold text-gray-500 uppercase">Confirm New Password</label>
-                    <input type="password" required className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} />
+                    <input type="password" required className="w-full p-3 mt-1 rounded-xl border border-gray-200 outline-none focus:border-primary-500 transition-all" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} />
                 </div>
-                <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all flex justify-center">
+                <button type="submit" disabled={loading} className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-gray-800 transition-all flex justify-center cursor-pointer">
                     {loading ? <Loader2 className="animate-spin"/> : 'Update Password'}
                 </button>
             </form>
